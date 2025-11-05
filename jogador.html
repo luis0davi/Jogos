@@ -257,36 +257,7 @@ function renderLeaderboard(list){
 
   
 /* show question locally (corrida individual) */
-function showQuestionLocal(qIdx){
-  const q = questions[qIdx];
-  if(!q){
-    // sem mais perguntas
-    document.getElementById('questionArea').style.display = 'none';
-    document.getElementById('waiting').style.display = 'none';
-    document.getElementById('endArea').style.display = 'block';
-    return;
-  }
-  // render
-  document.getElementById('waiting').style.display = 'none';
-  document.getElementById('endArea').style.display = 'none';
-  document.getElementById('questionArea').style.display = 'block';
-  document.getElementById('qTitle').innerText = `Pergunta ${qIdx+1}: ${q.q}`;
-  const choicesDiv = document.getElementById('qChoices');
-  choicesDiv.innerHTML = '';
-  document.getElementById('feedbackMsg').innerText = '';
-  // start timer for this local question
-  questionStartAt = Date.now();
-  q.choices.forEach((c,i)=>{
-    const btn = document.createElement('button');
-    btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}`;
-    btn.onclick = () => handleChoiceClick(btn, qIdx, i);
-    choicesDiv.appendChild(btn);
-  });
-  // start/update small countdown visual (client-side)
-  if(window.qTimer) clearInterval(window.qTimer);
-  window.qTimer = setInterval(()=> updateTimeLeft(questionStartAt), 250);
-  updateTimeLeft(questionStartAt);
-}
+
 
 
   
@@ -400,6 +371,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

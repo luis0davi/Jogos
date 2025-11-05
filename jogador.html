@@ -217,7 +217,6 @@ function renderLeaderboard(list){
 }
 
 
-  
 
   function showQuestionLocal(qIdx){
   const q = questions[qIdx];
@@ -256,9 +255,56 @@ function renderLeaderboard(list){
 
 
   
+
+  
 /* show question locally (corrida individual) */
 
+async function handleTimeout(){
+  // protege caso já tenha respondido
+  const qIdx = currentQ;
+  if(!Number.isInteger(qIdx)) return;
+  if(answeredFor[qIdx]) return;
 
+  // desabilita botões
+  const choiceButtons = document.querySelectorAll('#qChoices button');
+  choiceButtons.forEach(b => b.disabled = true);
+
+  // marca como respondido (erro por timeout)
+  answeredFor[qIdx] = true;
+
+  // tempo gasto e timeLeft para regras: timeSpent = QUESTION_TIME_LIMIT *1000 (aproximado)
+  const timeSpent = QUESTION_TIME_LIMIT * 1000;
+  const timeLeft = 0; // por definição
+
+  // regras: se errou e timeLeft entre 20..15 (R) => punição; aqui timeLeft=0 => não se aplica
+  const correct = 0;
+  const pontos = 0; // comportamento: timeout = erro sem penalidade especial
+
+  // envia para o servidor (registra o timeout como resposta errada)
+  try{
+    await api({
+      action: 'submit',
+      nome: playerName,
+      qIdx: qIdx,
+      acertos: correct,
+      tempo: timeSpent,
+      pontos: pontos
+    });
+  }catch(err){
+    console.error('Erro ao submeter timeout:', err);
+  }
+
+  document.getElementById('feedbackMsg').innerText = 'Tempo esgotado — resposta não registrada (erro).';
+  // Avança para próxima após pequena pausa
+  setTimeout(()=>{
+    currentQ = qIdx + 1;
+    showQuestionLocal(currentQ);
+    refreshRanking();
+  }, 800);
+}
+
+
+  
 
   
 

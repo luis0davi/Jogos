@@ -192,7 +192,7 @@ async function refreshRanking(){
   try{
     const data = await api({action:'leaderboard'});
     const lb = (data && data.leaderboard) ? data.leaderboard : [];
-    renderLeaderboard(lb.slice(0,10));
+    renderLeaderboard(lb.slice(0,5));
   }catch(err){
     console.error(err);
   }
@@ -216,17 +216,16 @@ function renderLeaderboard(list){
   box.innerHTML = html;
 }
 
-
-
-  function showQuestionLocal(qIdx){
+/* show question locally (corrida individual) */
+function showQuestionLocal(qIdx){
   const q = questions[qIdx];
   if(!q){
+    // sem mais perguntas
     document.getElementById('questionArea').style.display = 'none';
     document.getElementById('waiting').style.display = 'none';
     document.getElementById('endArea').style.display = 'block';
     return;
   }
-
   // render
   document.getElementById('waiting').style.display = 'none';
   document.getElementById('endArea').style.display = 'none';
@@ -235,162 +234,68 @@ function renderLeaderboard(list){
   const choicesDiv = document.getElementById('qChoices');
   choicesDiv.innerHTML = '';
   document.getElementById('feedbackMsg').innerText = '';
-
-  // start timer for this local question (preciso que seja Date.now no início)
+  // start timer for this local question
   questionStartAt = Date.now();
-
   q.choices.forEach((c,i)=>{
     const btn = document.createElement('button');
     btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}`;
     btn.onclick = () => handleChoiceClick(btn, qIdx, i);
     choicesDiv.appendChild(btn);
   });
-
-  // limpa timers antigos
-  if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
-  // atualiza a contagem imediatamente e a cada 200ms
-  updateTimeLeft(); 
-  window.qTimer = setInterval(updateTimeLeft, 200);
+  // start/update small countdown visual (client-side)
+  if(window.qTimer) clearInterval(window.qTimer);
+  window.qTimer = setInterval(()=> updateTimeLeft(questionStartAt), 250);
+  updateTimeLeft(questionStartAt);
 }
-
-
-  
-
-  
-/* show question locally (corrida individual) */
-
-async function handleTimeout(){
-  // protege caso já tenha respondido
-  const qIdx = currentQ;
-  if(!Number.isInteger(qIdx)) return;
-  if(answeredFor[qIdx]) return;
-
-  // desabilita botões
-  const choiceButtons = document.querySelectorAll('#qChoices button');
-  choiceButtons.forEach(b => b.disabled = true);
-
-  // marca como respondido (erro por timeout)
-  answeredFor[qIdx] = true;
-
-  // tempo gasto e timeLeft para regras: timeSpent = QUESTION_TIME_LIMIT *1000 (aproximado)
-  const timeSpent = QUESTION_TIME_LIMIT * 1000;
-  const timeLeft = 0; // por definição
-
-  // regras: se errou e timeLeft entre 20..15 (R) => punição; aqui timeLeft=0 => não se aplica
-  const correct = 0;
-  const pontos = 0; // comportamento: timeout = erro sem penalidade especial
-
-  // envia para o servidor (registra o timeout como resposta errada)
-  try{
-    await api({
-      action: 'submit',
-      nome: playerName,
-      qIdx: qIdx,
-      acertos: correct,
-      tempo: timeSpent,
-      pontos: pontos
-    });
-  }catch(err){
-    console.error('Erro ao submeter timeout:', err);
-  }
-
-  document.getElementById('feedbackMsg').innerText = 'Tempo esgotado — resposta não registrada (erro).';
-  // Avança para próxima após pequena pausa
-  setTimeout(()=>{
-    currentQ = qIdx + 1;
-    showQuestionLocal(currentQ);
-    refreshRanking();
-  }, 800);
-}
-
-
-  
-
-  
 
 /* when player clicks a choice */
 async function handleChoiceClick(btn, qIdx, choiceIdx){
-  // desabilita todas opções imediatamente
+  // disable all buttons immediately
   const choiceButtons = document.querySelectorAll('#qChoices button');
   choiceButtons.forEach(b=> b.disabled = true);
-
-  // computa tempo exato
+  // compute times & correctness
   const at = Date.now();
-  const timeSpent = Math.max(0, at - questionStartAt);        // ms
-  const timeSpentSec = timeSpent / 1000;                     // s
-  // tempo restante em segundos (com fração)
-  const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec);
-
+  const timeSpent = Math.max(0, at - questionStartAt);
   const q = questions[qIdx];
   const correct = (choiceIdx === q.answer) ? 1 : 0;
-  let pontos = 0;
-
-  if(correct){
-    // ACERTO
-    // timeLeft === 0 (praticamente) pode ocorrer por demora; consideramos <= 0.0001 como zero
-    if(timeLeft <= 0){
-        pontos = 1 * 0.5;
-    } else if(timeLeft > 10){
-        pontos = 1 * 1.5;
-    } else {
-        pontos = 1;
-    }
-  } else {
-    // ERRO
-    // regra R: se timeRestante entre 20 e 15 => punição -2
-    // como o timer é 20..0, timeLeft é número entre 20 e 0
-    if(timeLeft >= 15 && timeLeft <= 20){
-        pontos = -0.5;
-    } else {
-        pontos = 0;
-    }
-  }
-
-  // feedback visual (mantém seu estilo)
+  const timeSpentSec = timeSpent / 1000;
+  const bonus = Math.floor(Math.max(0, (QUESTION_TIME_LIMIT - timeSpentSec)) * 0.1);
+  const pts = correct ? (1 + bonus) : 0;
+  // color feedback
+  // mark clicked red/green and reveal correct
   choiceButtons.forEach((b, idx)=>{
     if(idx === choiceIdx){
       b.style.borderColor = correct ? 'rgba(46,204,113,0.9)' : 'rgba(231,76,60,0.9)';
       b.style.background = correct ? 'linear-gradient(90deg, rgba(46,204,113,0.12), rgba(46,204,113,0.06))' : 'linear-gradient(90deg, rgba(231,76,60,0.08), rgba(231,76,60,0.03))';
       b.style.boxShadow = '0 8px 20px rgba(0,0,0,0.05)';
     }
+    // highlight correct choice
     if(idx === q.answer){
       b.style.borderColor = 'rgba(46,204,113,0.9)';
       b.style.background = 'linear-gradient(90deg, rgba(46,204,113,0.06), rgba(46,204,113,0.02))';
     }
   });
-
-  // envia resultado
+  // send to server (fire-and-forget with await)
   try{
-    await api({
-      action:'submit',
-      nome: playerName,
-      qIdx: qIdx,
-      acertos: correct,
-      tempo: timeSpent,
-      pontos: pontos
-    });
+    await api({action:'submit', nome: playerName, qIdx: qIdx, acertos: correct, tempo: timeSpent, pontos: pts});
   }catch(err){
     console.error('Erro ao submeter resposta:', err);
   }
-
+  // mark locally as answered
   answeredFor[qIdx] = true;
-  // mostra no feedback (formatação simples)
-  document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pontos} pts` : (pontos < 0 ? `Errou (${pontos} pts)` : 'Errou (0 pts)');
-
-  // stop timer
-  if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
-
-  // avança após pequena pausa
+  // small feedback text
+  document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pts} pts` : 'Errou (0 pts)';
+  // immediately advance to next question after short delay (smooth UX)
   setTimeout(()=> {
     currentQ = qIdx + 1;
+    // stop timer
+    if(window.qTimer) { clearInterval(window.qTimer); window.qTimer = null; }
+    // show next local question
     showQuestionLocal(currentQ);
+    // refresh ranking immediately
     refreshRanking();
   }, 650);
 }
-
-  
-
-
 
 /* countdown visual */
 function updateTimeLeft(startAt){
@@ -417,8 +322,3 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
-
-
-
-
-

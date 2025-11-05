@@ -250,12 +250,15 @@ function showQuestionLocal(qIdx){
 
 /* when player clicks a choice */
 async function handleChoiceClick(btn, qIdx, choiceIdx){
+  // desabilita todas opções imediatamente
   const choiceButtons = document.querySelectorAll('#qChoices button');
   choiceButtons.forEach(b=> b.disabled = true);
 
+  // computa tempo exato
   const at = Date.now();
-  const timeSpent = Math.max(0, at - questionStartAt);
-  const timeSpentSec = timeSpent / 1000;
+  const timeSpent = Math.max(0, at - questionStartAt);        // ms
+  const timeSpentSec = timeSpent / 1000;                     // s
+  // tempo restante em segundos (com fração)
   const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec);
 
   const q = questions[qIdx];
@@ -263,7 +266,9 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   let pontos = 0;
 
   if(correct){
-    if(timeLeft === 0){
+    // ACERTO
+    // timeLeft === 0 (praticamente) pode ocorrer por demora; consideramos <= 0.0001 como zero
+    if(timeLeft <= 0){
         pontos = 1 * 0.5;
     } else if(timeLeft > 10){
         pontos = 1 * 1.5;
@@ -271,27 +276,30 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
         pontos = 1;
     }
   } else {
-    if(timeLeft >=15 && timeLeft <=20){
+    // ERRO
+    // regra R: se timeRestante entre 20 e 15 => punição -2
+    // como o timer é 20..0, timeLeft é número entre 20 e 0
+    if(timeLeft >= 15 && timeLeft <= 20){
         pontos = -2;
     } else {
         pontos = 0;
     }
   }
 
-  // visual feedback
+  // feedback visual (mantém seu estilo)
   choiceButtons.forEach((b, idx)=>{
     if(idx === choiceIdx){
       b.style.borderColor = correct ? 'rgba(46,204,113,0.9)' : 'rgba(231,76,60,0.9)';
       b.style.background = correct ? 'linear-gradient(90deg, rgba(46,204,113,0.12), rgba(46,204,113,0.06))' : 'linear-gradient(90deg, rgba(231,76,60,0.08), rgba(231,76,60,0.03))';
       b.style.boxShadow = '0 8px 20px rgba(0,0,0,0.05)';
     }
-    // highlight correct choice
     if(idx === q.answer){
       b.style.borderColor = 'rgba(46,204,113,0.9)';
       b.style.background = 'linear-gradient(90deg, rgba(46,204,113,0.06), rgba(46,204,113,0.02))';
     }
   });
 
+  // envia resultado
   try{
     await api({
       action:'submit',
@@ -306,15 +314,20 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   }
 
   answeredFor[qIdx] = true;
-  document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pontos} pts` : `Errou (${pontos} pts)`;
+  // mostra no feedback (formatação simples)
+  document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pontos} pts` : (pontos < 0 ? `Errou (${pontos} pts)` : 'Errou (0 pts)');
 
+  // stop timer
+  if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
+
+  // avança após pequena pausa
   setTimeout(()=> {
     currentQ = qIdx + 1;
-    if(window.qTimer) { clearInterval(window.qTimer); window.qTimer = null; }
     showQuestionLocal(currentQ);
     refreshRanking();
   }, 650);
 }
+
 
 
 /* countdown visual */
@@ -342,4 +355,5 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 

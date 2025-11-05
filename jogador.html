@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jogador — Quiz NR-18</title>
+<style>
+ body{font-family:Arial;margin:16px;background:#f6f7fb}
+ .card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.06);max-width:720px;margin:auto}
+ input,button{padding:8px;border-radius:8px;border:1px solid #ddd}
+ button{background:#0b63ff;color:#fff;border:0;cursor:pointer}
+ .small{color:#666;font-size:13px}
+ .answers button{display:block;margin:8px 0;padding:10px;border-radius:6px;border:1px solid #ddd;background:#fafafa}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>Quiz NR-18 — Jogador</h2>
+    <div id="stepName">
+      <div class="small">Digite seu nome (ou escolha uma sugestão abaixo) — obrigatoriamente antes de iniciar</div>
+      <input id="playerName" placeholder="Seu nome" style="width:60%"/>
+      <button id="btnReg">Registrar</button>
+      <div style="margin-top:8px;">
+        <button onclick="document.getElementById('playerName').value='Equipe A'">Equipe A</button>
+        <button onclick="document.getElementById('playerName').value='Equipe B'">Equipe B</button>
+        <button onclick="document.getElementById('playerName').value='Participante'">Participante</button>
+      </div>
+    </div>
+
+    <div id="waiting" style="display:none;margin-top:12px">
+      <div class="small">Aguardando administrador iniciar o jogo...</div>
+      <div style="margin-top:8px">Seu nome: <strong id="showName"></strong></div>
+    </div>
+
+    <div id="questionArea" style="display:none;margin-top:12px">
+      <div><strong id="qTitle"></strong></div>
+      <div id="qChoices" class="answers"></div>
+      <div class="small" id="timeLeft"></div>
+    </div>
+
+    <div id="endArea" style="display:none;margin-top:12px">
+      <div><strong>Jogo finalizado</strong></div>
+      <div class="small">Aguarde o resultado no painel do administrador.</div>
+    </div>
+  </div>
+
+<script>
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
+const pollMs = 1200;
+let playerName = null;
+let answeredFor = {}; // qIdx -> true
+let currentQIdx = -1;
+let questionStartAt = null;
+let questionTimeLimit = 20; // segundos (o admin define ao criar, aqui usamos 20 default)
+
+// perguntas (15 NR-18)
+const questions = [
+  { q: "Qual o objetivo principal da NR-18?", choices: ["Regulamentar o uso de EPIs","Estabelecer diretrizes de segurança para a indústria da construção","Definir normas de transporte rodoviário","Normatizar uso de produtos químicos"], answer: 1 },
+  { q: "Quem é responsável por elaborar o PCMAT?", choices:["O empregador/contratante","O empregado","O sindicato","O cliente da obra"], answer: 0 },
+  { q: "A NR-18 exige projeto de proteção coletiva para andaimes. Verdadeiro ou falso?", choices:["Verdadeiro","Falso","Apenas para andaimes móveis","Apenas para andaimes fixos"], answer: 0 },
+  { q: "Medida exigida para movimentação de materiais em altura?", choices:["Uso de escadas domésticas","Transporte manual sem proteção","Plataformas e dispositivos específicos","Somente força humana"], answer: 2 },
+  { q: "O responsável deve garantir alimentação e descanso para trabalhadores?", choices:["Sim","Não","Apenas em obras grandes","Apenas em regiões urbanas"], answer: 0 },
+  { q: "A NR-18 trata de prevenção de incêndio na obra?", choices:["Sim","Não","Somente industrial","Apenas dormitórios"], answer: 0 },
+  { q: "Instalações elétricas provisórias requerem proteção adequada?", choices:["Sim","Não","Apenas em obra grande","Somente >220V"], answer: 0 },
+  { q: "A comunicação de riscos e sinalização é exigida?", choices:["Sim","Não","Apenas para riscos químicos","Apenas quando houver acidente"], answer: 0 },
+  { q: "A NR-18 exige proteção contra quedas para trabalhos em altura?", choices:["Verdadeiro","Falso","Apenas para alturas > 5m","Apenas com andaimes"], answer: 0 },
+  { q: "Alojamentos devem possuir condições higiênicas e sanitárias?", choices:["Sim","Não","Apenas para estrangeiros","Somente em canteiros isolados"], answer: 0 },
+  { q: "Formação e treinamento dos trabalhadores é exigida?", choices:["Sim","Não","Apenas para supervisores","Apenas para operadores"], answer: 0 },
+  { q: "NR-18 aborda medidas para escavações?", choices:["Sim","Não","Somente >2m","Apenas solo instável"], answer: 0 },
+  { q: "O uso de EPI substitui medidas coletivas?", choices:["Não, coletivas priorizadas","Sim, EPI basta","Apenas se custo for alto","Somente quando autorizado"], answer: 0 },
+  { q: "Áreas de circulação devem ser protegidas e sinalizadas?", choices:["Sim","Não","Apenas >50 trabalhadores","Somente se houver veículos"], answer: 0 },
+  { q: "PCMAT é exigido para obras com quantos trabalhadores (NR-18)?", choices:["Obras com 20 trabalhadores ou mais","Obras com 50 trabalhadores ou mais","Todas as obras","Apenas obras públicas"], answer: 0 }
+];
+
+function api(params){
+  const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
+  return fetch(url).then(r=>r.json());
+}
+
+document.getElementById('btnReg').addEventListener('click', async ()=>{
+  const v = document.getElementById('playerName').value.trim();
+  if(!v) return alert('Digite um nome');
+  playerName = v;
+  // registra no servidor
+  await api({action:'register', nome: playerName});
+  document.getElementById('showName').innerText = playerName;
+  document.getElementById('stepName').style.display = 'none';
+  document.getElementById('waiting').style.display = 'block';
+  startPolling();
+});
+
+// polling do estado do jogo
+let pollTimer = null;
+function startPolling(){
+  pollTimer = setInterval(async ()=>{
+    try{
+      const state = await api({action:'state_get'});
+      if(!state || !state.status || state.status === 'waiting'){
+        // aguardando admin
+        document.getElementById('waiting').style.display = 'block';
+        document.getElementById('questionArea').style.display = 'none';
+        return;
+      }
+      if(state.status === 'live'){
+        // mostra pergunta correspondente ao questionIndex
+        const qIdx = state.questionIndex || 0;
+        // se já respondeu esta pergunta, automaticamente irá para próxima (local)
+        if(answeredFor[qIdx]){
+          // nothing (we wait server to advance)
+          document.getElementById('waiting').style.display = 'block';
+          document.getElementById('questionArea').style.display = 'none';
+        } else {
+          // show question
+          showQuestion(qIdx, state.questionStartAt);
+        }
+      } else if(state.status === 'finished'){
+        document.getElementById('waiting').style.display = 'none';
+        document.getElementById('questionArea').style.display = 'none';
+        document.getElementById('endArea').style.display = 'block';
+        clearInterval(pollTimer);
+      }
+    }catch(err){
+      console.error(err);
+    }
+  }, pollMs);
+}
+
+function showQuestion(qIdx, startAtMs){
+  currentQIdx = qIdx;
+  questionStartAt = startAtMs || Date.now();
+  const q = questions[qIdx];
+  if(!q) return;
+  document.getElementById('waiting').style.display = 'none';
+  document.getElementById('endArea').style.display = 'none';
+  document.getElementById('questionArea').style.display = 'block';
+  document.getElementById('qTitle').innerText = 'Pergunta ' + (qIdx+1) + ': ' + q.q;
+  const choicesDiv = document.getElementById('qChoices');
+  choicesDiv.innerHTML = '';
+  q.choices.forEach((c,i)=>{
+    const btn = document.createElement('button');
+    btn.innerText = String.fromCharCode(65+i) + '. ' + c;
+    btn.onclick = async ()=>{
+      // trava: não pode mudar nem pular
+      // calcula tempo
+      const at = Date.now();
+      const timeSpent = Math.max(0, at - questionStartAt);
+      // calcula acerto
+      const correct = (i === q.answer) ? 1 : 0;
+      // fórmula de pontos (opção C): 1 + floor((timeLimit - timeSpentSec)*0.1)
+      const timeSpentSec = timeSpent/1000;
+      const bonus = Math.floor(Math.max(0, (questionTimeLimit - timeSpentSec)) * 0.1);
+      const pts = correct ? (1 + bonus) : 0;
+      // enviar submeter
+      await api({action:'submit', nome: playerName, qIdx: qIdx, acertos: correct, tempo: timeSpent, pontos: pts});
+      answeredFor[qIdx] = true;
+      // mostrar feedback simples
+      alert('Resposta enviada! ' + (correct ? 'Acertou +'+pts+'pts' : 'Errou (0 pts)'));
+      // exibir aguardando enquanto o admin / servidor avança
+      document.getElementById('questionArea').style.display = 'none';
+      document.getElementById('waiting').style.display = 'block';
+    };
+    choicesDiv.appendChild(btn);
+  });
+  // countdown visual simples
+  updateTimeLeft();
+  if(window.qTimer) clearInterval(window.qTimer);
+  window.qTimer = setInterval(updateTimeLeft, 300);
+  function updateTimeLeft(){
+    const left = Math.max(0, Math.round((questionStartAt + questionTimeLimit*1000 - Date.now())/1000));
+    document.getElementById('timeLeft').innerText = 'Tempo restante: ' + left + 's';
+    if(left <= 0){
+      clearInterval(window.qTimer);
+    }
+  }
+}
+</script>
+</body>
+</html>

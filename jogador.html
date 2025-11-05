@@ -216,6 +216,46 @@ function renderLeaderboard(list){
   box.innerHTML = html;
 }
 
+
+  
+
+  function showQuestionLocal(qIdx){
+  const q = questions[qIdx];
+  if(!q){
+    document.getElementById('questionArea').style.display = 'none';
+    document.getElementById('waiting').style.display = 'none';
+    document.getElementById('endArea').style.display = 'block';
+    return;
+  }
+
+  // render
+  document.getElementById('waiting').style.display = 'none';
+  document.getElementById('endArea').style.display = 'none';
+  document.getElementById('questionArea').style.display = 'block';
+  document.getElementById('qTitle').innerText = `Pergunta ${qIdx+1}: ${q.q}`;
+  const choicesDiv = document.getElementById('qChoices');
+  choicesDiv.innerHTML = '';
+  document.getElementById('feedbackMsg').innerText = '';
+
+  // start timer for this local question (preciso que seja Date.now no início)
+  questionStartAt = Date.now();
+
+  q.choices.forEach((c,i)=>{
+    const btn = document.createElement('button');
+    btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}`;
+    btn.onclick = () => handleChoiceClick(btn, qIdx, i);
+    choicesDiv.appendChild(btn);
+  });
+
+  // limpa timers antigos
+  if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
+  // atualiza a contagem imediatamente e a cada 200ms
+  updateTimeLeft(); 
+  window.qTimer = setInterval(updateTimeLeft, 200);
+}
+
+
+  
 /* show question locally (corrida individual) */
 function showQuestionLocal(qIdx){
   const q = questions[qIdx];
@@ -247,6 +287,9 @@ function showQuestionLocal(qIdx){
   window.qTimer = setInterval(()=> updateTimeLeft(questionStartAt), 250);
   updateTimeLeft(questionStartAt);
 }
+
+
+  
 
 /* when player clicks a choice */
 async function handleChoiceClick(btn, qIdx, choiceIdx){
@@ -328,6 +371,8 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   }, 650);
 }
 
+  
+
 
 
 /* countdown visual */
@@ -355,6 +400,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

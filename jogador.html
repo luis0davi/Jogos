@@ -5,56 +5,112 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Jogador — Quiz NR-18</title>
 <style>
- body{font-family:Arial;margin:16px;background:#f6f7fb}
- .card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.06);max-width:720px;margin:auto}
- input,button{padding:8px;border-radius:8px;border:1px solid #ddd}
- button{background:#0b63ff;color:#fff;border:0;cursor:pointer}
- .small{color:#666;font-size:13px}
- .answers button{display:block;margin:8px 0;padding:10px;border-radius:6px;border:1px solid #ddd;background:#fafafa}
+  :root{
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --primary: #0b63ff;
+    --muted: #666;
+    --ok: #2ecc71;
+    --bad: #e74c3c;
+    --choice-bg: #fafafa;
+    --choice-border: #e6e6e6;
+  }
+  body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;margin:16px;background:var(--bg);color:#111}
+  .wrap{max-width:920px;margin:0 auto;display:grid;grid-template-columns:1fr 320px;gap:18px}
+  .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 8px 26px rgba(15,20,30,0.06)}
+  h2{margin:0 0 8px 0}
+  input,button{padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px}
+  button.primary{background:var(--primary);color:#fff;border:0;cursor:pointer}
+  .small{color:var(--muted);font-size:13px}
+  .answers button{display:block;margin:10px 0;padding:12px;border-radius:8px;border:1px solid var(--choice-border);background:var(--choice-bg);cursor:pointer;text-align:left;font-size:15px;transition:transform .08s, box-shadow .12s}
+  .answers button:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(10,20,40,0.06)}
+  .answers button:disabled{opacity:0.7;cursor:not-allowed;transform:none}
+  .choice-label{font-weight:700;margin-right:8px}
+  .muted{color:var(--muted)}
+  .live-rank{font-size:14px}
+  .rank-row{display:flex;justify-content:space-between;padding:8px 6px;border-bottom:1px dashed #eee}
+  .status-box{padding:10px;border-radius:8px;background:#fbfbfe;border:1px solid #eff3ff}
+  .notice{padding:10px;border-radius:8px;background:#fff7e6;border:1px solid #ffefc6;color:#7a5b00}
+  .qtitle{font-size:16px;margin-bottom:8px}
+  .feedback{margin-top:8px;font-weight:600}
+  .top-badge{background:var(--primary);color:#fff;padding:6px 10px;border-radius:999px;font-size:12px}
+  @media(max-width:900px){
+    .wrap{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
 
-  <div class="card">
-    <h2>Quiz NR-18 — Jogador</h2>
-    <div id="stepName">
-      <div class="small">Digite seu nome (ou escolha uma sugestão abaixo) — obrigatoriamente antes de iniciar</div>
-      <input id="playerName" placeholder="Seu nome" style="width:60%"/>
-      <button id="btnReg">Registrar</button>
-      <div style="margin-top:8px;">
-        <button onclick="document.getElementById('playerName').value='Equipe A'">Equipe A</button>
-        <button onclick="document.getElementById('playerName').value='Equipe B'">Equipe B</button>
-        <button onclick="document.getElementById('playerName').value='Participante'">Participante</button>
+  <div class="wrap">
+    <!-- main -->
+    <div class="card">
+      <h2>Quiz NR-18 — Jogador</h2>
+
+      <div id="introNote" class="status-box" style="margin-bottom:12px">
+        <strong>Corrida individual em tempo real</strong> — cada jogador corre sozinho pelas perguntas, sprint total. Respondendo → avança. Ranking atualiza ao vivo, e quem acertar mais rápido assume a liderança.
+      </div>
+
+      <div id="stepName">
+        <div class="small">Digite seu nome (ou escolha uma sugestão abaixo) — obrigatoriamente antes de iniciar</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="playerName" placeholder="Seu nome" style="flex:1"/>
+          <button id="btnReg" class="primary">Registrar</button>
+        </div>
+        <div style="margin-top:10px">
+          <button onclick="document.getElementById('playerName').value='Equipe A'">Equipe A</button>
+          <button onclick="document.getElementById('playerName').value='Equipe B'">Equipe B</button>
+          <button onclick="document.getElementById('playerName').value='Participante'">Participante</button>
+        </div>
+      </div>
+
+      <div id="waiting" style="display:none;margin-top:12px">
+        <div class="small">Aguardando administrador iniciar o jogo...</div>
+        <div style="margin-top:8px">Seu nome: <strong id="showName"></strong></div>
+      </div>
+
+      <div id="questionArea" style="display:none;margin-top:12px">
+        <div class="qtitle" id="qTitle"></div>
+        <div id="qChoices" class="answers" aria-live="polite"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <div class="small" id="timeLeft"></div>
+          <div class="small feedback" id="feedbackMsg"></div>
+        </div>
+      </div>
+
+      <div id="endArea" style="display:none;margin-top:12px">
+        <div><strong>Jogo finalizado</strong></div>
+        <div class="small">Aguarde o resultado no painel do administrador.</div>
       </div>
     </div>
 
-    <div id="waiting" style="display:none;margin-top:12px">
-      <div class="small">Aguardando administrador iniciar o jogo...</div>
-      <div style="margin-top:8px">Seu nome: <strong id="showName"></strong></div>
-    </div>
-
-    <div id="questionArea" style="display:none;margin-top:12px">
-      <div><strong id="qTitle"></strong></div>
-      <div id="qChoices" class="answers"></div>
-      <div class="small" id="timeLeft"></div>
-    </div>
-
-    <div id="endArea" style="display:none;margin-top:12px">
-      <div><strong>Jogo finalizado</strong></div>
-      <div class="small">Aguarde o resultado no painel do administrador.</div>
+    <!-- side: ranking -->
+    <div class="card">
+      <h3>Leaderboard (Ao vivo)</h3>
+      <div class="small">Top 5 — atualiza automaticamente</div>
+      <div id="leaderboard" style="margin-top:12px" class="live-rank">
+        <div class="muted">Carregando...</div>
+      </div>
+      <div style="margin-top:12px" class="notice">
+        Dica: responda rápido e acerte para subir no ranking.
+      </div>
     </div>
   </div>
 
 <script>
+/* Config */
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
-const pollMs = 1200;
-let playerName = null;
-let answeredFor = {}; // qIdx -> true
-let currentQIdx = -1;
-let questionStartAt = null;
-let questionTimeLimit = 20; // segundos (o admin define ao criar, aqui usamos 20 default)
+const POLL_MS = 1400;
+const QUESTION_TIME_LIMIT = 20; // default seconds (visual only)
 
-// perguntas (15 NR-18)
+/* Estado local */
+let playerName = null;
+let currentQ = 0;          // index local do jogador (corrida individual)
+let questionStartAt = null;
+let answeredFor = {};      // qIdx -> true
+let pollTimer = null;
+let rankTimer = null;
+
+/* Perguntas (15 NR-18) - mantive as suas */
 const questions = [
   { q: "Qual o objetivo principal da NR-18?", choices: ["Regulamentar o uso de EPIs","Estabelecer diretrizes de segurança para a indústria da construção","Definir normas de transporte rodoviário","Normatizar uso de produtos químicos"], answer: 1 },
   { q: "Quem é responsável por elaborar o PCMAT?", choices:["O empregador/contratante","O empregado","O sindicato","O cliente da obra"], answer: 0 },
@@ -73,26 +129,30 @@ const questions = [
   { q: "PCMAT é exigido para obras com quantos trabalhadores (NR-18)?", choices:["Obras com 20 trabalhadores ou mais","Obras com 50 trabalhadores ou mais","Todas as obras","Apenas obras públicas"], answer: 0 }
 ];
 
-function api(params){
+/* util fetch */
+async function api(params){
   const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
-  return fetch(url).then(r=>r.json());
+  const res = await fetch(url);
+  return res.json();
 }
 
+/* registrar jogador */
 document.getElementById('btnReg').addEventListener('click', async ()=>{
   const v = document.getElementById('playerName').value.trim();
   if(!v) return alert('Digite um nome');
   playerName = v;
-  // registra no servidor
   await api({action:'register', nome: playerName});
   document.getElementById('showName').innerText = playerName;
   document.getElementById('stepName').style.display = 'none';
   document.getElementById('waiting').style.display = 'block';
+  // start polling to detect admin start + load ranking
   startPolling();
+  startRankPolling();
 });
 
-// polling do estado do jogo
-let pollTimer = null;
+/* polling do estado global (apenas para detectar START do admin) */
 function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async ()=>{
     try{
       const state = await api({action:'state_get'});
@@ -103,18 +163,19 @@ function startPolling(){
         return;
       }
       if(state.status === 'live'){
-        // mostra pergunta correspondente ao questionIndex
-        const qIdx = state.questionIndex || 0;
-        // se já respondeu esta pergunta, automaticamente irá para próxima (local)
-        if(answeredFor[qIdx]){
-          // nothing (we wait server to advance)
+        // Se o jogador ainda não começou localmente, inicia localmente na pergunta 0
+        if(typeof currentQ !== 'number' || currentQ < 0) currentQ = 0;
+        // se jogador ainda não respondeu a pergunta corrente localmente, mostra-a
+        if(answeredFor[currentQ]){
+          // já respondeu localmente: mostra aguardando (ele já avançou)
           document.getElementById('waiting').style.display = 'block';
           document.getElementById('questionArea').style.display = 'none';
         } else {
-          // show question
-          showQuestion(qIdx, state.questionStartAt);
+          // mostrar a pergunta atual local
+          showQuestionLocal(currentQ);
         }
       } else if(state.status === 'finished'){
+        // se admin finalizou o jogo
         document.getElementById('waiting').style.display = 'none';
         document.getElementById('questionArea').style.display = 'none';
         document.getElementById('endArea').style.display = 'block';
@@ -123,59 +184,141 @@ function startPolling(){
     }catch(err){
       console.error(err);
     }
-  }, pollMs);
+  }, POLL_MS);
 }
 
-function showQuestion(qIdx, startAtMs){
-  currentQIdx = qIdx;
-  questionStartAt = startAtMs || Date.now();
+/* ranking polling (Top 5) */
+async function refreshRanking(){
+  try{
+    const data = await api({action:'leaderboard'});
+    const lb = (data && data.leaderboard) ? data.leaderboard : [];
+    renderLeaderboard(lb.slice(0,5));
+  }catch(err){
+    console.error(err);
+  }
+}
+function startRankPolling(){
+  refreshRanking();
+  if(rankTimer) clearInterval(rankTimer);
+  rankTimer = setInterval(refreshRanking, POLL_MS);
+}
+function renderLeaderboard(list){
+  const box = document.getElementById('leaderboard');
+  if(!list || list.length === 0){
+    box.innerHTML = '<div class="muted">Sem resultados ainda</div>';
+    return;
+  }
+  let html = '';
+  for(let i=0;i<list.length;i++){
+    const r = list[i];
+    html += `<div class="rank-row"><div><strong>#${i+1} ${escapeHtml(r.nome)}</strong><div class="muted">acertos: ${r.acertos || 0}</div></div><div><strong>${r.pontos || 0}</strong></div></div>`;
+  }
+  box.innerHTML = html;
+}
+
+/* show question locally (corrida individual) */
+function showQuestionLocal(qIdx){
   const q = questions[qIdx];
-  if(!q) return;
+  if(!q){
+    // sem mais perguntas
+    document.getElementById('questionArea').style.display = 'none';
+    document.getElementById('waiting').style.display = 'none';
+    document.getElementById('endArea').style.display = 'block';
+    return;
+  }
+  // render
   document.getElementById('waiting').style.display = 'none';
   document.getElementById('endArea').style.display = 'none';
   document.getElementById('questionArea').style.display = 'block';
-  document.getElementById('qTitle').innerText = 'Pergunta ' + (qIdx+1) + ': ' + q.q;
+  document.getElementById('qTitle').innerText = `Pergunta ${qIdx+1}: ${q.q}`;
   const choicesDiv = document.getElementById('qChoices');
   choicesDiv.innerHTML = '';
+  document.getElementById('feedbackMsg').innerText = '';
+  // start timer for this local question
+  questionStartAt = Date.now();
   q.choices.forEach((c,i)=>{
     const btn = document.createElement('button');
-    btn.innerText = String.fromCharCode(65+i) + '. ' + c;
-    btn.onclick = async ()=>{
-      // trava: não pode mudar nem pular
-      // calcula tempo
-      const at = Date.now();
-      const timeSpent = Math.max(0, at - questionStartAt);
-      // calcula acerto
-      const correct = (i === q.answer) ? 1 : 0;
-      // fórmula de pontos (opção C): 1 + floor((timeLimit - timeSpentSec)*0.1)
-      const timeSpentSec = timeSpent/1000;
-      const bonus = Math.floor(Math.max(0, (questionTimeLimit - timeSpentSec)) * 0.1);
-      const pts = correct ? (1 + bonus) : 0;
-      // enviar submeter
-      await api({action:'submit', nome: playerName, qIdx: qIdx, acertos: correct, tempo: timeSpent, pontos: pts});
-      answeredFor[qIdx] = true;
-      // mostrar feedback simples
-      alert('Resposta enviada! ' + (correct ? 'Acertou +'+pts+'pts' : 'Errou (0 pts)'));
-      // exibir aguardando enquanto o admin / servidor avança
-      document.getElementById('questionArea').style.display = 'none';
-      document.getElementById('waiting').style.display = 'block';
-    };
+    btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}`;
+    btn.onclick = () => handleChoiceClick(btn, qIdx, i);
     choicesDiv.appendChild(btn);
   });
-  // countdown visual simples
-  updateTimeLeft();
+  // start/update small countdown visual (client-side)
   if(window.qTimer) clearInterval(window.qTimer);
-  window.qTimer = setInterval(updateTimeLeft, 300);
-  function updateTimeLeft(){
-    const left = Math.max(0, Math.round((questionStartAt + questionTimeLimit*1000 - Date.now())/1000));
-    document.getElementById('timeLeft').innerText = 'Tempo restante: ' + left + 's';
-    if(left <= 0){
-      clearInterval(window.qTimer);
+  window.qTimer = setInterval(()=> updateTimeLeft(questionStartAt), 250);
+  updateTimeLeft(questionStartAt);
+}
+
+/* when player clicks a choice */
+async function handleChoiceClick(btn, qIdx, choiceIdx){
+  // disable all buttons immediately
+  const choiceButtons = document.querySelectorAll('#qChoices button');
+  choiceButtons.forEach(b=> b.disabled = true);
+  // compute times & correctness
+  const at = Date.now();
+  const timeSpent = Math.max(0, at - questionStartAt);
+  const q = questions[qIdx];
+  const correct = (choiceIdx === q.answer) ? 1 : 0;
+  const timeSpentSec = timeSpent / 1000;
+  const bonus = Math.floor(Math.max(0, (QUESTION_TIME_LIMIT - timeSpentSec)) * 0.1);
+  const pts = correct ? (1 + bonus) : 0;
+  // color feedback
+  // mark clicked red/green and reveal correct
+  choiceButtons.forEach((b, idx)=>{
+    if(idx === choiceIdx){
+      b.style.borderColor = correct ? 'rgba(46,204,113,0.9)' : 'rgba(231,76,60,0.9)';
+      b.style.background = correct ? 'linear-gradient(90deg, rgba(46,204,113,0.12), rgba(46,204,113,0.06))' : 'linear-gradient(90deg, rgba(231,76,60,0.08), rgba(231,76,60,0.03))';
+      b.style.boxShadow = '0 8px 20px rgba(0,0,0,0.05)';
     }
+    // highlight correct choice
+    if(idx === q.answer){
+      b.style.borderColor = 'rgba(46,204,113,0.9)';
+      b.style.background = 'linear-gradient(90deg, rgba(46,204,113,0.06), rgba(46,204,113,0.02))';
+    }
+  });
+  // send to server (fire-and-forget with await)
+  try{
+    await api({action:'submit', nome: playerName, qIdx: qIdx, acertos: correct, tempo: timeSpent, pontos: pts});
+  }catch(err){
+    console.error('Erro ao submeter resposta:', err);
+  }
+  // mark locally as answered
+  answeredFor[qIdx] = true;
+  // small feedback text
+  document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pts} pts` : 'Errou (0 pts)';
+  // immediately advance to next question after short delay (smooth UX)
+  setTimeout(()=> {
+    currentQ = qIdx + 1;
+    // stop timer
+    if(window.qTimer) { clearInterval(window.qTimer); window.qTimer = null; }
+    // show next local question
+    showQuestionLocal(currentQ);
+    // refresh ranking immediately
+    refreshRanking();
+  }, 650);
+}
+
+/* countdown visual */
+function updateTimeLeft(startAt){
+  const left = Math.max(0, Math.round((startAt + QUESTION_TIME_LIMIT*1000 - Date.now())/1000));
+  document.getElementById('timeLeft').innerText = `Tempo restante (visual): ${left}s`;
+  if(left <= 0 && window.qTimer){
+    clearInterval(window.qTimer);
+    window.qTimer = null;
   }
 }
+
+/* small helper to escape HTML in strings */
+function escapeHtml(str){
+  if(!str && str !== 0) return '';
+  return String(str).replace(/[&<>"']/g, function(m){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
+}
+
+/* clean unload */
+window.addEventListener('beforeunload', ()=>{
+  if(pollTimer) clearInterval(pollTimer);
+  if(rankTimer) clearInterval(rankTimer);
+  if(window.qTimer) clearInterval(window.qTimer);
+});
 </script>
 </body>
 </html>
-
-

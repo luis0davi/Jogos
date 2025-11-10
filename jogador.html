@@ -401,7 +401,7 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
 
   // aplicar regras de pontuação conforme definido
   if(correct){
-    if(timeLeft <= 20){
+    if(timeLeft <= 0){
       pontos = POINTS_BASE * 0.5;        // acertou com timeLeft == 0 -> metade
     } else if(timeLeft > 10){
       pontos = POINTS_BASE * 1.5;        // turbo
@@ -482,5 +482,6 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 

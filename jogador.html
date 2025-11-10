@@ -392,32 +392,33 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
 
 
 
+// valores base
+const maxPontos = 6.66667;
+const minPontos = 3.33333; 
+const punish = 1.66666;    // penalidade no erro rápido
 
-  
-const at = Date.now();
-const timeSpentMs = Math.max(0, at - questionStartAt);
-const timeSpentSec = timeSpentMs / 1000;
-const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec);
+// tempo decrescente do total
+const t = timeLeft; // em segundos (0 à 20)
 
-const q = questions[qIdx];
-const acertou = (choiceIdx === q.answer);
-let pontos = 0;
-
-// base
-const BASE = 100;
-
-if (acertou) {
-  // bonus proporcional ao tempo
-  const bonus = Math.round((timeLeft / QUESTION_TIME_LIMIT) * BASE);
-  pontos = BASE + bonus; // pode ir de 100 a 200
-} else {
-  pontos = 0;
+// acerto
+if (correct) {
+  if (t >= 15 && t <= 20) {
+    pontos = maxPontos; // nota máxima
+  } else {
+    // decaimento linear até o mínimo
+    // (14s -> minPontos  ..  0s -> minPontos tbm, mas com inclinação suave)
+    const ratio = Math.min(14, Math.max(0, t)) / 14;  // normaliza 14→1    0→0
+    pontos = minPontos + (maxPontos - minPontos) * ratio;
+  }
+} 
+// erro
+else {
+  if (t >= 15 && t <= 20) {
+    pontos = -punish;
+  } else {
+    pontos = 0;
+  }
 }
-
-// aplica pontos no jogador atual
-user.score += pontos;
-user.answerTimes.push(timeSpentSec);
-
 
 
 
@@ -488,6 +489,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

@@ -390,38 +390,33 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   choiceButtons.forEach(b=> b.disabled = true);
 
 
+// tempo exato de resposta
+  const at = Date.now();
+  const timeSpent = Math.max(0, at - questionStartAt);   // ms
+  const timeSpentSec = timeSpent / 1000;                 // s
+  const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
 
+  const q = questions[qIdx];
+  const correct = (choiceIdx === q.answer) ? 1 : 0;
+  let pontos = 0;
 
-// valores base
-const maxPontos = 6.66667;
-const minPontos = 3.33333; 
-const punish = 1.66666;    // penalidade no erro rápido
-
-// tempo decrescente do total
-const t = timeLeft; // em segundos (0 à 20)
-
-// acerto
-if (correct) {
-  if (t >= 15 && t <= 20) {
-    pontos = maxPontos; // nota máxima
+  // aplicar regras de pontuação conforme definido
+  if(correct){
+    if(timeLeft >= 15 && timeLeft <= 20){
+      pontos = POINTS_BASE * 2;        // acertou com timeLeft == 0 -> metade
+    } else if(timeLeft > 15){
+      pontos = POINTS_BASE * 1;        // turbo
+    } else {
+      pontos = POINTS_BASE * 1;          // padrão
+    }
   } else {
-    // decaimento linear até o mínimo
-    // (14s -> minPontos  ..  0s -> minPontos tbm, mas com inclinação suave)
-    const ratio = Math.min(14, Math.max(0, t)) / 14;  // normaliza 14→1    0→0
-    pontos = minPontos + (maxPontos - minPontos) * ratio;
+    // regra R: punição se errou nos primeiros 5s (timeLeft entre 20..15)
+    if(timeLeft >= 15 && timeLeft <= 20){
+      pontos = -0;
+    } else {
+      pontos = 0;
+    }
   }
-} 
-// erro
-else {
-  if (t >= 15 && t <= 20) {
-    pontos = -punish;
-  } else {
-    pontos = 0;
-  }
-}
-
-
-
 
   
   // feedback visual: pinta escolha clicada e destaca correta
@@ -489,6 +484,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

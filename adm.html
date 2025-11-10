@@ -9,34 +9,71 @@
   .card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.06);max-width:900px;margin:auto}
   button{padding:8px 12px;border-radius:8px;border:0;background:#0b63ff;color:#fff;cursor:pointer}
   .muted{color:#666;font-size:13px}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+
+  /* abas */
+  .tabs {display:flex;gap:8px;margin-top:14px}
+  .tabbtn{padding:6px 12px;border-radius:8px;background:#e6e9f3;cursor:pointer;}
+  .tabbtn.on{background:#0b63ff;color:#fff}
+
+  /* leaderboard */
+  .rankrow{
+    display:grid;
+    grid-template-columns:40px 1fr 60px 60px 80px;
+    padding:6px 0;
+    border-bottom:1px solid #eee;
+    opacity:0;
+    transform:translateY(4px);
+    transition:.2s;
+  }
+  .rankrow.show{ opacity:1; transform:translateY(0); }
+
+  .rankrow.vip1{background:linear-gradient(90deg,#fff7c1,#fff);}
+  .rankrow.vip2{background:linear-gradient(90deg,#dadada,#fff);}
+  .rankrow.vip3{background:linear-gradient(90deg,#d8c3a5,#fff);}
+
+  .rankrow.flash{animation:flash 1s}
+  @keyframes flash{
+    0%{background:#ffe16e}
+    100%{background:transparent}
+  }
+
 </style>
 </head>
 <body>
   <div class="card">
     <h2>Admin — Quiz NR-18</h2>
-    <div class="muted">Aba: Planilha1 — Limpa ao START</div>
+
+    <div class="tabs">
+      <div class="tabbtn on" onclick="showTab('status')">Status</div>
+      <div class="tabbtn" onclick="showTab('rank')">Rank ao vivo</div>
+    </div>
+
     <div style="margin-top:8px">
       <button id="btnStart">START (limpa planilha e inicia)</button>
       <button id="btnReset">RESET (voltar para aguardando)</button>
     </div>
 
-    <h3 style="margin-top:14px">Status atual</h3>
-    <div id="statusDiv" class="muted">carregando...</div>
+    <div id="tab_status">
+      <h3 style="margin-top:14px">Status atual</h3>
+      <div id="statusDiv" class="muted">carregando...</div>
 
-    <h3 style="margin-top:14px">Players conectados</h3>
-    <div id="playersCount" class="muted">0</div>
+      <h3 style="margin-top:14px">Players conectados</h3>
+      <div id="playersCount" class="muted">0</div>
 
-    <h3 style="margin-top:12px">Leaderboard (ao vivo)</h3>
-    <div id="leaderboardDiv">carregando...</div>
+      <div style="margin-top:12px" class="muted">O sistema verifica automaticamente se todos os jogadores responderam a pergunta atual — quando todos responderem, avança para a próxima pergunta.</div>
+    </div>
 
-    <div style="margin-top:12px" class="muted">O sistema verifica automaticamente se todos os jogadores responderam a pergunta atual — quando todos responderem, avança para a próxima pergunta.</div>
+    <div id="tab_rank" style="display:none">
+      <h3 style="margin-top:14px">Leaderboard — tempo real</h3>
+      <div id="leaderboardDiv">carregando...</div>
+    </div>
+
   </div>
 
 <script>
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
-const pollMs = 1500; // frequência de polling
+const pollMs = 1500; 
+let lastLB = [];
 
 async function api(params){
   const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
@@ -56,22 +93,53 @@ document.getElementById('btnReset').addEventListener('click', async ()=>{
   log('Estado resetado.');
 });
 
-// helpers
-function log(msg){
-  document.getElementById('statusDiv').innerText = msg;
+function log(msg){ document.getElementById('statusDiv').innerText = msg; }
+
+function showTab(tab){
+  document.getElementById('tab_status').style.display = (tab=='status'?'block':'none');
+  document.getElementById('tab_rank').style.display   = (tab=='rank'?'block':'none');
+
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('on'));
+  [...document.querySelectorAll('.tabbtn')].find(b=>b.innerText.includes(tab=='status'?'Status':'Rank')).classList.add('on');
 }
+
 function renderLeaderboard(lb){
-  if(!lb || lb.length===0){
-    document.getElementById('leaderboardDiv').innerHTML = '<div class="muted">Sem resultados ainda</div>';
+  const box = document.getElementById('leaderboardDiv');
+
+  if(!lb||lb.length===0){
+    box.innerHTML = `<div class="muted">Sem resultados ainda</div>`;
     return;
   }
-  let html = '<table><thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Acertos</th><th>Tempo total (s)</th></tr></thead><tbody>';
-  for(let i=0;i<lb.length;i++){
-    const r = lb[i];
-    html += `<tr><td>${i+1}</td><td>${r.nome}</td><td>${r.pontos}</td><td>${r.acertos}</td><td>${Math.round(r.tempo_ms/1000)}</td></tr>`;
-  }
-  html += '</tbody></table>';
-  document.getElementById('leaderboardDiv').innerHTML = html;
+
+  box.innerHTML = lb.map((r,i)=>`
+    <div class="rankrow" data-nome="${r.nome}" data-pos="${i}">
+      <div>#${i+1}</div>
+      <div>${r.nome}</div>
+      <div>${r.pontos}</div>
+      <div>${r.acertos}</div>
+      <div>${Math.round(r.tempo_ms/1000)}</div>
+    </div>
+  `).join('');
+
+  requestAnimationFrame(()=>{
+    box.querySelectorAll('.rankrow').forEach(row=>{
+      const pos = +row.dataset.pos;
+      const nome = row.dataset.nome;
+      
+      row.classList.add('show');
+
+      if(pos===0) row.classList.add('vip1');
+      if(pos===1) row.classList.add('vip2');
+      if(pos===2) row.classList.add('vip3');
+
+      const lastPos = lastLB.findIndex(x=>x.nome===nome);
+      if(lastPos!=-1 && lastPos!=pos){
+        row.classList.add('flash');
+        setTimeout(()=>row.classList.remove('flash'),1000);
+      }
+    });
+    lastLB = lb.map((r,i)=>({nome:r.nome,pos:i}));
+  });
 }
 
 async function refresh(){
@@ -84,16 +152,13 @@ async function refresh(){
     // status
     if(s && s.status){
       document.getElementById('statusDiv').innerText = `Status: ${s.status} — Pergunta atual: ${s.questionIndex} — Início: ${s.questionStartAt? new Date(s.questionStartAt).toLocaleTimeString(): '-'}`;
-      // se status live -> checar se devemos avançar automaticamente
       if(s.status === 'live'){
-        // checar quantas respostas na pergunta atual
         const qIdx = s.questionIndex;
         const answersCount = await api({action:'countAnswers', qIdx: qIdx});
         const totalPlayers = players.count || 0;
         if(totalPlayers > 0 && answersCount.count >= totalPlayers){
-          // todos responderam -> avançar
           await api({action:'state_set', op:'advance'});
-          log('Todos responderam a pergunta ' + qIdx + ' — avançando para próxima.');
+          log('Todos responderam — avançando...');
         }
       }
     } else {

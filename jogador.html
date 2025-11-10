@@ -389,34 +389,40 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   const choiceButtons = document.querySelectorAll('#qChoices button');
   choiceButtons.forEach(b=> b.disabled = true);
 
-  // tempo exato de resposta
-  const at = Date.now();
-  const timeSpent = Math.max(0, at - questionStartAt);   // ms
-  const timeSpentSec = timeSpent / 1000;                 // s
-  const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
 
-  const q = questions[qIdx];
-  const correct = (choiceIdx === q.answer) ? 1 : 0;
-  let pontos = 0;
 
-  // aplicar regras de pontuação conforme definido
-  if(correct){
-    if(timeLeft >= 15 && timeLeft <= 20){
-      pontos = POINTS_BASE * 2;        // acertou com timeLeft == 0 -> metade
-    } else if(timeLeft > 15){
-      pontos = POINTS_BASE * 1;        // turbo
-    } else {
-      pontos = POINTS_BASE * 1;          // padrão
-    }
-  } else {
-    // regra R: punição se errou nos primeiros 5s (timeLeft entre 20..15)
-    if(timeLeft >= 15 && timeLeft <= 20){
-      pontos = -0;
-    } else {
-      pontos = 0;
-    }
-  }
 
+
+  
+const at = Date.now();
+const timeSpentMs = Math.max(0, at - questionStartAt);
+const timeSpentSec = timeSpentMs / 1000;
+const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec);
+
+const q = questions[qIdx];
+const acertou = (choiceIdx === q.answer);
+let pontos = 0;
+
+// base
+const BASE = 100;
+
+if (acertou) {
+  // bonus proporcional ao tempo
+  const bonus = Math.round((timeLeft / QUESTION_TIME_LIMIT) * BASE);
+  pontos = BASE + bonus; // pode ir de 100 a 200
+} else {
+  pontos = 0;
+}
+
+// aplica pontos no jogador atual
+user.score += pontos;
+user.answerTimes.push(timeSpentSec);
+
+
+
+
+
+  
   // feedback visual: pinta escolha clicada e destaca correta
   choiceButtons.forEach((b, idx)=>{
     if(idx === choiceIdx){
@@ -482,6 +488,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

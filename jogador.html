@@ -405,13 +405,13 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
 
   const q = questions[qIdx];
-  //const correct = (choiceIdx === q.answer) ? 1 : 0;
+  const correct = (choiceIdx === q.answer) ? 1 : 0;
   let pontos = 0;
 
   // valores base
-  const maxPontos = 6.66667;
-  const minPontos = 3.33333; 
-  const punish = 1.66666;    // penalidade no erro rápido
+  const maxPontos = 6.7;
+  const minPontos = 3.4; 
+  const punish = 1.7;    // penalidade no erro rápido
   
   // tempo decrescente do total
   const t = timeLeft; // em segundos (0 à 20)
@@ -505,6 +505,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

@@ -225,10 +225,35 @@ function startPolling(){
 
 
 
+
+  
+
   
 /* ============================================================
    RANKING AO VIVO (Top 10)
    ============================================================ */
+
+
+  .rank-row {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all .2s ease;
+}
+
+.rank-row.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.rank-row.flash {
+  animation: flashRank 1.2s ease;
+}
+
+@keyframes flashRank {
+  0%   { background: rgba(255,240,170,0.9); }
+  100% { background: transparent; }
+}
+
 async function refreshRanking(){
   try{
     const { leaderboard = [] } = await api({ action: 'leaderboard' });
@@ -538,6 +563,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

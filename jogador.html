@@ -396,45 +396,40 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
 
 
   
-
-  
 // tempo exato de resposta
-  const at = Date.now();
-  const timeSpent = Math.max(0, at - questionStartAt);   // ms
-  const timeSpentSec = timeSpent / 1000;                 // s
-  const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
+const at = Date.now();
+const timeSpent = Math.max(0, at - questionStartAt);   // ms
+const timeSpentSec = timeSpent / 1000;                 // s
+const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
 
-  const q = questions[qIdx];
-  const correct = (choiceIdx === q.answer) ? 1 : 0;
-  let pontos = 0;
+const q = questions[qIdx];
+const correct = (choiceIdx === q.answer) ? 1 : 0;
 
-  // valores base
-  const maxPontos = 6.7;
-  const minPontos = 3.4; 
-  const punish = 1.7;    // penalidade no erro rápido
-  
-  // tempo decrescente do total
-  const t = timeLeft; // em segundos (0 à 20)
-  
-  // acerto
-  if (correct) {
-    if (t >= 15 && t <= 20) {
-      pontos = maxPontos; // nota máxima
-    } else {
-      // decaimento linear até o mínimo
-      // (14s -> minPontos  ..  0s -> minPontos tbm, mas com inclinação suave)
-      const ratio = Math.min(14, Math.max(0, t)) / 14;  // normaliza 14→1    0→0
-      pontos = minPontos + (maxPontos - minPontos) * ratio;
-    }
-  } 
-  // erro
-  else {
-    if (t >= 15 && t <= 20) {
-      pontos = -punish;
-    } else {
-      pontos = 0;
-    }
+// valores exatos
+const maxPontos = 100/15;       // 6.6666666666667
+const minPontos = maxPontos/2;  // 3.3333333333333
+const punish    = maxPontos/4;  // 1.6666666666667
+
+const t = timeLeft;
+
+// acerto
+if (correct) {
+  if (t >= 15 && t <= 20) {
+    pontos = maxPontos;
+  } else {
+    const ratio = Math.min(14, Math.max(0, t)) / 14;
+    pontos = minPontos + (maxPontos - minPontos) * ratio;
   }
+}
+// erro
+else {
+  if (t >= 15 && t <= 20) {
+    pontos = -punish;
+  } else {
+    pontos = 0;
+  }
+}
+
 
 
 
@@ -505,6 +500,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

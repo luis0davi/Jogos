@@ -223,38 +223,49 @@ function startPolling(){
   }, POLL_MS);
 }
 
+
+
+  
 /* ============================================================
-   RANKING AO VIVO (Top 5)
-   - utiliza action=leaderboard do seu Apps Script
+   RANKING AO VIVO (Top 10)
    ============================================================ */
 async function refreshRanking(){
   try{
-    const data = await api({action:'leaderboard'});
-    const lb = (data && data.leaderboard) ? data.leaderboard : [];
-    renderLeaderboard(lb.slice(0,10));
+    const { leaderboard = [] } = await api({ action: 'leaderboard' });
+    renderLeaderboard( leaderboard.slice(0, 10) );
   }catch(err){
-    console.error('Erro ranking:', err);
+    console.error('ranking erro:', err);
   }
-}
-function startRankPolling(){
-  refreshRanking();
-  if(rankTimer) clearInterval(rankTimer);
-  rankTimer = setInterval(refreshRanking, POLL_MS);
-}
-function renderLeaderboard(list){
-  const box = document.getElementById('leaderboard');
-  if(!list || list.length === 0){
-    box.innerHTML = '<div class="muted">Sem resultados ainda</div>';
-    return;
-  }
-  let html = '';
-  for(let i=0;i<list.length;i++){
-    const r = list[i];
-    html += `<div class="rank-row"><div><strong>#${i+1} ${escapeHtml(r.nome)}</strong><div class="muted">acertos: ${r.acertos || 0}</div></div><div><strong>${r.pontos || 0}</strong></div></div>`;
-  }
-  box.innerHTML = html;
 }
 
+function startRankPolling(){
+  clearInterval(rankTimer);
+  refreshRanking();
+  rankTimer = setInterval(refreshRanking, POLL_MS);
+}
+
+function renderLeaderboard(list = []){
+  const box = document.getElementById('leaderboard');
+
+  if(list.length === 0){
+    box.innerHTML = `<div class="muted">Sem resultados ainda</div>`;
+    return;
+  }
+
+  box.innerHTML = list.map((r, i) => `
+    <div class="rank-row">
+      <div>
+        <strong>#${i+1} ${escapeHtml(r.nome)}</strong>
+        <div class="muted">acertos: ${r.acertos ?? 0}</div>
+      </div>
+      <strong>${r.pontos ?? 0}</strong>
+    </div>
+  `).join('');
+}
+
+
+
+  
 /* ============================================================
    showQuestionLocal(qIdx)
    - renderiza a pergunta localmente para corrida individual
@@ -500,6 +511,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

@@ -405,7 +405,7 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
 
   const q = questions[qIdx];
-  const correct = (choiceIdx === q.answer) ? 1 : 0;
+  //const correct = (choiceIdx === q.answer) ? 1 : 0;
   let pontos = 0;
 
   // valores base
@@ -505,6 +505,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

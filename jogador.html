@@ -231,7 +231,7 @@ async function refreshRanking(){
   try{
     const data = await api({action:'leaderboard'});
     const lb = (data && data.leaderboard) ? data.leaderboard : [];
-    renderLeaderboard(lb.slice(0,5));
+    renderLeaderboard(lb.slice(0,10));
   }catch(err){
     console.error('Erro ranking:', err);
   }
@@ -411,7 +411,7 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   } else {
     // regra R: punição se errou nos primeiros 5s (timeLeft entre 20..15)
     if(timeLeft >= 15 && timeLeft <= 20){
-      pontos = -2;
+      pontos = -0+;
     } else {
       pontos = 0;
     }
@@ -482,3 +482,4 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+

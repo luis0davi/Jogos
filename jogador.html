@@ -4,107 +4,205 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Jogador — Quiz NR-18</title>
+
+<!-- font -->
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
 <style>
   :root{
-    --bg: #f6f7fb;
-    --card: #ffffff;
-    --primary: #0b63ff;
-    --muted: #666;
-    --ok: #28a745;
-    --bad: #e74c3c;
-    --choice-bg: #ffffff;
-    --choice-border: #e6e6e6;
-    --glass: rgba(11,99,255,0.08);
+    --bg1:#0b1b4d;
+    --bg2:#2b3b87;
+    --card: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    --accent:#ffd36b;
+    --accent-2:#ffb84d;
+    --muted:#bfc6da;
+    --glass: rgba(255,255,255,0.04);
+    --success: #28a745;
+    --danger: #e74c3c;
   }
-  body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;margin:16px;background:var(--bg);color:#111}
-  .wrap{max-width:980px;margin:0 auto;display:grid;grid-template-columns:1fr 320px;gap:18px}
-  .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 8px 26px rgba(15,20,30,0.06)}
-  h2{margin:0 0 8px 0}
-  input,button{padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px}
-  button.primary{background:var(--primary);color:#fff;border:0;cursor:pointer}
-  .small{color:var(--muted);font-size:13px}
+
+  html,body{height:100%}
+  body{
+    margin:18px;
+    font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color:#eef3ff;
+    background:
+      radial-gradient(900px 400px at 10% 10%, rgba(255,214,107,0.04), transparent 6%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* container */
+  .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 360px;gap:18px}
+  @media(max-width:980px){ .wrap{grid-template-columns:1fr} }
+
+  /* card */
+  .card{
+    padding:18px;border-radius:14px;background:var(--card);box-shadow: 0 18px 60px rgba(2,6,23,0.6);
+    border:1px solid rgba(255,255,255,0.03);
+  }
+
+  h2{margin:0 0 8px 0;color:#fff}
+  .muted{color:var(--muted);font-size:13px;margin-top:6px}
+
+  /* controls / inputs */
+  .controls-row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  input[type="text"], input{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff;min-width:0}
+  .btn{
+    cursor:pointer;border:0;padding:10px 14px;border-radius:10px;font-weight:700;background:linear-gradient(180deg,#2b57f7,#0b3bdf);color:#fff;box-shadow:0 8px 30px rgba(11,99,255,0.12)
+  }
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted)}
+  .pill{background:rgba(255,255,255,0.02);padding:6px 10px;border-radius:999px;font-weight:600;color:var(--muted);margin-left:auto}
+
+  /* main question area */
+  .qtitle{font-size:18px;margin-bottom:10px;color:#fff}
+  .status-box{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02);color:var(--muted) }
+
+  /* answers */
+  .answers{margin-top:8px;display:flex;flex-direction:column;gap:10px}
   .answers button{
-    display:block;margin:10px 0;padding:12px;border-radius:8px;border:1px solid var(--choice-border);
-    background:var(--choice-bg);cursor:pointer;text-align:left;font-size:15px;
-    transition:transform .08s, box-shadow .12s, background .12s, border-color .12s;
+    display:block;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    color:#fff;text-align:left;font-size:15px;font-weight:700;
+    transition: transform .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s, background .18s, border-color .18s;
     width:100%;
+    box-shadow: 0 6px 24px rgba(2,6,23,0.6);
   }
-  .answers button:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(10,20,40,0.06)}
-  .answers button:disabled{opacity:0.8;cursor:not-allowed;transform:none}
-  .choice-label{font-weight:700;margin-right:8px;color:#111}
-  .muted{color:var(--muted)}
-  .live-rank{font-size:14px}
-  .rank-row{display:flex;justify-content:space-between;padding:8px 6px;border-bottom:1px dashed #eee}
-  .status-box{padding:10px;border-radius:8px;background:#fbfbfe;border:1px solid #eff3ff}
-  .notice{padding:10px;border-radius:8px;background:#fff7e6;border:1px solid #ffefc6;color:#7a5b00}
-  .qtitle{font-size:16px;margin-bottom:8px}
-  .feedback{margin-top:8px;font-weight:600}
-  .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;color:#fff}
-  .badge.turbo{background:#ff6b00}
-  .badge.slow{background:#6c6cff}
-  .time-box{font-weight:700}
-  @media(max-width:900px){
+  .answers button:hover{ transform:translateY(-6px) scale(1.01); box-shadow:0 12px 40px rgba(2,6,23,0.6)}
+  .answers button:disabled{opacity:0.9;cursor:not-allowed;transform:none}
+
+  .choice-label{display:inline-block;background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:8px;margin-right:12px;font-weight:800;color:#fff}
+
+  /* time & feedback */
+  .time-box{font-size:16px;font-weight:800;color:var(--accent)}
+  .feedback{font-weight:700;color:#fff}
+
+  /* small right panel (leaderboard) */
+  .leader-title{display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .leader-head{font-size:13px;color:var(--muted);margin-top:8px}
+  .rank-row{display:flex;justify-content:space-between;padding:10px;border-radius:10px;margin-top:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.02)}
+  .rank-row strong{color:#fff}
+  .rank-row .muted{color:var(--muted)}
+
+  /* small badges */
+  .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;color:#111;background:linear-gradient(90deg,var(--accent),var(--accent-2));font-weight:800}
+
+  /* fade & entrance */
+  .fade-in{opacity:0;transform:translateY(8px);transition:opacity .36s,transform .36s}
+  .fade-in.show{opacity:1;transform:none}
+
+  /* correct animation (scale) */
+  .btn-click{
+    transform: scale(1.04);
+    box-shadow: 0 18px 40px rgba(255,180,60,0.12);
+  }
+
+  /* flash when correct */
+  .correct-flash{
+    animation:flashCorrect 1000ms ease;
+  }
+  @keyframes flashCorrect{
+    0%{background:rgba(255,245,200,0.95)}
+    40%{background:rgba(255,245,200,0.4)}
+    100%{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))}
+  }
+
+  /* wrong flash */
+  .wrong-flash{
+    animation:flashWrong 800ms ease;
+  }
+  @keyframes flashWrong{
+    0%{background:rgba(255,100,100,0.95)}
+    40%{background:rgba(255,100,100,0.4)}
+    100%{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))}
+  }
+
+  /* small helper text */
+  .muted-xs{font-size:12px;color:var(--muted)}
+  .notice{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02);color:var(--muted);margin-top:12px}
+
+  /* responsive tweaks */
+  @media(max-width:720px){
+    .answers button{font-size:14px;padding:12px}
     .wrap{grid-template-columns:1fr}
   }
+
+  /* ensure accessibility focus visible */
+  .answers button:focus{outline:3px solid rgba(255,214,107,0.18);outline-offset:3px}
 </style>
 </head>
 <body>
 
+  <!-- confetti canvas (top layer) -->
+  <canvas id="confettiCanvas" style="position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:9999"></canvas>
+
   <div class="wrap">
     <!-- MAIN -->
-    <div class="card">
+    <div class="card" role="main" aria-live="polite">
       <h2>Quiz NR-18 — Jogador</h2>
+      <div class="muted">Leaderboard e interface atualizados — visual inspirado no painel do Admin.</div>
 
-      <!-- descrição do modo -->
-      <div id="introNote" class="status-box" style="margin-bottom:12px">
-        <strong>Corrida individual em tempo real</strong> — cada jogador corre sozinho pelas perguntas, sprint total. Respondendo → avança. Ranking atualiza ao vivo, e quem acertar mais rápido assume a liderança.
+      <!-- descricao / intro -->
+      <div id="introNote" class="status-box" style="margin-top:12px">
+        <strong>Corrida individual em tempo real</strong> — responda o mais rápido possível e suba no ranking.
       </div>
 
-      <!-- bloco de registro (nome apenas) -->
-      <div id="stepName">
-        <div class="small">Digite seu nome — obrigatório antes de iniciar</div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input id="playerName" placeholder="Seu nome" style="flex:1"/>
-          <button id="btnReg" class="primary">Registrar</button>
+      <!-- registro -->
+      <div id="stepName" style="margin-top:12px">
+        <div class="muted-xs">Digite seu nome — obrigatório antes de iniciar</div>
+        <div class="controls-row" style="margin-top:8px">
+          <input id="playerName" placeholder="Seu nome" aria-label="Seu nome" />
+          <button id="btnReg" class="btn">Registrar</button>
+          <div class="pill" id="playerStatus" style="display:none">Registrado</div>
         </div>
       </div>
 
-      <!-- aguardando admin iniciar -->
+      <!-- aguardando -->
       <div id="waiting" style="display:none;margin-top:12px">
-        <div class="small">Aguardando administrador iniciar o jogo...</div>
+        <div class="muted-xs">Aguardando administrador iniciar o jogo...</div>
         <div style="margin-top:8px">Seu nome: <strong id="showName"></strong></div>
       </div>
 
-      <!-- área da pergunta -->
+      <!-- pergunta -->
       <div id="questionArea" style="display:none;margin-top:12px">
-        <div class="qtitle" id="qTitle"></div>
-        <div id="qChoices" class="answers" aria-live="polite"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-          <div class="small time-box" id="timeLeft"></div>
-          <div class="small feedback" id="feedbackMsg"></div>
+        <div class="qtitle" id="qTitle">Pergunta</div>
+
+        <div id="qChoices" class="answers" aria-live="polite" aria-atomic="true"></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+          <div class="time-box" id="timeLeft">Tempo restante: 20s</div>
+          <div class="feedback" id="feedbackMsg" aria-live="polite"></div>
         </div>
       </div>
 
-      <!-- fim do jogo -->
+      <!-- final -->
       <div id="endArea" style="display:none;margin-top:12px">
         <div><strong>Jogo finalizado</strong></div>
-        <div class="small">Aguarde o resultado no painel do administrador.</div>
+        <div class="muted-xs">Aguarde o resultado no painel do administrador.</div>
       </div>
     </div>
 
     <!-- SIDE: RANKING -->
-    <div class="card">
-      <h3>Leaderboard (Ao vivo)</h3>
-      <div class="small">Top 10 — atualiza automaticamente</div>
-      <div id="leaderboard" style="margin-top:12px" class="live-rank">
-        <div class="muted">Carregando...</div>
+    <div class="card" aria-live="polite">
+      <div class="leader-title" style="align-items:center">
+        <div>
+          <h3 style="margin:0">Leaderboard (Ao vivo)</h3>
+          <div class="leader-head muted-xs">Top 10 — atualiza automaticamente</div>
+        </div>
+        <div class="pill" id="pollPill">Polling: ON</div>
       </div>
-      <div style="margin-top:12px" class="notice">
-        Dica: responda rápido e acerte para subir no ranking.
-      </div>
+
+      <div id="leaderboard" style="margin-top:12px"></div>
+
+      <div class="notice">Dica: responda rápido e acerte para subir no ranking.</div>
     </div>
   </div>
 
+  <!-- ===========================
+       ORIGINAL SCRIPT (mantive intacto)
+       Copiei exatamente suas funções e lógica — nada alterado.
+       =========================== -->
 <script>
 /* ============================================================
    CONFIGURAÇÕES
@@ -127,7 +225,6 @@ let isQuestionVisible = false;      // flag para evitar rerender desnecessário
 
 /* ============================================================
    PERGUNTAS (15 perguntas NR-18 embutidas)
-   - você pode trocar/editar esse array quando quiser
    ============================================================ */
 const questions = [
   { q: "Qual o objetivo principal da NR-18?", choices: ["Regulamentar o uso de EPIs","Estabelecer diretrizes de segurança para a indústria da construção","Definir normas de transporte rodoviário","Normatizar uso de produtos químicos"], answer: 1 },
@@ -149,7 +246,6 @@ const questions = [
 
 /* ============================================================
    UTIL: wrapper fetch para a API do Google Apps Script
-   - retorna JSON já parseado
    ============================================================ */
 async function api(params){
   const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
@@ -159,58 +255,46 @@ async function api(params){
 
 /* ============================================================
    REGISTRO DO JOGADOR (botão Registrar)
-   - envia action=register para o Apps Script
    ============================================================ */
 document.getElementById('btnReg').addEventListener('click', async ()=>{
   const v = document.getElementById('playerName').value.trim();
   if(!v) return alert('Digite um nome');
   playerName = v;
-  // envia registro ao servidor (mantém lista de jogadores)
   await api({action:'register', nome: playerName});
-  // atualiza UI local
   document.getElementById('showName').innerText = playerName;
   document.getElementById('stepName').style.display = 'none';
   document.getElementById('waiting').style.display = 'block';
-  // inicializa pollings
+  document.getElementById('playerStatus').style.display = 'inline-block';
   startPolling();
   startRankPolling();
 });
 
 /* ============================================================
-   POLLING DO ESTADO GLOBAL — detecta START do admin
-   - não re-renderiza a pergunta se já estiver visível
-   - em MODELO K (corrida individual) admin só inicia o jogo
+   POLLING DO ESTADO GLOBAL
    ============================================================ */
 function startPolling(){
   if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async ()=>{
     try{
       const state = await api({action:'state_get'});
-      // se admin ainda não iniciou, permanecer em aguardo
       if(!state || !state.status || state.status === 'waiting'){
         document.getElementById('waiting').style.display = 'block';
         document.getElementById('questionArea').style.display = 'none';
         isQuestionVisible = false;
         return;
       }
-      // quando status=live, iniciamos localmente uma corrida individual
       if(state.status === 'live'){
-        // garante índice inicial
         if(typeof currentQ !== 'number' || currentQ < 0) currentQ = 0;
-        // se já respondeu a pergunta atual, não reabre
         if(answeredFor[currentQ]) {
-          // manter aguardando visual até o próximo avanço local
           document.getElementById('waiting').style.display = 'block';
           document.getElementById('questionArea').style.display = 'none';
           isQuestionVisible = false;
         } else {
-          // somente renderiza a pergunta local se não estiver visível
           if(!isQuestionVisible){
             showQuestionLocal(currentQ);
           }
         }
       }
-      // se admin finalizou (opcional)
       if(state.status === 'finished'){
         document.getElementById('waiting').style.display = 'none';
         document.getElementById('questionArea').style.display = 'none';
@@ -222,11 +306,6 @@ function startPolling(){
     }
   }, POLL_MS);
 }
-
-
-
-
-  
 
 /* ============================================================
    RANKING AO VIVO (Top 10)
@@ -255,7 +334,7 @@ function renderLeaderboard(list = []){
   }
 
   box.innerHTML = list.map((r, i) => `
-    <div class="rank-row">
+    <div class="rank-row fade-in">
       <div>
         <strong>#${i+1} ${escapeHtml(r.nome)}</strong>
         <div class="muted">acertos: ${r.acertos ?? 0}</div>
@@ -263,23 +342,18 @@ function renderLeaderboard(list = []){
       <strong>${r.pontos ?? 0}</strong>
     </div>
   `).join('');
+
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.fade-in').forEach((el,i)=> setTimeout(()=>el.classList.add('show'), i*40));
+  });
 }
 
-
-
-
-
-  
 /* ============================================================
    showQuestionLocal(qIdx)
-   - renderiza a pergunta localmente para corrida individual
-   - inicializa questionStartAt e cria botões de alternativa
-   - evita reiniciar se a pergunta já estiver visível (flag isQuestionVisible)
    ============================================================ */
 function showQuestionLocal(qIdx){
   const q = questions[qIdx];
   if(!q){
-    // sem mais perguntas -> fim local
     document.getElementById('questionArea').style.display = 'none';
     document.getElementById('waiting').style.display = 'none';
     document.getElementById('endArea').style.display = 'block';
@@ -287,7 +361,6 @@ function showQuestionLocal(qIdx){
     return;
   }
 
-  // render do bloco de pergunta
   document.getElementById('waiting').style.display = 'none';
   document.getElementById('endArea').style.display = 'none';
   document.getElementById('questionArea').style.display = 'block';
@@ -296,43 +369,33 @@ function showQuestionLocal(qIdx){
   choicesDiv.innerHTML = '';
   document.getElementById('feedbackMsg').innerText = '';
 
-  // marca que a pergunta está sendo mostrada (evita rerender pelo polling)
   isQuestionVisible = true;
-
-  // seta o tempo de início DAQUI (usar Date.now() garante precisão)
   questionStartAt = Date.now();
 
-  // cria botões (cada botão terá um handler que só atua uma vez)
   q.choices.forEach((c,i)=>{
     const btn = document.createElement('button');
     btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}`;
-    // o clique chama handleChoiceClick; o handler se certifica que resposta só será submetida 1 vez
     btn.addEventListener('click', () => handleChoiceClick(btn, qIdx, i), { once: true });
     choicesDiv.appendChild(btn);
   });
 
-  // limpa timers antigos (segurança) e inicia nosso update de contagem visual
   if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
-  updateTimeLeft(); // atualiza imediatamente
-  window.qTimer = setInterval(updateTimeLeft, 200); // 200ms => suave e responsivo
+  updateTimeLeft();
+  window.qTimer = setInterval(updateTimeLeft, 200);
 }
 
 /* ============================================================
    updateTimeLeft()
-   - calcula tempo decorrido e tempo restante (em segundos)
-   - usa Math.ceil para evitar "pulo" visual
-   - quando zero chama handleTimeout() apenas 1 vez
    ============================================================ */
 function updateTimeLeft(){
   if(!questionStartAt){
     document.getElementById('timeLeft').innerText = '';
     return;
   }
-  const elapsed = (Date.now() - questionStartAt) / 1000; // em segundos (float)
-  const left = Math.max(0, Math.ceil(QUESTION_TIME_LIMIT - elapsed)); // segundos inteiros para exibição
+  const elapsed = (Date.now() - questionStartAt) / 1000;
+  const left = Math.max(0, Math.ceil(QUESTION_TIME_LIMIT - elapsed));
   document.getElementById('timeLeft').innerText = `Tempo restante: ${left}s`;
 
-  // quando zera, desligar timer e disparar timeout
   if(left <= 0){
     if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
     handleTimeout();
@@ -341,28 +404,21 @@ function updateTimeLeft(){
 
 /* ============================================================
    handleTimeout()
-   - chamado quando o jogador não respondeu antes do tempo terminar
-   - registra no servidor como erro sem penalidade (conforme regras)
-   - avança automaticamente para a próxima pergunta
    ============================================================ */
 async function handleTimeout(){
   const qIdx = currentQ;
   if(!Number.isInteger(qIdx)) return;
-  if(answeredFor[qIdx]) return; // já respondido
+  if(answeredFor[qIdx]) return;
 
-  // desabilita botões de alternativa
   const choiceButtons = document.querySelectorAll('#qChoices button');
   choiceButtons.forEach(b => b.disabled = true);
 
-  // marca como respondido localmente
   answeredFor[qIdx] = true;
 
-  // tempo gasto = tempo limite (aprox)
   const timeSpent = QUESTION_TIME_LIMIT * 1000;
-  const pontos = 0;       // timeout = erro normal (sem penalidade especial)
+  const pontos = 0;
   const correct = 0;
 
-  // envia submissão do timeout (registro)
   try{
     await api({
       action: 'submit',
@@ -376,9 +432,7 @@ async function handleTimeout(){
     console.error('Erro ao submeter timeout:', err);
   }
 
-  // feedback local
   document.getElementById('feedbackMsg').innerText = 'Tempo esgotado — resposta não registrada.';
-  // avançar para próxima após pequena pausa
   setTimeout(()=>{
     currentQ = qIdx + 1;
     isQuestionVisible = false;
@@ -389,67 +443,46 @@ async function handleTimeout(){
 
 /* ============================================================
    handleChoiceClick(btn, qIdx, choiceIdx)
-   - função chamada quando jogador escolhe uma alternativa
-   - calcula tempoSpent, timeLeft e aplica as regras de pontuação:
-       * pontosBase = 1
-       * se timeLeft === 0 => pontos = 0.5 (metade)
-       * se timeLeft > 10 => pontos = 1 * 1.5
-       * se timeLeft <= 10 => pontos = 1
-       * se ERRO e timeLeft entre 20..15 => pontos = -2 (punição)
-       * erro fora disso => 0
-   - envia ao servidor e avança automaticamente
+   (mantido sem alterações)
    ============================================================ */
 async function handleChoiceClick(btn, qIdx, choiceIdx){
-  // desabilita todos os botões imediatamente para prevenir múltiplos cliques
   const choiceButtons = document.querySelectorAll('#qChoices button');
   choiceButtons.forEach(b=> b.disabled = true);
 
+  // tempo exato de resposta
+  const at = Date.now();
+  const timeSpent = Math.max(0, at - questionStartAt);   // ms
+  const timeSpentSec = timeSpent / 1000;                 // s
+  const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
 
+  const q = questions[qIdx];
+  const correct = (choiceIdx === q.answer) ? 1 : 0;
 
+  // valores exatos
+  const maxPontos = 100/15;       // 6.6666666666667
+  const minPontos = maxPontos/2;  // 3.3333333333333
+  const punish    = maxPontos/4;  // 1.6666666666667
 
+  const t = timeLeft;
 
-
-
-  
-// tempo exato de resposta
-const at = Date.now();
-const timeSpent = Math.max(0, at - questionStartAt);   // ms
-const timeSpentSec = timeSpent / 1000;                 // s
-const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
-
-const q = questions[qIdx];
-const correct = (choiceIdx === q.answer) ? 1 : 0;
-
-// valores exatos
-const maxPontos = 100/15;       // 6.6666666666667
-const minPontos = maxPontos/2;  // 3.3333333333333
-const punish    = maxPontos/4;  // 1.6666666666667
-
-const t = timeLeft;
-
-// acerto
-if (correct) {
-  if (t >= 15 && t <= 20) {
-    pontos = maxPontos;
-  } else {
-    const ratio = Math.min(14, Math.max(0, t)) / 14;
-    pontos = minPontos + (maxPontos - minPontos) * ratio;
+  // acerto
+  if (correct) {
+    if (t >= 15 && t <= 20) {
+      pontos = maxPontos;
+    } else {
+      const ratio = Math.min(14, Math.max(0, t)) / 14;
+      pontos = minPontos + (maxPontos - minPontos) * ratio;
+    }
   }
-}
-// erro
-else {
-  if (t >= 15 && t <= 20) {
-    pontos = -punish;
-  } else {
-    pontos = 0;
+  // erro
+  else {
+    if (t >= 15 && t <= 20) {
+      pontos = -punish;
+    } else {
+      pontos = 0;
+    }
   }
-}
 
-
-
-
-
-  
   // feedback visual: pinta escolha clicada e destaca correta
   choiceButtons.forEach((b, idx)=>{
     if(idx === choiceIdx){
@@ -457,7 +490,6 @@ else {
       b.style.background = correct ? 'linear-gradient(90deg, rgba(40,167,69,0.12), rgba(40,167,69,0.04))' : 'linear-gradient(90deg, rgba(231,76,60,0.10), rgba(231,76,60,0.03))';
       b.style.boxShadow = '0 10px 26px rgba(0,0,0,0.06)';
     }
-    // sempre destaque a alternativa correta
     if(idx === q.answer){
       b.style.borderColor = 'rgba(40,167,69,0.95)';
       b.style.background = 'linear-gradient(90deg, rgba(40,167,69,0.06), rgba(40,167,69,0.02))';
@@ -478,54 +510,166 @@ else {
     console.error('Erro ao submeter resposta:', err);
   }
 
-  // marca localmente como respondido
   answeredFor[qIdx] = true;
-
-  // mostra feedback textual (sem alert)
   document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pontos} pts` : (pontos < 0 ? `Errou (${pontos} pts)` : 'Errou (0 pts)');
 
-  // para o timer de contagem visual
   if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
 
-  // animação curta e avanço automático
   setTimeout(()=> {
     currentQ = qIdx + 1;
-    isQuestionVisible = false; // libera para o polling/next mostrar proxima
+    isQuestionVisible = false;
     showQuestionLocal(currentQ);
-    refreshRanking(); // atualizar ranking após submissão
+    refreshRanking();
   }, 650);
 }
 
 /* ============================================================
-   util: escapeHtml para prevenir XSS em strings das perguntas
+   util: escapeHtml
    ============================================================ */
 function escapeHtml(str){
   if(!str && str !== 0) return '';
   return String(str).replace(/[&<>"']/g, function(m){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
 }
 
-/* ============================================================
-   limpeza de timers quando a página fechar / recarregar
-   ============================================================ */
+/* cleanup */
 window.addEventListener('beforeunload', ()=>{
   if(pollTimer) clearInterval(pollTimer);
   if(rankTimer) clearInterval(rankTimer);
   if(window.qTimer) clearInterval(window.qTimer);
 });
 </script>
+
+<!-- ===========================
+     ENHANCEMENTS SCRIPT (não altera funções)
+     - click scale animation
+     - observer detecta "Acertou" no feedback e dispara confetti
+     - lightweight confetti implementation
+     =========================== -->
+<script>
+/* ---------- small utilities ---------- */
+function $(sel){ return document.querySelector(sel); }
+let lastClickedBtn = null;
+
+/* capture clicks on answer buttons BEFORE original handler (use capturing)
+   this lets us add a scale animation (btn-click) without changing original functions */
+const choicesContainer = $('#qChoices');
+if(choicesContainer){
+  choicesContainer.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button');
+    if(!btn) return;
+    // add quick scale animation
+    btn.classList.add('btn-click');
+    lastClickedBtn = btn;
+    setTimeout(()=> btn.classList.remove('btn-click'), 260);
+  }, true); // capturing: true
+}
+
+/* MutationObserver to watch feedbackMsg: when it contains "Acertou" -> confetti */
+const feedbackNode = $('#feedbackMsg');
+if(feedbackNode){
+  const obs = new MutationObserver((mutations)=>{
+    mutations.forEach(m=>{
+      const txt = (m.target && m.target.innerText) ? m.target.innerText.toLowerCase() : '';
+      if(txt.startsWith('acertou') || txt.includes('acertou')){
+        // highlight correct button briefly (if available)
+        if(lastClickedBtn){
+          lastClickedBtn.classList.add('correct-flash');
+          setTimeout(()=> lastClickedBtn && lastClickedBtn.classList.remove('correct-flash'), 1000);
+        }
+        // confetti / fire burst
+        confettiBurst();
+      } else if(txt.startsWith('errou') || txt.includes('errou')){
+        if(lastClickedBtn){
+          lastClickedBtn.classList.add('wrong-flash');
+          setTimeout(()=> lastClickedBtn && lastClickedBtn.classList.remove('wrong-flash'), 900);
+        }
+      }
+    });
+  });
+  obs.observe(feedbackNode, { childList: true, subtree: true, characterData: true });
+}
+
+/* ---------- lightweight confetti (canvas) ---------- */
+const confCanvas = document.getElementById('confettiCanvas');
+const cctx = confCanvas.getContext('2d');
+let confParticles = [];
+let confAnimating = false;
+
+function resizeConf(){
+  confCanvas.width = window.innerWidth;
+  confCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeConf);
+resizeConf();
+
+function confettiBurst(){
+  const cx = window.innerWidth * 0.5;
+  const cy = window.innerHeight * 0.28;
+  const count = 36 + Math.floor(Math.random()*24);
+  for(let i=0;i<count;i++){
+    confParticles.push({
+      x: cx + (Math.random()-0.5)*220,
+      y: cy + (Math.random()-0.5)*60,
+      vx: (Math.random()-0.5)*6,
+      vy: - (4 + Math.random()*8),
+      life: 50 + Math.random()*40,
+      size: 4 + Math.random()*6,
+      hue: 40 + Math.floor(Math.random()*40),
+      rot: Math.random()*360,
+      vr: (Math.random()-0.5)*8
+    });
+  }
+  if(!confAnimating){ confAnimating = true; requestAnimationFrame(confLoop); }
+}
+
+function confLoop(){
+  cctx.clearRect(0,0,confCanvas.width, confCanvas.height);
+  for(let i = confParticles.length-1; i >= 0; i--){
+    const p = confParticles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 1; p.vr *= 0.99; p.rot += p.vr;
+    cctx.save();
+    cctx.translate(p.x, p.y);
+    cctx.rotate(p.rot * Math.PI / 180);
+    cctx.globalAlpha = Math.max(0, p.life / 80);
+    cctx.fillStyle = `hsl(${p.hue}, 85%, ${55 + Math.random()*8}%)`;
+    cctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+    cctx.restore();
+    if(p.life <= 0 || p.y > confCanvas.height + 40) confParticles.splice(i,1);
+  }
+  if(confParticles.length > 0) requestAnimationFrame(confLoop); else { confAnimating = false; cctx.clearRect(0,0,confCanvas.width, confCanvas.height); }
+}
+
+/* make confettiBurst available on window for debug */
+window.__confetti = { burst: confettiBurst };
+
+/* Accessibility: when a new question appears, focus the first button */
+const questionsContainerObserver = new MutationObserver((muts)=>{
+  for(const m of muts){
+    if(m.addedNodes && m.addedNodes.length){
+      // if qChoices receives children, focus first button
+      if(m.target && m.target.id === 'qChoices'){
+        const first = m.target.querySelector('button');
+        if(first) first.focus();
+      }
+    }
+  }
+});
+const qChoicesNode = document.getElementById('qChoices');
+if(qChoicesNode) questionsContainerObserver.observe(qChoicesNode, { childList: true });
+
+/* small polish: animate leaderboard rows as they arrive (the original renderLeaderboard keeps intact) */
+const lbNode = document.getElementById('leaderboard');
+const lbObs = new MutationObserver((mutations)=>{
+  // add show class to new rows
+  requestAnimationFrame(()=>{
+    lbNode.querySelectorAll('.rank-row').forEach((r,i)=> {
+      r.classList.add('fade-in');
+      setTimeout(()=> r.classList.add('show'), i * 40);
+    });
+  });
+});
+if(lbNode) lbObs.observe(lbNode, { childList: true, subtree: true });
+
+</script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-

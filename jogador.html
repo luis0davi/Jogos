@@ -95,7 +95,7 @@
     <!-- SIDE: RANKING -->
     <div class="card">
       <h3>Leaderboard (Ao vivo)</h3>
-      <div class="small">Top 10 — atualiza automaticamente</div>
+      <div class="small">Top 5 — atualiza automaticamente</div>
       <div id="leaderboard" style="margin-top:12px" class="live-rank">
         <div class="muted">Carregando...</div>
       </div>
@@ -231,7 +231,7 @@ async function refreshRanking(){
   try{
     const data = await api({action:'leaderboard'});
     const lb = (data && data.leaderboard) ? data.leaderboard : [];
-    renderLeaderboard(lb.slice(0,10));
+    renderLeaderboard(lb.slice(0,5));
   }catch(err){
     console.error('Erro ranking:', err);
   }
@@ -411,7 +411,7 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   } else {
     // regra R: punição se errou nos primeiros 5s (timeLeft entre 20..15)
     if(timeLeft >= 15 && timeLeft <= 20){
-      pontos = -0+;
+      pontos = -0,1;
     } else {
       pontos = 0;
     }
@@ -482,6 +482,3 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
-
-
-

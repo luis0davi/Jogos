@@ -141,7 +141,7 @@
     <!-- MAIN -->
     <div class="card" role="main" aria-live="polite">
       <h2>Quiz NR-18 — Jogador</h2>
-      <div class="muted">Leaderboard e interface atualizados — visual inspirado no painel do Admin.</div>
+      <div class="muted">Leaderboard e interface atualizados — Dev - Luis Davi.</div>
 
       <!-- descricao / intro -->
       <div id="introNote" class="status-box" style="margin-top:12px">
@@ -459,7 +459,7 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   const correct = (choiceIdx === q.answer) ? 1 : 0;
 
   // valores exatos
-  const maxPontos = 100/15;       // 6.6666666666667
+  const maxPontos = 110/15;       // 6.6666666666667
   const minPontos = maxPontos/2;  // 3.3333333333333
   const punish    = maxPontos/4;  // 1.6666666666667
 
@@ -649,7 +649,7 @@ const questionsContainerObserver = new MutationObserver((muts)=>{
       // if qChoices receives children, focus first button
       if(m.target && m.target.id === 'qChoices'){
         const first = m.target.querySelector('button');
-        if(first) first.focus();
+        
       }
     }
   }
@@ -673,4 +673,5 @@ if(lbNode) lbObs.observe(lbNode, { childList: true, subtree: true });
 </script>
 </body>
 </html>
+
 

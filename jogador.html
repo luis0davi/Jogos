@@ -208,7 +208,7 @@
    CONFIGURAÇÕES
    ============================================================ */
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
-const POLL_MS = 1200;               // frequência de polling do estado / ranking
+const POLL_MS = 500;               // frequência de polling do estado / ranking
 const QUESTION_TIME_LIMIT = 20;     // segundos por pergunta (contagem regressiva 20 -> 0)
 const POINTS_BASE = 1;              // pontos base por pergunta
 
@@ -673,3 +673,4 @@ if(lbNode) lbObs.observe(lbNode, { childList: true, subtree: true });
 </script>
 </body>
 </html>
+

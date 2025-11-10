@@ -100,17 +100,18 @@
 /* Config */
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
 const POLL_MS = 1400;
-const QUESTION_TIME_LIMIT = 20; // default seconds (visual only)
+const QUESTION_TIME_LIMIT = 20; // seconds
 
 /* Estado local */
 let playerName = null;
-let currentQ = 0;          // index local do jogador (corrida individual)
+let currentQ = 0;
 let questionStartAt = null;
 let answeredFor = {};      // qIdx -> true
 let pollTimer = null;
 let rankTimer = null;
+let windowQTimer = null;
 
-/* Perguntas (15 NR-18) - mantive as suas */
+/* Perguntas (15 NR-18) */
 const questions = [
   { q: "Qual o objetivo principal da NR-18?", choices: ["Regulamentar o uso de EPIs","Estabelecer diretrizes de segurança para a indústria da construção","Definir normas de transporte rodoviário","Normatizar uso de produtos químicos"], answer: 1 },
   { q: "Quem é responsável por elaborar o PCMAT?", choices:["O empregador/contratante","O empregado","O sindicato","O cliente da obra"], answer: 0 },
@@ -129,65 +130,25 @@ const questions = [
   { q: "PCMAT é exigido para obras com quantos trabalhadores (NR-18)?", choices:["Obras com 20 trabalhadores ou mais","Obras com 50 trabalhadores ou mais","Todas as obras","Apenas obras públicas"], answer: 0 }
 ];
 
-/* util fetch */
+/* util */
+function shuffleArray(a){
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function escapeHtml(str){
+  if(!str && str !== 0) return '';
+  return String(str).replace(/[&<>"']/g, function(m){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
+}
 async function api(params){
   const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
   const res = await fetch(url);
   return res.json();
 }
 
-/* registrar jogador */
-document.getElementById('btnReg').addEventListener('click', async ()=>{
-  const v = document.getElementById('playerName').value.trim();
-  if(!v) return alert('Digite um nome');
-  playerName = v;
-  await api({action:'register', nome: playerName});
-  document.getElementById('showName').innerText = playerName;
-  document.getElementById('stepName').style.display = 'none';
-  document.getElementById('waiting').style.display = 'block';
-  // start polling to detect admin start + load ranking
-  startPolling();
-  startRankPolling();
-});
-
-/* polling do estado global (apenas para detectar START do admin) */
-function startPolling(){
-  if(pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(async ()=>{
-    try{
-      const state = await api({action:'state_get'});
-      if(!state || !state.status || state.status === 'waiting'){
-        // aguardando admin
-        document.getElementById('waiting').style.display = 'block';
-        document.getElementById('questionArea').style.display = 'none';
-        return;
-      }
-      if(state.status === 'live'){
-        // Se o jogador ainda não começou localmente, inicia localmente na pergunta 0
-        if(typeof currentQ !== 'number' || currentQ < 0) currentQ = 0;
-        // se jogador ainda não respondeu a pergunta corrente localmente, mostra-a
-        if(answeredFor[currentQ]){
-          // já respondeu localmente: mostra aguardando (ele já avançou)
-          document.getElementById('waiting').style.display = 'block';
-          document.getElementById('questionArea').style.display = 'none';
-        } else {
-          // mostrar a pergunta atual local
-          showQuestionLocal(currentQ);
-        }
-      } else if(state.status === 'finished'){
-        // se admin finalizou o jogo
-        document.getElementById('waiting').style.display = 'none';
-        document.getElementById('questionArea').style.display = 'none';
-        document.getElementById('endArea').style.display = 'block';
-        clearInterval(pollTimer);
-      }
-    }catch(err){
-      console.error(err);
-    }
-  }, POLL_MS);
-}
-
-/* ranking polling (Top 5) */
+/* ranking */
 async function refreshRanking(){
   try{
     const data = await api({action:'leaderboard'});
@@ -216,16 +177,60 @@ function renderLeaderboard(list){
   box.innerHTML = html;
 }
 
-/* show question locally (corrida individual) */
+/* register */
+document.getElementById('btnReg').addEventListener('click', async ()=>{
+  const v = document.getElementById('playerName').value.trim();
+  if(!v) return alert('Digite um nome');
+  playerName = v;
+  await api({action:'register', nome: playerName});
+  document.getElementById('showName').innerText = playerName;
+  document.getElementById('stepName').style.display = 'none';
+  document.getElementById('waiting').style.display = 'block';
+  startPolling();
+  startRankPolling();
+});
+
+/* polling global to detect START */
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async ()=>{
+    try{
+      const state = await api({action:'state_get'});
+      if(!state || !state.status || state.status === 'waiting'){
+        document.getElementById('waiting').style.display = 'block';
+        document.getElementById('questionArea').style.display = 'none';
+        return;
+      }
+      if(state.status === 'live'){
+        if(typeof currentQ !== 'number' || currentQ < 0) currentQ = 0;
+        if(answeredFor[currentQ]){
+          document.getElementById('waiting').style.display = 'block';
+          document.getElementById('questionArea').style.display = 'none';
+        } else {
+          showQuestionLocal(currentQ);
+        }
+      } else if(state.status === 'finished'){
+        document.getElementById('waiting').style.display = 'none';
+        document.getElementById('questionArea').style.display = 'none';
+        document.getElementById('endArea').style.display = 'block';
+        clearInterval(pollTimer);
+      }
+    }catch(err){
+      console.error(err);
+    }
+  }, POLL_MS);
+}
+
+/* show question (with shuffled choices) */
 function showQuestionLocal(qIdx){
   const q = questions[qIdx];
   if(!q){
-    // sem mais perguntas
     document.getElementById('questionArea').style.display = 'none';
     document.getElementById('waiting').style.display = 'none';
     document.getElementById('endArea').style.display = 'block';
     return;
   }
+
   // render
   document.getElementById('waiting').style.display = 'none';
   document.getElementById('endArea').style.display = 'none';
@@ -234,66 +239,130 @@ function showQuestionLocal(qIdx){
   const choicesDiv = document.getElementById('qChoices');
   choicesDiv.innerHTML = '';
   document.getElementById('feedbackMsg').innerText = '';
-  // start timer for this local question
+
+  // build shuffled choices with mapping to original index
+  const pairs = q.choices.map((text, idx) => ({text, origIdx: idx}));
+  shuffleArray(pairs);
+  // locate which shuffled index holds the correct origin
+  let shuffledCorrectIndex = pairs.findIndex(p => p.origIdx === q.answer);
+
+  // start timer
   questionStartAt = Date.now();
-  q.choices.forEach((c,i)=>{
+
+  // create buttons
+  pairs.forEach((p, i)=>{
     const btn = document.createElement('button');
-    btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}`;
-    btn.onclick = () => handleChoiceClick(btn, qIdx, i);
+    btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(p.text)}`;
+    // pass the shuffled index and resolved correctness check using origIdx
+    btn.onclick = () => handleChoiceClick(btn, qIdx, p.origIdx, i, shuffledCorrectIndex);
     choicesDiv.appendChild(btn);
   });
-  // start/update small countdown visual (client-side)
-  if(window.qTimer) clearInterval(window.qTimer);
-  window.qTimer = setInterval(()=> updateTimeLeft(questionStartAt), 250);
-  updateTimeLeft(questionStartAt);
+
+  // clear old timer and start visual countdown
+  if(windowQTimer){ clearInterval(windowQTimer); windowQTimer = null; }
+  updateTimeLeft();
+  windowQTimer = setInterval(updateTimeLeft, 200);
 }
 
-/* when player clicks a choice */
-/* when player clicks a choice */
-/* when player clicks a choice */
-async function handleChoiceClick(btn, qIdx, choiceIdx){
+/* updateTimeLeft + timeout handler */
+function updateTimeLeft(){
+  if(!questionStartAt){
+    document.getElementById('timeLeft').innerText = '';
+    return;
+  }
+  const elapsed = (Date.now() - questionStartAt) / 1000; // s
+  const left = Math.max(0, Math.ceil(QUESTION_TIME_LIMIT - elapsed));
+  document.getElementById('timeLeft').innerText = `Tempo restante: ${left}s`;
+
+  if(left <= 0){
+    if(windowQTimer){ clearInterval(windowQTimer); windowQTimer = null; }
+    handleTimeout();
+  }
+}
+
+async function handleTimeout(){
+  const qIdx = currentQ;
+  if(!Number.isInteger(qIdx)) return;
+  if(answeredFor[qIdx]) return;
+
+  // disable buttons
+  const choiceButtons = document.querySelectorAll('#qChoices button');
+  choiceButtons.forEach(b => b.disabled = true);
+
+  answeredFor[qIdx] = true;
+
+  // record timeout as error, tempo igual ao limite
+  const timeSpent = QUESTION_TIME_LIMIT * 1000;
+  const pontos = 0;
+  try{
+    await api({
+      action:'submit',
+      nome: playerName,
+      qIdx: qIdx,
+      acertos: 0,
+      tempo: timeSpent,
+      pontos: pontos
+    });
+  }catch(err){
+    console.error('Erro ao submeter timeout:', err);
+  }
+
+  document.getElementById('feedbackMsg').innerText = 'Tempo esgotado — erro.';
+  setTimeout(()=>{
+    currentQ = qIdx + 1;
+    showQuestionLocal(currentQ);
+    refreshRanking();
+  }, 700);
+}
+
+/* handle click: origChoiceIdx = original index of clicked choice; shuffledIdx = visual position; shuffledCorrectIndex = visual pos of correct */
+async function handleChoiceClick(btn, qIdx, origChoiceIdx, shuffledIdx, shuffledCorrectIndex){
+  // prevent multiple clicks
   const choiceButtons = document.querySelectorAll('#qChoices button');
   choiceButtons.forEach(b=> b.disabled = true);
 
+  // compute times
   const at = Date.now();
-  const timeSpent = Math.max(0, at - questionStartAt);
+  const timeSpent = Math.max(0, at - questionStartAt); // ms
   const timeSpentSec = timeSpent / 1000;
   const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec);
 
+  // determine correctness (compare origChoiceIdx to question.answer)
   const q = questions[qIdx];
-  const correct = (choiceIdx === q.answer) ? 1 : 0;
+  const correct = (origChoiceIdx === q.answer) ? 1 : 0;
   let pontos = 0;
 
   if(correct){
-    if(timeLeft === 0){
-        pontos = 1 * 0.5;
+    if(timeLeft <= 0){
+      pontos = 1 * 0.5;
     } else if(timeLeft > 10){
-        pontos = 1 * 1;
+      pontos = 1 * 1.5;
     } else {
-        pontos = 1;
+      pontos = 1;
     }
   } else {
-    if(timeLeft >=15 && timeLeft <=20){
-        pontos = -0;
+    if(timeLeft >= 15 && timeLeft <= 20){
+      pontos = -2;
     } else {
-        pontos = 0;
+      pontos = 0;
     }
   }
 
-  // visual feedback
+  // visual feedback: color clicked + highlight correct
   choiceButtons.forEach((b, idx)=>{
-    if(idx === choiceIdx){
+    // idx is shuffled visual index (A,B,C...)
+    if(idx === shuffledIdx){
       b.style.borderColor = correct ? 'rgba(46,204,113,0.9)' : 'rgba(231,76,60,0.9)';
       b.style.background = correct ? 'linear-gradient(90deg, rgba(46,204,113,0.12), rgba(46,204,113,0.06))' : 'linear-gradient(90deg, rgba(231,76,60,0.08), rgba(231,76,60,0.03))';
       b.style.boxShadow = '0 8px 20px rgba(0,0,0,0.05)';
     }
-    // highlight correct choice
-    if(idx === q.answer){
+    if(idx === shuffledCorrectIndex){
       b.style.borderColor = 'rgba(46,204,113,0.9)';
       b.style.background = 'linear-gradient(90deg, rgba(46,204,113,0.06), rgba(46,204,113,0.02))';
     }
   });
 
+  // send to server
   try{
     await api({
       action:'submit',
@@ -308,42 +377,25 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
   }
 
   answeredFor[qIdx] = true;
-  document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pontos} pts` : `Errou (${pontos} pts)`;
+  document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pontos} pts` : (pontos < 0 ? `Errou (${pontos} pts)` : 'Errou (0 pts)');
 
+  // stop visual timer
+  if(windowQTimer){ clearInterval(windowQTimer); windowQTimer = null; }
+
+  // advance
   setTimeout(()=> {
     currentQ = qIdx + 1;
-    if(window.qTimer) { clearInterval(window.qTimer); window.qTimer = null; }
     showQuestionLocal(currentQ);
     refreshRanking();
-  }, 650);
+  }, 700);
 }
 
-
-  
-
-/* countdown visual */
-function updateTimeLeft(startAt){
-  const left = Math.max(0, Math.round((startAt + QUESTION_TIME_LIMIT*1000 - Date.now())/1000));
-  document.getElementById('timeLeft').innerText = `Tempo restante (visual): ${left}s`;
-  if(left <= 0 && window.qTimer){
-    clearInterval(window.qTimer);
-    window.qTimer = null;
-  }
-}
-
-/* small helper to escape HTML in strings */
-function escapeHtml(str){
-  if(!str && str !== 0) return '';
-  return String(str).replace(/[&<>"']/g, function(m){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
-}
-
-/* clean unload */
+/* cleanup */
 window.addEventListener('beforeunload', ()=>{
   if(pollTimer) clearInterval(pollTimer);
   if(rankTimer) clearInterval(rankTimer);
-  if(window.qTimer) clearInterval(window.qTimer);
+  if(windowQTimer) clearInterval(windowQTimer);
 });
 </script>
 </body>
 </html>
-

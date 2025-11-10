@@ -95,7 +95,7 @@
     <!-- SIDE: RANKING -->
     <div class="card">
       <h3>Leaderboard (Ao vivo)</h3>
-      <div class="small">Top 5 — atualiza automaticamente</div>
+      <div class="small">Top 10 — atualiza automaticamente</div>
       <div id="leaderboard" style="margin-top:12px" class="live-rank">
         <div class="muted">Carregando...</div>
       </div>
@@ -401,7 +401,7 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
 
   // aplicar regras de pontuação conforme definido
   if(correct){
-    if(timeLeft <= 0){
+    if(timeLeft <= 20){
       pontos = POINTS_BASE * 0.5;        // acertou com timeLeft == 0 -> metade
     } else if(timeLeft > 10){
       pontos = POINTS_BASE * 1.5;        // turbo
@@ -482,4 +482,5 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 

@@ -401,10 +401,10 @@ async function handleChoiceClick(btn, qIdx, choiceIdx){
 
   // aplicar regras de pontuação conforme definido
   if(correct){
-    if(timeLeft <= 20){
-      pontos = POINTS_BASE * 1;        // acertou com timeLeft == 0 -> metade
-    } else if(timeLeft > 10){
-      pontos = POINTS_BASE * 2;        // turbo
+    if(timeLeft >= 15 && timeLeft <= 20){
+      pontos = POINTS_BASE * 2;        // acertou com timeLeft == 0 -> metade
+    } else if(timeLeft > 15){
+      pontos = POINTS_BASE * 1;        // turbo
     } else {
       pontos = POINTS_BASE * 1;          // padrão
     }
@@ -482,5 +482,6 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 

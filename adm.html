@@ -3,431 +3,468 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Admin — Quiz NR-18 (Live Rank)</title>
+<title>Admin — Quiz NR-18 (Leaderboard Estilo Game)</title>
+<link rel="preconnect" href="https://fonts.gstatic.com">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   :root{
-    --bg:#f6f7fb;
-    --card:#fff;
-    --accent:#0b63ff;
-    --muted:#7a7f8b;
-    --gold-1: #ffd966;
-    --gold-2: #ffb84d;
-    --gold-glow: 0 6px 24px rgba(255,184,77,0.25);
+    --bg1:#0b1b4d;
+    --bg2:#2b3b87;
+    --card:#0f1430;
+    --accent:#ffd36b;
+    --muted:#bfc6da;
+    --glass: rgba(255,255,255,0.04);
   }
   html,body{height:100%}
-  body{font-family:Inter,Arial,Helvetica,sans-serif;margin:18px;background:var(--bg);-webkit-font-smoothing:antialiased}
-  .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 10px 30px rgba(20,30,60,0.06);max-width:1100px;margin:0 auto}
-  h2{margin:0 0 6px 0}
-  .muted{color:var(--muted);font-size:13px}
-  .row{display:flex;gap:12px;align-items:center}
-  .controls{display:flex;gap:8px;margin:10px 0 14px 0}
-
+  body{
+    margin:20px;
+    font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: radial-gradient(1200px 600px at 10% 10%, rgba(45,60,120,0.15), transparent 8%),
+                radial-gradient(1000px 500px at 90% 90%, rgba(30,20,80,0.16), transparent 8%),
+                linear-gradient(180deg, var(--bg1), var(--bg2));
+    -webkit-font-smoothing:antialiased;color:#fff;
+  }
+  .card{
+    max-width:1100px;margin:0 auto;padding:18px;border-radius:16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    box-shadow: 0 18px 60px rgba(2,6,23,0.6);
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  h1{margin:0;font-size:20px;letter-spacing:0.6px}
+  .muted{color:var(--muted);font-size:13px;margin-top:6px}
+  .controls{display:flex;gap:8px;align-items:center;margin-top:12px}
   button{
-    padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:#fff;cursor:pointer;font-weight:600;
-    box-shadow:0 6px 18px rgba(11,99,255,0.18);
+    cursor:pointer;border:0;padding:10px 14px;border-radius:10px;font-weight:700;
+    background: linear-gradient(180deg,#2b57f7,#0b3bdf); color:#fff; box-shadow:0 8px 30px rgba(11,99,255,0.12);
   }
-  button.secondary{
-    background:transparent;color:var(--muted);border:1px solid #e6e9f3;box-shadow:none;font-weight:600;
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:#dfe6ff}
+  .pill{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:999px;font-weight:600;color:var(--muted);margin-left:auto}
+
+  /* layout leaderboard big */
+  .board-wrap{display:flex;gap:18px;margin-top:16px;align-items:flex-start}
+  .center-stage{
+    flex:0 0 440px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:12px;padding:18px; text-align:center; position:relative; overflow:visible;
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  /* rays behind central podium */
+  .center-stage:before{
+    content:"";position:absolute;left:50%;top:10%;width:700px;height:700px;transform:translateX(-50%);
+    background:
+      radial-gradient(circle at 50% 40%, rgba(255,214,107,0.06) 0%, transparent 20%),
+      conic-gradient(rgba(255,214,107,0.06), transparent 10deg, rgba(255,214,107,0.03));
+    filter: blur(18px);pointer-events:none;z-index:0;
   }
 
-  /* tabs */
-  .tabs {display:flex;gap:8px;margin-top:8px}
-  .tabbtn{padding:7px 12px;border-radius:10px;background:#eef1fb;cursor:pointer;font-weight:600;color:#222}
-  .tabbtn.on{background:linear-gradient(180deg,var(--accent),#0a54d9);color:#fff;box-shadow:0 8px 30px rgba(11,99,255,0.14)}
+  .podium{
+    position:relative; z-index:2;
+  }
+  .top1 {
+    width:180px;margin:0 auto;border-radius:14px;padding:12px;background:linear-gradient(180deg,#1b143a,#2a1b54);
+    box-shadow: 0 8px 30px rgba(59,30,100,0.45); border:1px solid rgba(255,200,80,0.09);
+  }
+  .avatar-circle{
+    width:110px;height:110px;border-radius:999px;background:linear-gradient(135deg,#ffd36b,#ffb84d);
+    display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#2a1600;font-size:34px;
+    box-shadow:0 8px 26px rgba(255,170,50,0.18), inset 0 -6px 18px rgba(0,0,0,0.2);
+  }
+  .trophy{
+    margin-top:8px;font-weight:800;color:var(--accent);display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .score-big{font-weight:800;font-size:22px;margin-top:8px;color:#fff;text-shadow:0 6px 30px rgba(255,180,65,0.12)}
 
-  /* leaderboard container */
-  .leaderboard {
-    margin-top:12px;
-    border-radius:10px;
-    overflow:hidden;
-    background:linear-gradient(180deg,#ffffff, #fbfbfd);
-    border:1px solid #eef2ff;
+  .side-slot{
+    flex:1 1 200px;display:flex;flex-direction:column;gap:10px;
   }
-  .leader-head{
-    display:grid;
-    grid-template-columns:40px 1fr 110px 80px 110px;
-    padding:10px 12px;
-    font-size:13px;color:var(--muted);
-    border-bottom:1px dashed #f0f3ff;
+  .small-top{
+    display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    border:1px solid rgba(255,255,255,0.02);
   }
+  .small-avatar{width:64px;height:64px;border-radius:12px;background:linear-gradient(90deg,#fff,#fff);display:flex;align-items:center;justify-content:center;color:#000;font-weight:800}
+  .place-badge{font-weight:800;color:var(--muted);font-size:18px}
 
-  /* each row */
-  .rankrow{
-    display:grid;
-    grid-template-columns:40px 1fr 110px 80px 110px;
-    gap:8px;
-    align-items:center;
-    padding:10px 12px;
-    border-bottom:1px solid #f4f6fb;
-    transform:translateY(6px);
-    opacity:0;
-    transition:transform .28s cubic-bezier(.2,.9,.3,1),opacity .28s;
-    position:relative;
+  /* list 4..13 */
+  .list{
+    flex:1;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.02);
+    max-height:430px; overflow:auto;
   }
-  .rankrow.show{transform:none;opacity:1}
+  .list .row{
+    display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;margin-bottom:8px;transition:all .28s;
+    background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+  }
+  .num{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-weight:800}
+  .name{flex:1;font-weight:700}
+  .points{width:90px;text-align:right;font-weight:800;color:#ffd36b}
+  .hits{width:70px;text-align:right;color:var(--muted)}
+  .timecol{width:100px;text-align:right;color:var(--muted)}
 
-  .rankrow > div {font-size:15px}
-  .muted-xs{font-size:12px;color:var(--muted)}
+  /* animations */
+  .fade-in{opacity:0;transform:translateY(8px);transition:opacity .28s, transform .28s}
+  .fade-in.show{opacity:1;transform:none}
+  .glow{
+    animation:glowPulse 2200ms ease-in-out infinite;
+    box-shadow: 0 10px 50px rgba(255,200,80,0.16);
+  }
+  @keyframes glowPulse{
+    0%{box-shadow: 0 12px 40px rgba(255,200,80,0.18)}
+    50%{box-shadow: 0 18px 80px rgba(255,200,80,0.26)}
+    100%{box-shadow: 0 12px 40px rgba(255,200,80,0.18)}
+  }
+  .flash{animation:flashAnim 1000ms ease}
+  @keyframes flashAnim{0%{background:rgba(255,230,170,0.95)}40%{background:rgba(255,230,170,0.4)}100%{background:transparent}}
 
-  /* VIP styles */
-  .rankrow.vip1{
-    background:linear-gradient(90deg, rgba(255,217,128,0.15), rgba(255,245,220,0.03));
-    box-shadow: var(--gold-glow);
-  }
-  .rankrow.vip1 .place{
-    font-weight:800;color:#7a4100;text-shadow:0 2px 10px rgba(255,184,77,0.35);
-    display:flex;align-items:center;gap:8px;
-  }
-
-  .rankrow.vip2{
-    background:linear-gradient(90deg, rgba(200,200,200,0.06), rgba(255,255,255,0));
-  }
-  .rankrow.vip3{
-    background:linear-gradient(90deg, rgba(216,195,165,0.05), rgba(255,255,255,0));
-  }
-
-  /* spotlight glow for first place name */
-  .gold-name{
-    font-weight:700;
-    background: linear-gradient(90deg, #ffebc7, #ffd27a, #ffefc5);
-    -webkit-background-clip:text;
-    background-clip:text;
-    color: transparent;
-    text-shadow: 0 4px 30px rgba(255,180,67,0.12);
-  }
-
-  /* flash when position changed */
-  .rankrow.flash{animation:flashAnim 1100ms ease}
-  @keyframes flashAnim{
-    0%{background:rgba(255,240,170,0.95)}
-    40%{background:rgba(255,240,170,0.4)}
-    100%{background:transparent}
-  }
-
-  /* fireworks canvas overlay */
-  #fireworks{
-    position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:1200;mix-blend-mode:screen;
-  }
-
-  /* small helpers */
-  .small{font-size:13px}
-  .center{display:flex;align-items:center;gap:8px}
-  .pill{background:#f3f6ff;padding:6px 8px;border-radius:8px;font-weight:600;color:#123}
   /* responsive */
-  @media (max-width:720px){
-    .rankrow, .leader-head{grid-template-columns:36px 1fr 70px 60px 80px;font-size:13px}
+  @media (max-width:980px){
+    .board-wrap{flex-direction:column;align-items:center}
+    .center-stage{width:100%}
+    .side-slot{flex-direction:row;gap:12px}
+    .list{width:100%}
   }
 </style>
 </head>
 <body>
-  <canvas id="fireworks"></canvas>
+  <canvas id="fireCanvas" style="position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:9999"></canvas>
 
-  <div class="card" role="main">
-    <h2>Admin — Quiz NR-18 (Live Rank)</h2>
-    <div class="muted">Aba de administração com leaderboard em "quase realtime" (poll 300ms). Tema do 1º lugar: <strong>neon dourado</strong>.</div>
-
-    <div class="tabs" style="margin-top:12px">
-      <div class="tabbtn on" onclick="showTab('status')">Status</div>
-      <div class="tabbtn" onclick="showTab('rank')">Rank ao vivo</div>
+  <div class="card" role="main" aria-live="polite">
+    <div style="display:flex;align-items:center;gap:12px">
+      <h1>Admin — Quiz NR-18</h1>
+      <div class="muted">Leaderboard estilo game — Top 13</div>
     </div>
 
-    <div class="controls" style="margin-top:12px">
+    <div class="controls">
       <button id="btnStartQuestions">▶ Start Perguntas (sem apagar nada)</button>
-      <button id="btnStart" class="secondary">START (limpa planilha e inicia)</button>
-      <button id="btnReset" class="secondary">RESET</button>
-      <div style="margin-left:auto" class="center"><div class="pill" id="pollState">Polling: ON</div></div>
+      <button id="btnStart" class="ghost">START (limpa planilha)</button>
+      <button id="btnReset" class="ghost">RESET</button>
+      <div class="pill" id="pollPill">Polling: ON</div>
     </div>
 
-    <div id="tab_status">
-      <h3 style="margin:6px 0">Status atual</h3>
-      <div id="statusDiv" class="muted">carregando...</div>
+    <div class="muted" id="statusDiv">carregando...</div>
 
-      <h3 style="margin-top:14px">Players conectados</h3>
-      <div id="playersCount" class="muted">0</div>
-
-      <div style="margin-top:12px" class="muted">O sistema verifica automaticamente se todos os jogadores responderam — quando todos responderem, avança para a próxima pergunta.</div>
-    </div>
-
-    <div id="tab_rank" style="display:none">
-      <h3 style="margin-top:14px">Leaderboard — tempo real</h3>
-
-      <div class="leaderboard" id="leaderboardDiv">
-        <div class="leader-head">
-          <div>#</div><div>Nome</div><div>Pontos</div><div>Acertos</div><div>Tempo total (s)</div>
+    <div class="board-wrap" style="margin-top:14px">
+      <!-- LEFT slot (2º place) -->
+      <div class="side-slot" style="align-items:flex-end">
+        <div id="slot2" class="small-top fade-in" style="min-width:200px">
+          <div class="small-avatar" id="avatar2">2</div>
+          <div style="text-align:left">
+            <div class="place-badge">2º</div>
+            <div id="name2" class="muted">Player</div>
+            <div id="score2" class="muted-xs">0 pts • 0 acertos</div>
+          </div>
         </div>
-        <div class="muted" style="padding:12px">Carregando...</div>
       </div>
+
+      <!-- CENTER slot (1º place) -->
+      <div class="center-stage">
+        <div class="podium">
+          <div class="top1 fade-in" id="slot1">
+            <div class="avatar-circle" id="avatar1">1</div>
+            <div class="trophy">🏆 <span id="title1" style="opacity:0.9;margin-left:6px">Líder</span></div>
+            <div class="score-big" id="score1">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT slot (3º place) -->
+      <div class="side-slot" style="align-items:flex-start">
+        <div id="slot3" class="small-top fade-in" style="min-width:200px">
+          <div class="small-avatar" id="avatar3">3</div>
+          <div style="text-align:left">
+            <div class="place-badge">3º</div>
+            <div id="name3" class="muted">Player</div>
+            <div id="score3" class="muted-xs">0 pts • 0 acertos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- List 4..13 -->
+    <div class="list" id="listBox" aria-live="polite" style="margin-top:14px">
+      <div class="muted" style="padding:6px">Carregando lista...</div>
     </div>
   </div>
 
 <script>
-/* =====================
-   Configurações
-   ===================== */
+/* ========== Config ========== */
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
-const POLL_MS = 300; // 300ms polling (quase realtime)
-let pollEnabled = true;
-let lastLB = [];
+const POLL_MS = 300;
+const MAX_SHOW = 13;
 let pollTimer = null;
+let lastLB = [];
+let particles = [];
+let fireCanvas = document.getElementById('fireCanvas');
+let fctx = fireCanvas.getContext('2d');
+function resizeCanvas(){ fireCanvas.width = window.innerWidth; fireCanvas.height = window.innerHeight; }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-/* =====================
-   Helpers API
-   ===================== */
+/* ========== Helpers API ========== */
 async function api(params){
   const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
   const res = await fetch(url, {cache:'no-store'});
   return res.json();
 }
 
-/* =====================
-   UI controls
-   ===================== */
+/* ========== UI control buttons ========== */
 document.getElementById('btnStartQuestions').addEventListener('click', async ()=>{
   if(!confirm('Iniciar sequência de perguntas sem apagar a planilha?')) return;
   try{
-    await api({action:'state_set', op:'start_questions'}); // adapte op se necessário
-    log('Iniciado: perguntas sem limpar planilha.');
-  }catch(e){
-    console.error(e);
-    log('Erro ao iniciar perguntas: ' + e.message);
-  }
+    await api({action:'state_set', op:'start_questions'}); // adapte se necessário
+    status('Iniciado: perguntas (sem limpar)');
+  }catch(e){ console.error(e); status('Erro: '+ (e.message || e)); }
 });
-
 document.getElementById('btnStart').addEventListener('click', async ()=>{
   if(!confirm('Iniciar jogo e limpar planilha?')) return;
   await api({action:'state_set', op:'start'});
-  log('Jogo iniciado (planilha limpa).');
+  status('Iniciado (planilha limpa).');
 });
-
 document.getElementById('btnReset').addEventListener('click', async ()=>{
-  if(!confirm('Resetar estado (voltar para aguardando)?')) return;
+  if(!confirm('Resetar estado (aguardando)?')) return;
   await api({action:'state_set', op:'reset'});
-  log('Estado resetado.');
+  status('Resetado.');
 });
+function status(msg){ document.getElementById('statusDiv').innerText = msg; }
 
-function log(msg){
-  document.getElementById('statusDiv').innerText = msg;
+/* ========== Render leaderboard (styled like image) ========== */
+function formatRow(r){ return { nome: String(r.nome||'Player'), pontos: Number(r.pontos||0), acertos: Number(r.acertos||0), tempo_ms: Number(r.tempo_ms||0) }; }
+
+function render(lb){
+  lb = lb.slice(0, MAX_SHOW);
+  // sort already assumed from server; ensure shape
+  const list = lb.map(formatRow);
+
+  // top 1,2,3
+  const top1 = list[0] || null;
+  const top2 = list[1] || null;
+  const top3 = list[2] || null;
+
+  // update center/top UI
+  updateTopUI(top1, top2, top3);
+
+  // update list 4..13
+  const rest = list.slice(3);
+  renderList(rest);
+
+  // detect changes: who moved positions
+  detectPositionChanges(list);
 }
 
-/* =====================
-   Tabs
-   ===================== */
-function showTab(tab){
-  document.getElementById('tab_status').style.display = (tab=='status'?'block':'none');
-  document.getElementById('tab_rank').style.display   = (tab=='rank'?'block':'none');
-  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('on'));
-  [...document.querySelectorAll('.tabbtn')].find(b=>b.innerText.toLowerCase().includes(tab=='status'?'status':'rank')).classList.add('on');
-}
-
-/* =====================
-   Leaderboard rendering + animations
-   ===================== */
-function renderLeaderboard(lb){
-  const box = document.getElementById('leaderboardDiv');
-
-  if(!lb || lb.length===0){
-    box.innerHTML = `<div class="leader-head"><div>#</div><div>Nome</div><div>Pontos</div><div>Acertos</div><div>Tempo total (s)</div></div>
-                     <div class="muted" style="padding:12px">Sem resultados ainda</div>`;
-    lastLB = [];
-    return;
+/* update top UI nodes */
+function updateTopUI(t1, t2, t3){
+  // top1
+  const avatar1 = document.getElementById('avatar1');
+  const title1 = document.getElementById('title1');
+  const score1 = document.getElementById('score1');
+  const slot1 = document.getElementById('slot1');
+  if(t1){
+    avatar1.innerText = getInitials(t1.nome);
+    title1.innerText = t1.nome;
+    score1.innerText = t1.pontos.toLocaleString(undefined,{maximumFractionDigits:2});
+    slot1.classList.add('show','glow');
+  } else {
+    avatar1.innerText = '1';
+    title1.innerText = '—';
+    score1.innerText = '0';
+    slot1.classList.remove('show','glow');
   }
 
-  // build rows
-  box.innerHTML = `
-    <div class="leader-head">
-      <div>#</div><div>Nome</div><div>Pontos</div><div>Acertos</div><div>Tempo total (s)</div>
-    </div>
-    ${lb.map((r,i)=>`
-      <div class="rankrow" data-nome="${escapeHtml(r.nome)}" data-pos="${i}">
-        <div class="place">${i+1}</div>
-        <div class="name ${i===0 ? 'gold-name' : ''}">${escapeHtml(r.nome)}</div>
-        <div class="points">${r.pontos ?? 0}</div>
-        <div class="hits">${r.acertos ?? 0}</div>
-        <div class="time">${Math.round((r.tempo_ms||0)/1000)}</div>
-      </div>
-    `).join('')}
-  `;
+  // top2
+  const avatar2 = document.getElementById('avatar2');
+  const name2 = document.getElementById('name2');
+  const score2 = document.getElementById('score2');
+  const slot2 = document.getElementById('slot2');
+  if(t2){
+    avatar2.innerText = getInitials(t2.nome);
+    name2.innerText = t2.nome;
+    score2.innerText = `${t2.pontos.toLocaleString(undefined,{maximumFractionDigits:2})} • ${t2.acertos} acertos`;
+    slot2.classList.add('show');
+  } else {
+    avatar2.innerText = '2';
+    name2.innerText = '—';
+    score2.innerText = `0 • 0 acertos`;
+    slot2.classList.remove('show');
+  }
 
-  // animate rows and detect position changes
-  requestAnimationFrame(()=>{
-    const rows = box.querySelectorAll('.rankrow');
-    rows.forEach(row=>{
-      const pos = Number(row.dataset.pos);
-      const nome = row.dataset.nome;
+  // top3
+  const avatar3 = document.getElementById('avatar3');
+  const name3 = document.getElementById('name3');
+  const score3 = document.getElementById('score3');
+  const slot3 = document.getElementById('slot3');
+  if(t3){
+    avatar3.innerText = getInitials(t3.nome);
+    name3.innerText = t3.nome;
+    score3.innerText = `${t3.pontos.toLocaleString(undefined,{maximumFractionDigits:2})} • ${t3.acertos} acertos`;
+    slot3.classList.add('show');
+  } else {
+    avatar3.innerText = '3';
+    name3.innerText = '—';
+    score3.innerText = `0 • 0 acertos`;
+    slot3.classList.remove('show');
+  }
+}
 
-      // show animation
-      setTimeout(()=>row.classList.add('show'), pos * 30); // stagger
+/* list render */
+function renderList(rows){
+  const box = document.getElementById('listBox');
+  if(!rows || rows.length===0){
+    box.innerHTML = `<div class="muted" style="padding:6px">Sem mais jogadores</div>`;
+    return;
+  }
+  box.innerHTML = rows.map((r, idx)=>{
+    const pos = idx + 4;
+    return `<div class="row fade-in" data-nome="${escapeHtml(r.nome)}" data-pos="${pos}">
+      <div class="num">${pos}</div>
+      <div class="name">${escapeHtml(r.nome)}</div>
+      <div class="points">${r.pontos.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
+      <div class="hits">${r.acertos}</div>
+      <div class="timecol">${Math.round(r.tempo_ms/1000)}s</div>
+    </div>`;
+  }).join('');
 
-      // top3 VIP classes
-      row.classList.remove('vip1','vip2','vip3');
-      if(pos === 0) row.classList.add('vip1');
-      if(pos === 1) row.classList.add('vip2');
-      if(pos === 2) row.classList.add('vip3');
-
-      // check last position
-      const lastIndex = lastLB.findIndex(x => x.nome === nome);
-      if(lastIndex !== -1 && lastIndex !== pos){
-        // someone changed position
-        row.classList.add('flash');
-        setTimeout(()=>row.classList.remove('flash'), 1100);
-
-        // if changed and now is first => fire fireworks
-        if(pos === 0){
-          fireworkBurst();
-        }
-      }
+  // reveal with small stagger
+  requestAnimationFrame(()=> {
+    box.querySelectorAll('.fade-in').forEach((el,i)=>{
+      setTimeout(()=>el.classList.add('show'), i * 35);
     });
-    // update lastLB
-    lastLB = lb.map((r,i)=>({nome:r.nome,pos:i,pontos:r.pontos}));
   });
 }
 
-/* small HTML-escape */
-function escapeHtml(s=''){
-  return String(s).replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;", "`":"&#96;"}[c]));
+/* detect changes and fireworks when someone becomes first */
+function detectPositionChanges(list){
+  // list: array {nome, pontos, ...}
+  // Compare with lastLB by nome
+  list = list || [];
+  if(lastLB.length === 0){
+    lastLB = list.map((r,i)=>({nome:r.nome,pos:i,pontos:r.pontos}));
+    return;
+  }
+  // find who moved to pos 0
+  const prevFirst = lastLB[0] ? lastLB[0].nome : null;
+  const newFirst = list[0] ? list[0].nome : null;
+
+  // detect any individual position changes -> flash row in list
+  const changed = [];
+  for(let i=0;i<list.length;i++){
+    const name = list[i].nome;
+    const prevIndex = lastLB.findIndex(x=>x.nome===name);
+    if(prevIndex !== -1 && prevIndex !== i){
+      changed.push({name, from:prevIndex, to:i});
+    }
+  }
+
+  // apply flash to changed items (top 1 handled separately)
+  changed.forEach(c=>{
+    // if changed item is among 4..13, flash its row
+    const pos = c.to;
+    if(pos >= 3){
+      const rows = document.querySelectorAll('#listBox .row');
+      const idx = pos - 3; // 0-based in listBox
+      const el = rows[idx];
+      if(el){
+        el.classList.add('flash');
+        setTimeout(()=>el.classList.remove('flash'), 1100);
+      }
+    }
+  });
+
+  if(prevFirst !== newFirst && newFirst){
+    // highlight top1 box and fireworks
+    const slot1 = document.getElementById('slot1');
+    slot1.classList.add('flash');
+    setTimeout(()=>slot1.classList.remove('flash'),1200);
+    // burst fireworks
+    fireBurst();
+  }
+
+  lastLB = list.map((r,i)=>({nome:r.nome,pos:i,pontos:r.pontos}));
 }
 
-/* =====================
-   Polling logic (300ms) with visibility handling
-   ===================== */
+/* tiny utils */
+function escapeHtml(s=''){ return String(s).replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;","`":"&#96;"}[c])); }
+function getInitials(name='Player'){ const parts = name.trim().split(/\s+/); if(parts.length===1) return parts[0].slice(0,2).toUpperCase(); return (parts[0][0]+(parts[1]||'')[0]).toUpperCase(); }
+
+/* ========== Polling logic ========== */
 async function pollOnce(){
   try{
-    // get state, players, leaderboard in parallel
     const [sRes, pRes, lbRes] = await Promise.all([
       api({action:'state_get'}),
       api({action:'getPlayersCount'}),
       api({action:'leaderboard'})
     ]);
 
-    // players
-    const pc = (pRes && pRes.count) ? pRes.count : 0;
-    document.getElementById('playersCount').innerText = pc + ' jogadores registrados';
+    const playersCount = (pRes && pRes.count) ? pRes.count : 0;
+    document.getElementById('pollPill').innerText = `Polling: ON • ${playersCount} jogadores`;
 
-    // leaderboard: use lbRes.leaderboard if present
     const lbList = (lbRes && lbRes.leaderboard) ? lbRes.leaderboard : [];
+    render(lbList.slice(0, MAX_SHOW));
 
-    renderLeaderboard(lbList.slice(0, 30)); // mostra top 30 por segurança
-
-    // status text
     if(sRes && sRes.status){
-      document.getElementById('statusDiv').innerText = `Status: ${sRes.status} — Pergunta atual: ${sRes.questionIndex} — Início: ${sRes.questionStartAt ? new Date(sRes.questionStartAt).toLocaleTimeString() : '-'}`;
-      // se live, checar respostas para avançar
-      if(sRes.status === 'live'){
-        const qIdx = sRes.questionIndex;
-        const answersCount = await api({action:'countAnswers', qIdx: qIdx});
-        const totalPlayers = pc;
-        if(totalPlayers > 0 && answersCount.count >= totalPlayers){
-          // não forçar aqui; comentado por padrão. se quiser auto-advance, descomente:
-          // await api({action:'state_set', op:'advance'});
-          // log('Todos responderam — avançando...');
-        }
-      }
+      document.getElementById('statusDiv').innerText = `Status: ${sRes.status} — Pergunta: ${sRes.questionIndex} — Início: ${sRes.questionStartAt ? new Date(sRes.questionStartAt).toLocaleTimeString() : '-'}`;
     } else {
       document.getElementById('statusDiv').innerText = 'Status: (nenhum)';
     }
-  }catch(err){
-    console.error('poll error', err);
+  }catch(e){
+    console.error('poll error', e);
   }
 }
 
-/* start/stop poll safely */
 function startPolling(){
   stopPolling();
-  pollEnabled = true;
-  document.getElementById('pollState').innerText = 'Polling: ON';
   pollTimer = setInterval(()=>{ if(document.visibilityState==='visible') pollOnce(); }, POLL_MS);
-  // run immediate
   pollOnce();
 }
+function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer = null; document.getElementById('pollPill').innerText = 'Polling: OFF'; }
 
-function stopPolling(){
-  pollEnabled = false;
-  document.getElementById('pollState').innerText = 'Polling: OFF';
-  if(pollTimer) clearInterval(pollTimer);
-  pollTimer = null;
-}
-
-/* visibility API: pause polling when tab not visible */
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'hidden'){
-    stopPolling();
-  } else {
-    startPolling();
-  }
+document.addEventListener('visibilitychange', ()=> {
+  if(document.visibilityState === 'hidden') stopPolling(); else startPolling();
 });
 
-/* =====================
-   Fireworks effect (canvas) - lightweight
-   ===================== */
-const canvas = document.getElementById('fireworks');
-const ctx = canvas.getContext('2d');
-let particles = [];
-function resizeCanvas(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-function fireworkBurst(){
-  // burst at top-center-ish of viewport (adjustable)
-  const x = window.innerWidth * (0.5 + (Math.random()-0.5)*0.3);
-  const y = window.innerHeight * 0.18 + (Math.random()*60);
-
+/* ========== Firework / particles ========== */
+function fireBurst(){
+  // simple burst of golden particles
+  const cx = window.innerWidth * 0.5 + (Math.random()-0.5)*200;
+  const cy = window.innerHeight * 0.22 + (Math.random()-0.5)*60;
   const count = 28 + Math.floor(Math.random()*20);
   for(let i=0;i<count;i++){
     particles.push({
-      x, y,
+      x: cx, y: cy,
       vx: (Math.random()-0.5) * (4 + Math.random()*6),
       vy: (Math.random()-0.8) * (6 + Math.random()*6) * -1,
       life: 60 + Math.random()*40,
       size: 1 + Math.random()*3,
-      hue: 40 + Math.random()*40 // gold-ish hues
+      hue: 40 + Math.random()*28
     });
   }
-  // run animation loop if not running
-  if(!fireworksRunning){ fireworksRunning = true; requestAnimationFrame(runFireworks); }
+  if(!animating) { animating = true; requestAnimationFrame(animLoop); }
 }
 
-let fireworksRunning = false;
-function runFireworks(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(let i = particles.length-1; i >= 0; i--){
+let animating = false;
+function animLoop(){
+  fctx.clearRect(0,0,fireCanvas.width, fireCanvas.height);
+  for(let i = particles.length-1; i>=0; i--){
     const p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.12; // gravity
-    p.life -= 1;
-    p.size *= 0.995;
-    // draw
-    ctx.beginPath();
-    ctx.globalAlpha = Math.max(0, p.life / 80);
-    ctx.fillStyle = `hsl(${p.hue}, 90%, ${50 + Math.random()*10}%)`;
-    ctx.arc(p.x, p.y, Math.max(0.4, p.size), 0, Math.PI*2);
-    ctx.fill();
-    if(p.life <= 0 || p.y > canvas.height + 20){
-      particles.splice(i,1);
-    }
+    p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life -= 1; p.size *= 0.995;
+    fctx.beginPath();
+    fctx.globalAlpha = Math.max(0, p.life / 80);
+    fctx.fillStyle = `hsl(${p.hue}, 90%, ${50 + Math.random()*10}%)`;
+    fctx.arc(p.x, p.y, Math.max(0.4, p.size), 0, Math.PI*2);
+    fctx.fill();
+    if(p.life <= 0 || p.y > fireCanvas.height + 20) particles.splice(i,1);
   }
-  if(particles.length > 0){
-    requestAnimationFrame(runFireworks);
-  } else {
-    fireworksRunning = false;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-  }
+  if(particles.length>0) requestAnimationFrame(animLoop); else { animating = false; fctx.clearRect(0,0,fireCanvas.width, fireCanvas.height); }
 }
 
-/* =====================
-   Init
-   ===================== */
+/* alias for external */
+function fireBurstExternal(){ fireBurst(); }
+
+/* ========== Init ========== */
 startPolling();
+window.__admin = { startPolling, stopPolling, fireBurst: fireBurstExternal };
 
-/* expose start/stop to console for quick control */
-window.__admin = { startPolling, stopPolling, fireworkBurst };
-
-/* run initial small burst to show alive UI */
-setTimeout(()=>fireworkBurst(), 800);
-
+/* expose small demo burst after load */
+setTimeout(()=>fireBurst(), 900);
 </script>
 </body>
 </html>

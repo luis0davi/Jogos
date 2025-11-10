@@ -10,22 +10,28 @@
     --card: #ffffff;
     --primary: #0b63ff;
     --muted: #666;
-    --ok: #2ecc71;
+    --ok: #28a745;
     --bad: #e74c3c;
-    --choice-bg: #fafafa;
+    --choice-bg: #ffffff;
     --choice-border: #e6e6e6;
+    --glass: rgba(11,99,255,0.08);
   }
   body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;margin:16px;background:var(--bg);color:#111}
-  .wrap{max-width:920px;margin:0 auto;display:grid;grid-template-columns:1fr 320px;gap:18px}
+  .wrap{max-width:980px;margin:0 auto;display:grid;grid-template-columns:1fr 320px;gap:18px}
   .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 8px 26px rgba(15,20,30,0.06)}
   h2{margin:0 0 8px 0}
   input,button{padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px}
   button.primary{background:var(--primary);color:#fff;border:0;cursor:pointer}
   .small{color:var(--muted);font-size:13px}
-  .answers button{display:block;margin:10px 0;padding:12px;border-radius:8px;border:1px solid var(--choice-border);background:var(--choice-bg);cursor:pointer;text-align:left;font-size:15px;transition:transform .08s, box-shadow .12s}
+  .answers button{
+    display:block;margin:10px 0;padding:12px;border-radius:8px;border:1px solid var(--choice-border);
+    background:var(--choice-bg);cursor:pointer;text-align:left;font-size:15px;
+    transition:transform .08s, box-shadow .12s, background .12s, border-color .12s;
+    width:100%;
+  }
   .answers button:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(10,20,40,0.06)}
-  .answers button:disabled{opacity:0.7;cursor:not-allowed;transform:none}
-  .choice-label{font-weight:700;margin-right:8px}
+  .answers button:disabled{opacity:0.8;cursor:not-allowed;transform:none}
+  .choice-label{font-weight:700;margin-right:8px;color:#111}
   .muted{color:var(--muted)}
   .live-rank{font-size:14px}
   .rank-row{display:flex;justify-content:space-between;padding:8px 6px;border-bottom:1px dashed #eee}
@@ -33,7 +39,10 @@
   .notice{padding:10px;border-radius:8px;background:#fff7e6;border:1px solid #ffefc6;color:#7a5b00}
   .qtitle{font-size:16px;margin-bottom:8px}
   .feedback{margin-top:8px;font-weight:600}
-  .top-badge{background:var(--primary);color:#fff;padding:6px 10px;border-radius:999px;font-size:12px}
+  .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;color:#fff}
+  .badge.turbo{background:#ff6b00}
+  .badge.slow{background:#6c6cff}
+  .time-box{font-weight:700}
   @media(max-width:900px){
     .wrap{grid-template-columns:1fr}
   }
@@ -42,48 +51,48 @@
 <body>
 
   <div class="wrap">
-    <!-- main -->
+    <!-- MAIN -->
     <div class="card">
       <h2>Quiz NR-18 — Jogador</h2>
 
+      <!-- descrição do modo -->
       <div id="introNote" class="status-box" style="margin-bottom:12px">
         <strong>Corrida individual em tempo real</strong> — cada jogador corre sozinho pelas perguntas, sprint total. Respondendo → avança. Ranking atualiza ao vivo, e quem acertar mais rápido assume a liderança.
       </div>
 
+      <!-- bloco de registro (nome apenas) -->
       <div id="stepName">
-        <div class="small">Digite seu nome (ou escolha uma sugestão abaixo) — obrigatoriamente antes de iniciar</div>
+        <div class="small">Digite seu nome — obrigatório antes de iniciar</div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <input id="playerName" placeholder="Seu nome" style="flex:1"/>
           <button id="btnReg" class="primary">Registrar</button>
         </div>
-        <div style="margin-top:10px">
-          <button onclick="document.getElementById('playerName').value='Equipe A'">Equipe A</button>
-          <button onclick="document.getElementById('playerName').value='Equipe B'">Equipe B</button>
-          <button onclick="document.getElementById('playerName').value='Participante'">Participante</button>
-        </div>
       </div>
 
+      <!-- aguardando admin iniciar -->
       <div id="waiting" style="display:none;margin-top:12px">
         <div class="small">Aguardando administrador iniciar o jogo...</div>
         <div style="margin-top:8px">Seu nome: <strong id="showName"></strong></div>
       </div>
 
+      <!-- área da pergunta -->
       <div id="questionArea" style="display:none;margin-top:12px">
         <div class="qtitle" id="qTitle"></div>
         <div id="qChoices" class="answers" aria-live="polite"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-          <div class="small" id="timeLeft"></div>
+          <div class="small time-box" id="timeLeft"></div>
           <div class="small feedback" id="feedbackMsg"></div>
         </div>
       </div>
 
+      <!-- fim do jogo -->
       <div id="endArea" style="display:none;margin-top:12px">
         <div><strong>Jogo finalizado</strong></div>
         <div class="small">Aguarde o resultado no painel do administrador.</div>
       </div>
     </div>
 
-    <!-- side: ranking -->
+    <!-- SIDE: RANKING -->
     <div class="card">
       <h3>Leaderboard (Ao vivo)</h3>
       <div class="small">Top 5 — atualiza automaticamente</div>
@@ -97,21 +106,29 @@
   </div>
 
 <script>
-/* Config */
+/* ============================================================
+   CONFIGURAÇÕES
+   ============================================================ */
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
-const POLL_MS = 1400;
-const QUESTION_TIME_LIMIT = 20; // seconds
+const POLL_MS = 1200;               // frequência de polling do estado / ranking
+const QUESTION_TIME_LIMIT = 20;     // segundos por pergunta (contagem regressiva 20 -> 0)
+const POINTS_BASE = 1;              // pontos base por pergunta
 
-/* Estado local */
-let playerName = null;
-let currentQ = 0;
-let questionStartAt = null;
-let answeredFor = {};      // qIdx -> true
-let pollTimer = null;
-let rankTimer = null;
-let windowQTimer = null;
+/* ============================================================
+   ESTADO LOCAL (variáveis que guardam o estado do jogador)
+   ============================================================ */
+let playerName = null;              // nome do jogador (preenchido no registro)
+let currentQ = 0;                   // índice local da pergunta atual do jogador
+let questionStartAt = null;         // timestamp (ms) de início da pergunta atual
+let answeredFor = {};               // mapa qIdx -> true (já respondeu)
+let pollTimer = null;               // timer para checar estado global
+let rankTimer = null;               // timer para atualizar ranking
+let isQuestionVisible = false;      // flag para evitar rerender desnecessário
 
-/* Perguntas (15 NR-18) */
+/* ============================================================
+   PERGUNTAS (15 perguntas NR-18 embutidas)
+   - você pode trocar/editar esse array quando quiser
+   ============================================================ */
 const questions = [
   { q: "Qual o objetivo principal da NR-18?", choices: ["Regulamentar o uso de EPIs","Estabelecer diretrizes de segurança para a indústria da construção","Definir normas de transporte rodoviário","Normatizar uso de produtos químicos"], answer: 1 },
   { q: "Quem é responsável por elaborar o PCMAT?", choices:["O empregador/contratante","O empregado","O sindicato","O cliente da obra"], answer: 0 },
@@ -130,32 +147,93 @@ const questions = [
   { q: "PCMAT é exigido para obras com quantos trabalhadores (NR-18)?", choices:["Obras com 20 trabalhadores ou mais","Obras com 50 trabalhadores ou mais","Todas as obras","Apenas obras públicas"], answer: 0 }
 ];
 
-/* util */
-function shuffleArray(a){
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-function escapeHtml(str){
-  if(!str && str !== 0) return '';
-  return String(str).replace(/[&<>"']/g, function(m){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
-}
+/* ============================================================
+   UTIL: wrapper fetch para a API do Google Apps Script
+   - retorna JSON já parseado
+   ============================================================ */
 async function api(params){
   const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
   const res = await fetch(url);
   return res.json();
 }
 
-/* ranking */
+/* ============================================================
+   REGISTRO DO JOGADOR (botão Registrar)
+   - envia action=register para o Apps Script
+   ============================================================ */
+document.getElementById('btnReg').addEventListener('click', async ()=>{
+  const v = document.getElementById('playerName').value.trim();
+  if(!v) return alert('Digite um nome');
+  playerName = v;
+  // envia registro ao servidor (mantém lista de jogadores)
+  await api({action:'register', nome: playerName});
+  // atualiza UI local
+  document.getElementById('showName').innerText = playerName;
+  document.getElementById('stepName').style.display = 'none';
+  document.getElementById('waiting').style.display = 'block';
+  // inicializa pollings
+  startPolling();
+  startRankPolling();
+});
+
+/* ============================================================
+   POLLING DO ESTADO GLOBAL — detecta START do admin
+   - não re-renderiza a pergunta se já estiver visível
+   - em MODELO K (corrida individual) admin só inicia o jogo
+   ============================================================ */
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async ()=>{
+    try{
+      const state = await api({action:'state_get'});
+      // se admin ainda não iniciou, permanecer em aguardo
+      if(!state || !state.status || state.status === 'waiting'){
+        document.getElementById('waiting').style.display = 'block';
+        document.getElementById('questionArea').style.display = 'none';
+        isQuestionVisible = false;
+        return;
+      }
+      // quando status=live, iniciamos localmente uma corrida individual
+      if(state.status === 'live'){
+        // garante índice inicial
+        if(typeof currentQ !== 'number' || currentQ < 0) currentQ = 0;
+        // se já respondeu a pergunta atual, não reabre
+        if(answeredFor[currentQ]) {
+          // manter aguardando visual até o próximo avanço local
+          document.getElementById('waiting').style.display = 'block';
+          document.getElementById('questionArea').style.display = 'none';
+          isQuestionVisible = false;
+        } else {
+          // somente renderiza a pergunta local se não estiver visível
+          if(!isQuestionVisible){
+            showQuestionLocal(currentQ);
+          }
+        }
+      }
+      // se admin finalizou (opcional)
+      if(state.status === 'finished'){
+        document.getElementById('waiting').style.display = 'none';
+        document.getElementById('questionArea').style.display = 'none';
+        document.getElementById('endArea').style.display = 'block';
+        clearInterval(pollTimer);
+      }
+    }catch(err){
+      console.error('Erro polling estado:', err);
+    }
+  }, POLL_MS);
+}
+
+/* ============================================================
+   RANKING AO VIVO (Top 5)
+   - utiliza action=leaderboard do seu Apps Script
+   ============================================================ */
 async function refreshRanking(){
   try{
     const data = await api({action:'leaderboard'});
     const lb = (data && data.leaderboard) ? data.leaderboard : [];
     renderLeaderboard(lb.slice(0,5));
   }catch(err){
-    console.error(err);
+    console.error('Erro ranking:', err);
   }
 }
 function startRankPolling(){
@@ -177,61 +255,24 @@ function renderLeaderboard(list){
   box.innerHTML = html;
 }
 
-/* register */
-document.getElementById('btnReg').addEventListener('click', async ()=>{
-  const v = document.getElementById('playerName').value.trim();
-  if(!v) return alert('Digite um nome');
-  playerName = v;
-  await api({action:'register', nome: playerName});
-  document.getElementById('showName').innerText = playerName;
-  document.getElementById('stepName').style.display = 'none';
-  document.getElementById('waiting').style.display = 'block';
-  startPolling();
-  startRankPolling();
-});
-
-/* polling global to detect START */
-function startPolling(){
-  if(pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(async ()=>{
-    try{
-      const state = await api({action:'state_get'});
-      if(!state || !state.status || state.status === 'waiting'){
-        document.getElementById('waiting').style.display = 'block';
-        document.getElementById('questionArea').style.display = 'none';
-        return;
-      }
-      if(state.status === 'live'){
-        if(typeof currentQ !== 'number' || currentQ < 0) currentQ = 0;
-        if(answeredFor[currentQ]){
-          document.getElementById('waiting').style.display = 'block';
-          document.getElementById('questionArea').style.display = 'none';
-        } else {
-          showQuestionLocal(currentQ);
-        }
-      } else if(state.status === 'finished'){
-        document.getElementById('waiting').style.display = 'none';
-        document.getElementById('questionArea').style.display = 'none';
-        document.getElementById('endArea').style.display = 'block';
-        clearInterval(pollTimer);
-      }
-    }catch(err){
-      console.error(err);
-    }
-  }, POLL_MS);
-}
-
-/* show question (with shuffled choices) */
+/* ============================================================
+   showQuestionLocal(qIdx)
+   - renderiza a pergunta localmente para corrida individual
+   - inicializa questionStartAt e cria botões de alternativa
+   - evita reiniciar se a pergunta já estiver visível (flag isQuestionVisible)
+   ============================================================ */
 function showQuestionLocal(qIdx){
   const q = questions[qIdx];
   if(!q){
+    // sem mais perguntas -> fim local
     document.getElementById('questionArea').style.display = 'none';
     document.getElementById('waiting').style.display = 'none';
     document.getElementById('endArea').style.display = 'block';
+    isQuestionVisible = false;
     return;
   }
 
-  // render
+  // render do bloco de pergunta
   document.getElementById('waiting').style.display = 'none';
   document.getElementById('endArea').style.display = 'none';
   document.getElementById('questionArea').style.display = 'block';
@@ -240,66 +281,79 @@ function showQuestionLocal(qIdx){
   choicesDiv.innerHTML = '';
   document.getElementById('feedbackMsg').innerText = '';
 
-  // build shuffled choices with mapping to original index
-  const pairs = q.choices.map((text, idx) => ({text, origIdx: idx}));
-  shuffleArray(pairs);
-  // locate which shuffled index holds the correct origin
-  let shuffledCorrectIndex = pairs.findIndex(p => p.origIdx === q.answer);
+  // marca que a pergunta está sendo mostrada (evita rerender pelo polling)
+  isQuestionVisible = true;
 
-  // start timer
+  // seta o tempo de início DAQUI (usar Date.now() garante precisão)
   questionStartAt = Date.now();
 
-  // create buttons
-  pairs.forEach((p, i)=>{
+  // cria botões (cada botão terá um handler que só atua uma vez)
+  q.choices.forEach((c,i)=>{
     const btn = document.createElement('button');
-    btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(p.text)}`;
-    // pass the shuffled index and resolved correctness check using origIdx
-    btn.onclick = () => handleChoiceClick(btn, qIdx, p.origIdx, i, shuffledCorrectIndex);
+    btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}`;
+    // o clique chama handleChoiceClick; o handler se certifica que resposta só será submetida 1 vez
+    btn.addEventListener('click', () => handleChoiceClick(btn, qIdx, i), { once: true });
     choicesDiv.appendChild(btn);
   });
 
-  // clear old timer and start visual countdown
-  if(windowQTimer){ clearInterval(windowQTimer); windowQTimer = null; }
-  updateTimeLeft();
-  windowQTimer = setInterval(updateTimeLeft, 200);
+  // limpa timers antigos (segurança) e inicia nosso update de contagem visual
+  if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
+  updateTimeLeft(); // atualiza imediatamente
+  window.qTimer = setInterval(updateTimeLeft, 200); // 200ms => suave e responsivo
 }
 
-/* updateTimeLeft + timeout handler */
+/* ============================================================
+   updateTimeLeft()
+   - calcula tempo decorrido e tempo restante (em segundos)
+   - usa Math.ceil para evitar "pulo" visual
+   - quando zero chama handleTimeout() apenas 1 vez
+   ============================================================ */
 function updateTimeLeft(){
   if(!questionStartAt){
     document.getElementById('timeLeft').innerText = '';
     return;
   }
-  const elapsed = (Date.now() - questionStartAt) / 1000; // s
-  const left = Math.max(0, Math.ceil(QUESTION_TIME_LIMIT - elapsed));
+  const elapsed = (Date.now() - questionStartAt) / 1000; // em segundos (float)
+  const left = Math.max(0, Math.ceil(QUESTION_TIME_LIMIT - elapsed)); // segundos inteiros para exibição
   document.getElementById('timeLeft').innerText = `Tempo restante: ${left}s`;
 
+  // quando zera, desligar timer e disparar timeout
   if(left <= 0){
-    if(windowQTimer){ clearInterval(windowQTimer); windowQTimer = null; }
+    if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
     handleTimeout();
   }
 }
 
+/* ============================================================
+   handleTimeout()
+   - chamado quando o jogador não respondeu antes do tempo terminar
+   - registra no servidor como erro sem penalidade (conforme regras)
+   - avança automaticamente para a próxima pergunta
+   ============================================================ */
 async function handleTimeout(){
   const qIdx = currentQ;
   if(!Number.isInteger(qIdx)) return;
-  if(answeredFor[qIdx]) return;
+  if(answeredFor[qIdx]) return; // já respondido
 
-  // disable buttons
+  // desabilita botões de alternativa
   const choiceButtons = document.querySelectorAll('#qChoices button');
   choiceButtons.forEach(b => b.disabled = true);
 
+  // marca como respondido localmente
   answeredFor[qIdx] = true;
 
-  // record timeout as error, tempo igual ao limite
+  // tempo gasto = tempo limite (aprox)
   const timeSpent = QUESTION_TIME_LIMIT * 1000;
-  const pontos = 0;
+  const pontos = 0;       // timeout = erro normal (sem penalidade especial)
+  const correct = 0;
+
+  // envia submissão do timeout (registro)
   try{
     await api({
-      action:'submit',
+      action: 'submit',
       nome: playerName,
       qIdx: qIdx,
-      acertos: 0,
+      acertos: correct,
       tempo: timeSpent,
       pontos: pontos
     });
@@ -307,40 +361,55 @@ async function handleTimeout(){
     console.error('Erro ao submeter timeout:', err);
   }
 
-  document.getElementById('feedbackMsg').innerText = 'Tempo esgotado — erro.';
+  // feedback local
+  document.getElementById('feedbackMsg').innerText = 'Tempo esgotado — resposta não registrada.';
+  // avançar para próxima após pequena pausa
   setTimeout(()=>{
     currentQ = qIdx + 1;
+    isQuestionVisible = false;
     showQuestionLocal(currentQ);
     refreshRanking();
   }, 700);
 }
 
-/* handle click: origChoiceIdx = original index of clicked choice; shuffledIdx = visual position; shuffledCorrectIndex = visual pos of correct */
-async function handleChoiceClick(btn, qIdx, origChoiceIdx, shuffledIdx, shuffledCorrectIndex){
-  // prevent multiple clicks
+/* ============================================================
+   handleChoiceClick(btn, qIdx, choiceIdx)
+   - função chamada quando jogador escolhe uma alternativa
+   - calcula tempoSpent, timeLeft e aplica as regras de pontuação:
+       * pontosBase = 1
+       * se timeLeft === 0 => pontos = 0.5 (metade)
+       * se timeLeft > 10 => pontos = 1 * 1.5
+       * se timeLeft <= 10 => pontos = 1
+       * se ERRO e timeLeft entre 20..15 => pontos = -2 (punição)
+       * erro fora disso => 0
+   - envia ao servidor e avança automaticamente
+   ============================================================ */
+async function handleChoiceClick(btn, qIdx, choiceIdx){
+  // desabilita todos os botões imediatamente para prevenir múltiplos cliques
   const choiceButtons = document.querySelectorAll('#qChoices button');
   choiceButtons.forEach(b=> b.disabled = true);
 
-  // compute times
+  // tempo exato de resposta
   const at = Date.now();
-  const timeSpent = Math.max(0, at - questionStartAt); // ms
-  const timeSpentSec = timeSpent / 1000;
-  const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec);
+  const timeSpent = Math.max(0, at - questionStartAt);   // ms
+  const timeSpentSec = timeSpent / 1000;                 // s
+  const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
 
-  // determine correctness (compare origChoiceIdx to question.answer)
   const q = questions[qIdx];
-  const correct = (origChoiceIdx === q.answer) ? 1 : 0;
+  const correct = (choiceIdx === q.answer) ? 1 : 0;
   let pontos = 0;
 
+  // aplicar regras de pontuação conforme definido
   if(correct){
     if(timeLeft <= 0){
-      pontos = 1 * 0.5;
+      pontos = POINTS_BASE * 0.5;        // acertou com timeLeft == 0 -> metade
     } else if(timeLeft > 10){
-      pontos = 1 * 1.5;
+      pontos = POINTS_BASE * 1.5;        // turbo
     } else {
-      pontos = 1;
+      pontos = POINTS_BASE * 1;          // padrão
     }
   } else {
+    // regra R: punição se errou nos primeiros 5s (timeLeft entre 20..15)
     if(timeLeft >= 15 && timeLeft <= 20){
       pontos = -2;
     } else {
@@ -348,21 +417,21 @@ async function handleChoiceClick(btn, qIdx, origChoiceIdx, shuffledIdx, shuffled
     }
   }
 
-  // visual feedback: color clicked + highlight correct
+  // feedback visual: pinta escolha clicada e destaca correta
   choiceButtons.forEach((b, idx)=>{
-    // idx is shuffled visual index (A,B,C...)
-    if(idx === shuffledIdx){
-      b.style.borderColor = correct ? 'rgba(46,204,113,0.9)' : 'rgba(231,76,60,0.9)';
-      b.style.background = correct ? 'linear-gradient(90deg, rgba(46,204,113,0.12), rgba(46,204,113,0.06))' : 'linear-gradient(90deg, rgba(231,76,60,0.08), rgba(231,76,60,0.03))';
-      b.style.boxShadow = '0 8px 20px rgba(0,0,0,0.05)';
+    if(idx === choiceIdx){
+      b.style.borderColor = correct ? 'rgba(40,167,69,0.95)' : 'rgba(231,76,60,0.95)';
+      b.style.background = correct ? 'linear-gradient(90deg, rgba(40,167,69,0.12), rgba(40,167,69,0.04))' : 'linear-gradient(90deg, rgba(231,76,60,0.10), rgba(231,76,60,0.03))';
+      b.style.boxShadow = '0 10px 26px rgba(0,0,0,0.06)';
     }
-    if(idx === shuffledCorrectIndex){
-      b.style.borderColor = 'rgba(46,204,113,0.9)';
-      b.style.background = 'linear-gradient(90deg, rgba(46,204,113,0.06), rgba(46,204,113,0.02))';
+    // sempre destaque a alternativa correta
+    if(idx === q.answer){
+      b.style.borderColor = 'rgba(40,167,69,0.95)';
+      b.style.background = 'linear-gradient(90deg, rgba(40,167,69,0.06), rgba(40,167,69,0.02))';
     }
   });
 
-  // send to server
+  // envia resultado ao servidor (submit)
   try{
     await api({
       action:'submit',
@@ -376,25 +445,39 @@ async function handleChoiceClick(btn, qIdx, origChoiceIdx, shuffledIdx, shuffled
     console.error('Erro ao submeter resposta:', err);
   }
 
+  // marca localmente como respondido
   answeredFor[qIdx] = true;
+
+  // mostra feedback textual (sem alert)
   document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pontos} pts` : (pontos < 0 ? `Errou (${pontos} pts)` : 'Errou (0 pts)');
 
-  // stop visual timer
-  if(windowQTimer){ clearInterval(windowQTimer); windowQTimer = null; }
+  // para o timer de contagem visual
+  if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
 
-  // advance
+  // animação curta e avanço automático
   setTimeout(()=> {
     currentQ = qIdx + 1;
+    isQuestionVisible = false; // libera para o polling/next mostrar proxima
     showQuestionLocal(currentQ);
-    refreshRanking();
-  }, 700);
+    refreshRanking(); // atualizar ranking após submissão
+  }, 650);
 }
 
-/* cleanup */
+/* ============================================================
+   util: escapeHtml para prevenir XSS em strings das perguntas
+   ============================================================ */
+function escapeHtml(str){
+  if(!str && str !== 0) return '';
+  return String(str).replace(/[&<>"']/g, function(m){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
+}
+
+/* ============================================================
+   limpeza de timers quando a página fechar / recarregar
+   ============================================================ */
 window.addEventListener('beforeunload', ()=>{
   if(pollTimer) clearInterval(pollTimer);
   if(rankTimer) clearInterval(rankTimer);
-  if(windowQTimer) clearInterval(windowQTimer);
+  if(window.qTimer) clearInterval(window.qTimer);
 });
 </script>
 </body>

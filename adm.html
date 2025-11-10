@@ -3,88 +3,200 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Admin — Quiz NR-18</title>
+<title>Admin — Quiz NR-18 (Live Rank)</title>
 <style>
-  body{font-family:Arial;margin:16px;background:#f6f7fb}
-  .card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.06);max-width:900px;margin:auto}
-  button{padding:8px 12px;border-radius:8px;border:0;background:#0b63ff;color:#fff;cursor:pointer}
-  .muted{color:#666;font-size:13px}
+  :root{
+    --bg:#f6f7fb;
+    --card:#fff;
+    --accent:#0b63ff;
+    --muted:#7a7f8b;
+    --gold-1: #ffd966;
+    --gold-2: #ffb84d;
+    --gold-glow: 0 6px 24px rgba(255,184,77,0.25);
+  }
+  html,body{height:100%}
+  body{font-family:Inter,Arial,Helvetica,sans-serif;margin:18px;background:var(--bg);-webkit-font-smoothing:antialiased}
+  .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 10px 30px rgba(20,30,60,0.06);max-width:1100px;margin:0 auto}
+  h2{margin:0 0 6px 0}
+  .muted{color:var(--muted);font-size:13px}
+  .row{display:flex;gap:12px;align-items:center}
+  .controls{display:flex;gap:8px;margin:10px 0 14px 0}
 
-  /* abas */
-  .tabs {display:flex;gap:8px;margin-top:14px}
-  .tabbtn{padding:6px 12px;border-radius:8px;background:#e6e9f3;cursor:pointer;}
-  .tabbtn.on{background:#0b63ff;color:#fff}
+  button{
+    padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:#fff;cursor:pointer;font-weight:600;
+    box-shadow:0 6px 18px rgba(11,99,255,0.18);
+  }
+  button.secondary{
+    background:transparent;color:var(--muted);border:1px solid #e6e9f3;box-shadow:none;font-weight:600;
+  }
 
-  /* leaderboard */
+  /* tabs */
+  .tabs {display:flex;gap:8px;margin-top:8px}
+  .tabbtn{padding:7px 12px;border-radius:10px;background:#eef1fb;cursor:pointer;font-weight:600;color:#222}
+  .tabbtn.on{background:linear-gradient(180deg,var(--accent),#0a54d9);color:#fff;box-shadow:0 8px 30px rgba(11,99,255,0.14)}
+
+  /* leaderboard container */
+  .leaderboard {
+    margin-top:12px;
+    border-radius:10px;
+    overflow:hidden;
+    background:linear-gradient(180deg,#ffffff, #fbfbfd);
+    border:1px solid #eef2ff;
+  }
+  .leader-head{
+    display:grid;
+    grid-template-columns:40px 1fr 110px 80px 110px;
+    padding:10px 12px;
+    font-size:13px;color:var(--muted);
+    border-bottom:1px dashed #f0f3ff;
+  }
+
+  /* each row */
   .rankrow{
     display:grid;
-    grid-template-columns:40px 1fr 60px 60px 80px;
-    padding:6px 0;
-    border-bottom:1px solid #eee;
+    grid-template-columns:40px 1fr 110px 80px 110px;
+    gap:8px;
+    align-items:center;
+    padding:10px 12px;
+    border-bottom:1px solid #f4f6fb;
+    transform:translateY(6px);
     opacity:0;
-    transform:translateY(4px);
-    transition:.2s;
+    transition:transform .28s cubic-bezier(.2,.9,.3,1),opacity .28s;
+    position:relative;
   }
-  .rankrow.show{ opacity:1; transform:translateY(0); }
+  .rankrow.show{transform:none;opacity:1}
 
-  .rankrow.vip1{background:linear-gradient(90deg,#fff7c1,#fff);}
-  .rankrow.vip2{background:linear-gradient(90deg,#dadada,#fff);}
-  .rankrow.vip3{background:linear-gradient(90deg,#d8c3a5,#fff);}
+  .rankrow > div {font-size:15px}
+  .muted-xs{font-size:12px;color:var(--muted)}
 
-  .rankrow.flash{animation:flash 1s}
-  @keyframes flash{
-    0%{background:#ffe16e}
+  /* VIP styles */
+  .rankrow.vip1{
+    background:linear-gradient(90deg, rgba(255,217,128,0.15), rgba(255,245,220,0.03));
+    box-shadow: var(--gold-glow);
+  }
+  .rankrow.vip1 .place{
+    font-weight:800;color:#7a4100;text-shadow:0 2px 10px rgba(255,184,77,0.35);
+    display:flex;align-items:center;gap:8px;
+  }
+
+  .rankrow.vip2{
+    background:linear-gradient(90deg, rgba(200,200,200,0.06), rgba(255,255,255,0));
+  }
+  .rankrow.vip3{
+    background:linear-gradient(90deg, rgba(216,195,165,0.05), rgba(255,255,255,0));
+  }
+
+  /* spotlight glow for first place name */
+  .gold-name{
+    font-weight:700;
+    background: linear-gradient(90deg, #ffebc7, #ffd27a, #ffefc5);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color: transparent;
+    text-shadow: 0 4px 30px rgba(255,180,67,0.12);
+  }
+
+  /* flash when position changed */
+  .rankrow.flash{animation:flashAnim 1100ms ease}
+  @keyframes flashAnim{
+    0%{background:rgba(255,240,170,0.95)}
+    40%{background:rgba(255,240,170,0.4)}
     100%{background:transparent}
   }
 
+  /* fireworks canvas overlay */
+  #fireworks{
+    position:fixed;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:1200;mix-blend-mode:screen;
+  }
+
+  /* small helpers */
+  .small{font-size:13px}
+  .center{display:flex;align-items:center;gap:8px}
+  .pill{background:#f3f6ff;padding:6px 8px;border-radius:8px;font-weight:600;color:#123}
+  /* responsive */
+  @media (max-width:720px){
+    .rankrow, .leader-head{grid-template-columns:36px 1fr 70px 60px 80px;font-size:13px}
+  }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Admin — Quiz NR-18</h2>
+  <canvas id="fireworks"></canvas>
 
-    <div class="tabs">
+  <div class="card" role="main">
+    <h2>Admin — Quiz NR-18 (Live Rank)</h2>
+    <div class="muted">Aba de administração com leaderboard em "quase realtime" (poll 300ms). Tema do 1º lugar: <strong>neon dourado</strong>.</div>
+
+    <div class="tabs" style="margin-top:12px">
       <div class="tabbtn on" onclick="showTab('status')">Status</div>
       <div class="tabbtn" onclick="showTab('rank')">Rank ao vivo</div>
     </div>
 
-    <div style="margin-top:8px">
-      <button id="btnStart">START (limpa planilha e inicia)</button>
-      <button id="btnReset">RESET (voltar para aguardando)</button>
+    <div class="controls" style="margin-top:12px">
+      <button id="btnStartQuestions">▶ Start Perguntas (sem apagar nada)</button>
+      <button id="btnStart" class="secondary">START (limpa planilha e inicia)</button>
+      <button id="btnReset" class="secondary">RESET</button>
+      <div style="margin-left:auto" class="center"><div class="pill" id="pollState">Polling: ON</div></div>
     </div>
 
     <div id="tab_status">
-      <h3 style="margin-top:14px">Status atual</h3>
+      <h3 style="margin:6px 0">Status atual</h3>
       <div id="statusDiv" class="muted">carregando...</div>
 
       <h3 style="margin-top:14px">Players conectados</h3>
       <div id="playersCount" class="muted">0</div>
 
-      <div style="margin-top:12px" class="muted">O sistema verifica automaticamente se todos os jogadores responderam a pergunta atual — quando todos responderem, avança para a próxima pergunta.</div>
+      <div style="margin-top:12px" class="muted">O sistema verifica automaticamente se todos os jogadores responderam — quando todos responderem, avança para a próxima pergunta.</div>
     </div>
 
     <div id="tab_rank" style="display:none">
       <h3 style="margin-top:14px">Leaderboard — tempo real</h3>
-      <div id="leaderboardDiv">carregando...</div>
-    </div>
 
+      <div class="leaderboard" id="leaderboardDiv">
+        <div class="leader-head">
+          <div>#</div><div>Nome</div><div>Pontos</div><div>Acertos</div><div>Tempo total (s)</div>
+        </div>
+        <div class="muted" style="padding:12px">Carregando...</div>
+      </div>
+    </div>
   </div>
 
 <script>
+/* =====================
+   Configurações
+   ===================== */
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
-const pollMs = 1500; 
+const POLL_MS = 300; // 300ms polling (quase realtime)
+let pollEnabled = true;
 let lastLB = [];
+let pollTimer = null;
 
+/* =====================
+   Helpers API
+   ===================== */
 async function api(params){
   const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url);
+  const res = await fetch(url, {cache:'no-store'});
   return res.json();
 }
+
+/* =====================
+   UI controls
+   ===================== */
+document.getElementById('btnStartQuestions').addEventListener('click', async ()=>{
+  if(!confirm('Iniciar sequência de perguntas sem apagar a planilha?')) return;
+  try{
+    await api({action:'state_set', op:'start_questions'}); // adapte op se necessário
+    log('Iniciado: perguntas sem limpar planilha.');
+  }catch(e){
+    console.error(e);
+    log('Erro ao iniciar perguntas: ' + e.message);
+  }
+});
 
 document.getElementById('btnStart').addEventListener('click', async ()=>{
   if(!confirm('Iniciar jogo e limpar planilha?')) return;
   await api({action:'state_set', op:'start'});
-  log('Jogo iniciado.');
+  log('Jogo iniciado (planilha limpa).');
 });
 
 document.getElementById('btnReset').addEventListener('click', async ()=>{
@@ -93,85 +205,229 @@ document.getElementById('btnReset').addEventListener('click', async ()=>{
   log('Estado resetado.');
 });
 
-function log(msg){ document.getElementById('statusDiv').innerText = msg; }
+function log(msg){
+  document.getElementById('statusDiv').innerText = msg;
+}
 
+/* =====================
+   Tabs
+   ===================== */
 function showTab(tab){
   document.getElementById('tab_status').style.display = (tab=='status'?'block':'none');
   document.getElementById('tab_rank').style.display   = (tab=='rank'?'block':'none');
-
   document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('on'));
-  [...document.querySelectorAll('.tabbtn')].find(b=>b.innerText.includes(tab=='status'?'Status':'Rank')).classList.add('on');
+  [...document.querySelectorAll('.tabbtn')].find(b=>b.innerText.toLowerCase().includes(tab=='status'?'status':'rank')).classList.add('on');
 }
 
+/* =====================
+   Leaderboard rendering + animations
+   ===================== */
 function renderLeaderboard(lb){
   const box = document.getElementById('leaderboardDiv');
 
-  if(!lb||lb.length===0){
-    box.innerHTML = `<div class="muted">Sem resultados ainda</div>`;
+  if(!lb || lb.length===0){
+    box.innerHTML = `<div class="leader-head"><div>#</div><div>Nome</div><div>Pontos</div><div>Acertos</div><div>Tempo total (s)</div></div>
+                     <div class="muted" style="padding:12px">Sem resultados ainda</div>`;
+    lastLB = [];
     return;
   }
 
-  box.innerHTML = lb.map((r,i)=>`
-    <div class="rankrow" data-nome="${r.nome}" data-pos="${i}">
-      <div>#${i+1}</div>
-      <div>${r.nome}</div>
-      <div>${r.pontos}</div>
-      <div>${r.acertos}</div>
-      <div>${Math.round(r.tempo_ms/1000)}</div>
+  // build rows
+  box.innerHTML = `
+    <div class="leader-head">
+      <div>#</div><div>Nome</div><div>Pontos</div><div>Acertos</div><div>Tempo total (s)</div>
     </div>
-  `).join('');
+    ${lb.map((r,i)=>`
+      <div class="rankrow" data-nome="${escapeHtml(r.nome)}" data-pos="${i}">
+        <div class="place">${i+1}</div>
+        <div class="name ${i===0 ? 'gold-name' : ''}">${escapeHtml(r.nome)}</div>
+        <div class="points">${r.pontos ?? 0}</div>
+        <div class="hits">${r.acertos ?? 0}</div>
+        <div class="time">${Math.round((r.tempo_ms||0)/1000)}</div>
+      </div>
+    `).join('')}
+  `;
 
+  // animate rows and detect position changes
   requestAnimationFrame(()=>{
-    box.querySelectorAll('.rankrow').forEach(row=>{
-      const pos = +row.dataset.pos;
+    const rows = box.querySelectorAll('.rankrow');
+    rows.forEach(row=>{
+      const pos = Number(row.dataset.pos);
       const nome = row.dataset.nome;
-      
-      row.classList.add('show');
 
-      if(pos===0) row.classList.add('vip1');
-      if(pos===1) row.classList.add('vip2');
-      if(pos===2) row.classList.add('vip3');
+      // show animation
+      setTimeout(()=>row.classList.add('show'), pos * 30); // stagger
 
-      const lastPos = lastLB.findIndex(x=>x.nome===nome);
-      if(lastPos!=-1 && lastPos!=pos){
+      // top3 VIP classes
+      row.classList.remove('vip1','vip2','vip3');
+      if(pos === 0) row.classList.add('vip1');
+      if(pos === 1) row.classList.add('vip2');
+      if(pos === 2) row.classList.add('vip3');
+
+      // check last position
+      const lastIndex = lastLB.findIndex(x => x.nome === nome);
+      if(lastIndex !== -1 && lastIndex !== pos){
+        // someone changed position
         row.classList.add('flash');
-        setTimeout(()=>row.classList.remove('flash'),1000);
+        setTimeout(()=>row.classList.remove('flash'), 1100);
+
+        // if changed and now is first => fire fireworks
+        if(pos === 0){
+          fireworkBurst();
+        }
       }
     });
-    lastLB = lb.map((r,i)=>({nome:r.nome,pos:i}));
+    // update lastLB
+    lastLB = lb.map((r,i)=>({nome:r.nome,pos:i,pontos:r.pontos}));
   });
 }
 
-async function refresh(){
+/* small HTML-escape */
+function escapeHtml(s=''){
+  return String(s).replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;", "`":"&#96;"}[c]));
+}
+
+/* =====================
+   Polling logic (300ms) with visibility handling
+   ===================== */
+async function pollOnce(){
   try{
-    const s = await api({action:'state_get'});
-    const players = await api({action:'getPlayersCount'});
-    const lb = await api({action:'leaderboard'});
-    document.getElementById('playersCount').innerText = (players.count || 0) + ' jogadores registrados';
-    renderLeaderboard(lb.leaderboard || []);
-    // status
-    if(s && s.status){
-      document.getElementById('statusDiv').innerText = `Status: ${s.status} — Pergunta atual: ${s.questionIndex} — Início: ${s.questionStartAt? new Date(s.questionStartAt).toLocaleTimeString(): '-'}`;
-      if(s.status === 'live'){
-        const qIdx = s.questionIndex;
+    // get state, players, leaderboard in parallel
+    const [sRes, pRes, lbRes] = await Promise.all([
+      api({action:'state_get'}),
+      api({action:'getPlayersCount'}),
+      api({action:'leaderboard'})
+    ]);
+
+    // players
+    const pc = (pRes && pRes.count) ? pRes.count : 0;
+    document.getElementById('playersCount').innerText = pc + ' jogadores registrados';
+
+    // leaderboard: use lbRes.leaderboard if present
+    const lbList = (lbRes && lbRes.leaderboard) ? lbRes.leaderboard : [];
+
+    renderLeaderboard(lbList.slice(0, 30)); // mostra top 30 por segurança
+
+    // status text
+    if(sRes && sRes.status){
+      document.getElementById('statusDiv').innerText = `Status: ${sRes.status} — Pergunta atual: ${sRes.questionIndex} — Início: ${sRes.questionStartAt ? new Date(sRes.questionStartAt).toLocaleTimeString() : '-'}`;
+      // se live, checar respostas para avançar
+      if(sRes.status === 'live'){
+        const qIdx = sRes.questionIndex;
         const answersCount = await api({action:'countAnswers', qIdx: qIdx});
-        const totalPlayers = players.count || 0;
+        const totalPlayers = pc;
         if(totalPlayers > 0 && answersCount.count >= totalPlayers){
-          await api({action:'state_set', op:'advance'});
-          log('Todos responderam — avançando...');
+          // não forçar aqui; comentado por padrão. se quiser auto-advance, descomente:
+          // await api({action:'state_set', op:'advance'});
+          // log('Todos responderam — avançando...');
         }
       }
     } else {
       document.getElementById('statusDiv').innerText = 'Status: (nenhum)';
     }
   }catch(err){
-    console.error(err);
-  } finally {
-    setTimeout(refresh, pollMs);
+    console.error('poll error', err);
   }
 }
 
-refresh();
+/* start/stop poll safely */
+function startPolling(){
+  stopPolling();
+  pollEnabled = true;
+  document.getElementById('pollState').innerText = 'Polling: ON';
+  pollTimer = setInterval(()=>{ if(document.visibilityState==='visible') pollOnce(); }, POLL_MS);
+  // run immediate
+  pollOnce();
+}
+
+function stopPolling(){
+  pollEnabled = false;
+  document.getElementById('pollState').innerText = 'Polling: OFF';
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
+}
+
+/* visibility API: pause polling when tab not visible */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden'){
+    stopPolling();
+  } else {
+    startPolling();
+  }
+});
+
+/* =====================
+   Fireworks effect (canvas) - lightweight
+   ===================== */
+const canvas = document.getElementById('fireworks');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function fireworkBurst(){
+  // burst at top-center-ish of viewport (adjustable)
+  const x = window.innerWidth * (0.5 + (Math.random()-0.5)*0.3);
+  const y = window.innerHeight * 0.18 + (Math.random()*60);
+
+  const count = 28 + Math.floor(Math.random()*20);
+  for(let i=0;i<count;i++){
+    particles.push({
+      x, y,
+      vx: (Math.random()-0.5) * (4 + Math.random()*6),
+      vy: (Math.random()-0.8) * (6 + Math.random()*6) * -1,
+      life: 60 + Math.random()*40,
+      size: 1 + Math.random()*3,
+      hue: 40 + Math.random()*40 // gold-ish hues
+    });
+  }
+  // run animation loop if not running
+  if(!fireworksRunning){ fireworksRunning = true; requestAnimationFrame(runFireworks); }
+}
+
+let fireworksRunning = false;
+function runFireworks(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let i = particles.length-1; i >= 0; i--){
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.12; // gravity
+    p.life -= 1;
+    p.size *= 0.995;
+    // draw
+    ctx.beginPath();
+    ctx.globalAlpha = Math.max(0, p.life / 80);
+    ctx.fillStyle = `hsl(${p.hue}, 90%, ${50 + Math.random()*10}%)`;
+    ctx.arc(p.x, p.y, Math.max(0.4, p.size), 0, Math.PI*2);
+    ctx.fill();
+    if(p.life <= 0 || p.y > canvas.height + 20){
+      particles.splice(i,1);
+    }
+  }
+  if(particles.length > 0){
+    requestAnimationFrame(runFireworks);
+  } else {
+    fireworksRunning = false;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+}
+
+/* =====================
+   Init
+   ===================== */
+startPolling();
+
+/* expose start/stop to console for quick control */
+window.__admin = { startPolling, stopPolling, fireworkBurst };
+
+/* run initial small burst to show alive UI */
+setTimeout(()=>fireworkBurst(), 800);
+
 </script>
 </body>
 </html>

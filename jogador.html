@@ -227,22 +227,38 @@ let isQuestionVisible = false;      // flag para evitar rerender desnecessário
    PERGUNTAS (15 perguntas NR-18 embutidas)
    ============================================================ */
 const questions = [
-  { q: "Qual o objetivo principal da NR-18?", choices: ["Regulamentar o uso de EPIs","Estabelecer diretrizes de segurança para a indústria da construção","Definir normas de transporte rodoviário","Normatizar uso de produtos químicos"], answer: 1 },
-  { q: "Quem é responsável por elaborar o PCMAT?", choices:["O empregador/contratante","O empregado","O sindicato","O cliente da obra"], answer: 0 },
-  { q: "A NR-18 exige projeto de proteção coletiva para andaimes. Verdadeiro ou falso?", choices:["Verdadeiro","Falso","Apenas para andaimes móveis","Apenas para andaimes fixos"], answer: 0 },
-  { q: "Medida exigida para movimentação de materiais em altura?", choices:["Uso de escadas domésticas","Transporte manual sem proteção","Plataformas e dispositivos específicos","Somente força humana"], answer: 2 },
-  { q: "O responsável deve garantir alimentação e descanso para trabalhadores?", choices:["Sim","Não","Apenas em obras grandes","Apenas em regiões urbanas"], answer: 0 },
-  { q: "A NR-18 trata de prevenção de incêndio na obra?", choices:["Sim","Não","Somente industrial","Apenas dormitórios"], answer: 0 },
-  { q: "Instalações elétricas provisórias requerem proteção adequada?", choices:["Sim","Não","Apenas em obra grande","Somente >220V"], answer: 0 },
-  { q: "A comunicação de riscos e sinalização é exigida?", choices:["Sim","Não","Apenas para riscos químicos","Apenas quando houver acidente"], answer: 0 },
-  { q: "A NR-18 exige proteção contra quedas para trabalhos em altura?", choices:["Verdadeiro","Falso","Apenas para alturas > 5m","Apenas com andaimes"], answer: 0 },
-  { q: "Alojamentos devem possuir condições higiênicas e sanitárias?", choices:["Sim","Não","Apenas para estrangeiros","Somente em canteiros isolados"], answer: 0 },
-  { q: "Formação e treinamento dos trabalhadores é exigida?", choices:["Sim","Não","Apenas para supervisores","Apenas para operadores"], answer: 0 },
-  { q: "NR-18 aborda medidas para escavações?", choices:["Sim","Não","Somente >2m","Apenas solo instável"], answer: 0 },
-  { q: "O uso de EPI substitui medidas coletivas?", choices:["Não, coletivas priorizadas","Sim, EPI basta","Apenas se custo for alto","Somente quando autorizado"], answer: 0 },
-  { q: "Áreas de circulação devem ser protegidas e sinalizadas?", choices:["Sim","Não","Apenas >50 trabalhadores","Somente se houver veículos"], answer: 0 },
-  { q: "PCMAT é exigido para obras com quantos trabalhadores (NR-18)?", choices:["Obras com 20 trabalhadores ou mais","Obras com 50 trabalhadores ou mais","Todas as obras","Apenas obras públicas"], answer: 0 }
+
+  { q:"Qual o objetivo principal da NR-18?", choices:["Regulamentar o uso de EPIs","Estabelecer diretrizes de segurança para a indústria da construção","Definir normas de transporte rodoviário","Normatizar uso de produtos químicos"], answer:1 },
+
+  { q:"Qual é o documento central da NR-18 hoje?", choices:["CAT","LTCAT","PGR","APR"], answer:2 },
+
+  { q:"PGR é obrigatório em que tipo de obra?", choices:["Apenas prédios acima de 10 andares","Apenas obras públicas","Todas as obras da construção civil","Somente reformas"], answer:2 },
+
+  { q:"O PGR é ______ ao longo da obra.", choices:["Arquivado após aprovação","Atualizado conforme avança a obra","Um documento fixo","Opcional"], answer:1 },
+
+  { q:"Qual órgão fiscaliza o cumprimento da NR-18?", choices:["CREA","CONFEA","Ministério do Trabalho","INMETRO"], answer:2 },
+
+  { q:"Quem é o responsável final pela segurança no canteiro?", choices:["Operador de máquina","Empregador/Contratante","Técnico em segurança","Cipeiro"], answer:1 },
+
+  { q:"Trabalhador tem direito de recusar tarefa quando há:", choices:["Preguiça","Risco grave e iminente","Falta de material","Desconforto térmico"], answer:1 },
+
+  { q:"Qual pilar representa 'ambiente digno para viver dentro do canteiro'?", choices:["Pessoas","Equipamentos","Áreas de vivência","Conformidades tributárias"], answer:2 },
+
+  { q:"Qual o pilar que trata de treinamentos e capacitações?", choices:["Equipamentos","Ambientes","Inspeções","Pessoas"], answer:3 },
+
+  { q:"O que está ligado à comunicação de perigo no canteiro?", choices:["Apenas EPI","Rodízio de equipes","Sinalização e avisos visíveis","Somente supervisão oral"], answer:2 },
+
+  { q:"Contêiner pode ser usado como área de vivência?", choices:["Nunca","Só para estoque","Sim, se cumprir requisitos","Apenas em rodovia"], answer:2 },
+
+  { q:"O que são Soluções Alternativas?", choices:["Gambiarra autorizada","Redução de custo","Tecnologia mais segura comprovada com análise de risco","Proposta sindical"], answer:2 },
+
+  { q:"O uso de EPI substitui proteção coletiva?", choices:["Sim, se for bom","Sim, se for até 5m altura","Somente até 2m de altura","Não, coletiva é prioridade"], answer:3 },
+
+  { q:"Antes de trabalhar em altura deve existir:", choices:["Apenas cinto","Sistema de proteção contra queda","Liberação verbal do mestre","Botina adequada"], answer:1 },
+
+  { q:"Áreas de circulação devem ser:", choices:["Apenas limpas","Apenas largas","Protegidas e sinalizadas","Livres para improviso"], answer:2 }
 ];
+
 
 /* ============================================================
    UTIL: wrapper fetch para a API do Google Apps Script
@@ -673,5 +689,6 @@ if(lbNode) lbObs.observe(lbNode, { childList: true, subtree: true });
 </script>
 </body>
 </html>
+
 
 

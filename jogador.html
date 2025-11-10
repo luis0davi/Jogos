@@ -244,6 +244,8 @@ function startRankPolling(){
   rankTimer = setInterval(refreshRanking, POLL_MS);
 }
 
+let lastRanking = [];
+
 function renderLeaderboard(list = []){
   const box = document.getElementById('leaderboard');
 
@@ -252,16 +254,41 @@ function renderLeaderboard(list = []){
     return;
   }
 
-  box.innerHTML = list.map((r, i) => `
-    <div class="rank-row">
-      <div>
-        <strong>#${i+1} ${escapeHtml(r.nome)}</strong>
-        <div class="muted">acertos: ${r.acertos ?? 0}</div>
+  box.innerHTML = list.map((r, i) => {
+    return `
+      <div class="rank-row" data-nome="${escapeHtml(r.nome)}" data-pos="${i}">
+        <div>
+          <strong>#${i+1} ${escapeHtml(r.nome)}</strong>
+          <div class="muted">acertos: ${r.acertos ?? 0}</div>
+        </div>
+        <strong>${r.pontos ?? 0}</strong>
       </div>
-      <strong>${r.pontos ?? 0}</strong>
-    </div>
-  `).join('');
+    `;
+  }).join('');
+
+  // efeito -> delay 1 tick para ativar .show
+  requestAnimationFrame(() => {
+    const rows = box.querySelectorAll('.rank-row');
+
+    rows.forEach((row, idx)=>{
+      row.classList.add('show');
+
+      const nome = row.dataset.nome;
+      const pos = Number(row.dataset.pos);
+
+      // se mudou de posição -> pisca
+      const lastPos = lastRanking.findIndex(r=>r.nome===nome);
+      if(lastPos !== -1 && lastPos !== pos){
+        row.classList.add('flash');
+        setTimeout(()=>row.classList.remove('flash'), 1200);
+      }
+    });
+
+    // salva para próxima comparação
+    lastRanking = list.map((r,i)=>({nome:r.nome,pos:i}));
+  });
 }
+
 
 
 
@@ -511,6 +538,7 @@ window.addEventListener('beforeunload', ()=>{
 </script>
 </body>
 </html>
+
 
 
 

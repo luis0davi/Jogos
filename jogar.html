@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jogar — Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg1:#0b1b4d;--bg2:#2b3b87;--accent:#ffd36b;--muted:#bfc6da}
+  body{margin:18px;font-family:Inter,system-ui;color:#eef3ff;background:linear-gradient(180deg,var(--bg1),var(--bg2))}
+  .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 360px;gap:18px}
+  @media(max-width:980px){.wrap{grid-template-columns:1fr}}
+  .card{padding:18px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+  h2{margin:0;color:#fff}
+  input,button{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
+  .btn{background:linear-gradient(180deg,#2b57f7,#0b3bdf);border:0;padding:10px 14px;border-radius:10px;cursor:pointer;color:#fff;font-weight:700}
+  .muted{color:var(--muted);font-size:13px}
+  .answers{margin-top:8px;display:flex;flex-direction:column;gap:10px}
+  .answers button{display:block;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));color:#fff;text-align:left;font-size:15px;font-weight:700}
+  .choice-label{display:inline-block;background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:8px;margin-right:12px;font-weight:800;color:#fff}
+  .time-box{font-size:16px;font-weight:800;color:var(--accent)}
+  .muted-xs{font-size:12px;color:var(--muted)}
+  .notice{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02);color:var(--muted);margin-top:12px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="main" aria-live="polite">
+      <h2 id="quizTitle">Quiz</h2>
+      <div id="introNote" class="muted">Carregando quiz...</div>
+
+      <div id="stepName" style="margin-top:12px">
+        <div class="muted-xs">Digite seu nome — obrigatório antes de iniciar</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="playerName" placeholder="Seu nome" />
+          <button id="btnReg" class="btn">Registrar</button>
+        </div>
+      </div>
+
+      <div id="waiting" style="display:none;margin-top:12px">
+        <div class="muted-xs">Aguardando administrador iniciar o jogo...</div>
+        <div style="margin-top:8px">Seu nome: <strong id="showName"></strong></div>
+      </div>
+
+      <div id="questionArea" style="display:none;margin-top:12px">
+        <div class="qtitle" id="qTitle">Pergunta</div>
+        <div id="qChoices" class="answers" aria-live="polite" aria-atomic="true"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+          <div class="time-box" id="timeLeft">Tempo restante: 20s</div>
+          <div class="feedback" id="feedbackMsg" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div id="endArea" style="display:none;margin-top:12px">
+        <div><strong>Jogo finalizado</strong></div>
+        <div class="muted-xs">Aguarde o resultado no painel do administrador.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Leaderboard (Ao vivo)</h3>
+      <div class="muted-xs" id="lbInfo">Carregando...</div>
+      <div id="leaderboard" style="margin-top:12px" class="live-rank"><div class="muted">Aguardando...</div></div>
+      <div class="notice">Dica: responda rápido e acerte para subir no ranking.</div>
+    </div>
+  </div>
+
+<script>
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
+const POLL_MS = 800;
+const QUESTION_TIME_LIMIT = 20;
+
+// local state
+let playerName = null;
+let currentQ = 0;
+let questionStartAt = null;
+let answeredFor = {};
+let pollTimer = null;
+let rankTimer = null;
+let isQuestionVisible = false;
+let questions = []; // will be loaded from quiz
+
+// parse quiz id from ?quiz=ID
+function getQueryParam(name){
+  const params = new URLSearchParams(location.search);
+  return params.get(name);
+}
+const quizId = getQueryParam('quiz');
+if(!quizId){
+  document.getElementById('introNote').innerText = 'Quiz não especificado. Recebeu um link correto?';
+} else {
+  loadQuiz(quizId);
+}
+
+async function api(params){
+  const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function loadQuiz(id){
+  try{
+    const res = await api({ action:'getQuiz', id });
+    if(!res || !res.success || !res.quiz) {
+      document.getElementById('introNote').innerText = 'Quiz não encontrado ou erro no servidor.';
+      return;
+    }
+    const quiz = res.quiz;
+    questions = quiz.questions || [];
+    document.getElementById('quizTitle').innerText = quiz.title || 'Quiz';
+    document.getElementById('introNote').innerText = `Quiz carregado • ${questions.length} perguntas`;
+  }catch(e){
+    console.error(e);
+    document.getElementById('introNote').innerText = 'Erro ao carregar quiz.';
+  }
+}
+
+/* register player */
+document.getElementById('btnReg').addEventListener('click', async ()=>{
+  const v = document.getElementById('playerName').value.trim();
+  if(!v) return alert('Digite um nome');
+  playerName = v;
+  await api({ action:'register', nome: playerName });
+  document.getElementById('showName').innerText = playerName;
+  document.getElementById('stepName').style.display = 'none';
+  document.getElementById('waiting').style.display = 'block';
+  startPolling();
+  startRankPolling();
+});
+
+/* polling state */
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async ()=>{
+    try{
+      const state = await api({action:'state_get'});
+      if(!state || !state.status || state.status === 'waiting'){
+        document.getElementById('waiting').style.display = 'block';
+        document.getElementById('questionArea').style.display = 'none';
+        isQuestionVisible = false;
+        return;
+      }
+      if(state.status === 'live'){
+        if(typeof currentQ !== 'number' || currentQ < 0) currentQ = 0;
+        if(answeredFor[currentQ]) {
+          document.getElementById('waiting').style.display = 'block';
+          document.getElementById('questionArea').style.display = 'none';
+          isQuestionVisible = false;
+        } else {
+          if(!isQuestionVisible){
+            showQuestionLocal(currentQ);
+          }
+        }
+      }
+      if(state.status === 'finished'){
+        document.getElementById('waiting').style.display = 'none';
+        document.getElementById('questionArea').style.display = 'none';
+        document.getElementById('endArea').style.display = 'block';
+        clearInterval(pollTimer);
+      }
+    }catch(err){
+      console.error('Erro polling estado:', err);
+    }
+  }, POLL_MS);
+}
+
+/* leaderboard */
+async function refreshRanking(){
+  try{
+    const { leaderboard = [] } = await api({ action: 'leaderboard' });
+    renderLeaderboard( leaderboard.slice(0, 10) );
+  }catch(err){
+    console.error('ranking erro:', err);
+  }
+}
+function startRankPolling(){ clearInterval(rankTimer); refreshRanking(); rankTimer = setInterval(refreshRanking, POLL_MS); }
+function renderLeaderboard(list=[]){
+  const box = document.getElementById('leaderboard');
+  if(list.length === 0){ box.innerHTML = `<div class="muted">Sem resultados ainda</div>`; return; }
+  box.innerHTML = list.map((r,i)=>`<div style="display:flex;justify-content:space-between;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);margin-top:8px"><div><strong>#${i+1} ${escapeHtml(r.nome)}</strong><div class="muted-xs">acertos: ${r.acertos||0}</div></div><div style="font-weight:800;color:var(--accent)">${r.pontos||0}</div></div>`).join('');
+}
+
+function showQuestionLocal(qIdx){
+  const q = questions[qIdx];
+  if(!q){
+    document.getElementById('questionArea').style.display = 'none';
+    document.getElementById('waiting').style.display = 'none';
+    document.getElementById('endArea').style.display = 'block';
+    isQuestionVisible = false;
+    return;
+  }
+  document.getElementById('waiting').style.display = 'none';
+  document.getElementById('endArea').style.display = 'none';
+  document.getElementById('questionArea').style.display = 'block';
+  document.getElementById('qTitle').innerText = `Pergunta ${qIdx+1}: ${q.q}`;
+  const choicesDiv = document.getElementById('qChoices');
+  choicesDiv.innerHTML = '';
+  document.getElementById('feedbackMsg').innerText = '';
+  isQuestionVisible = true;
+  questionStartAt = Date.now();
+
+  q.choices.forEach((c,i)=>{
+    const btn = document.createElement('button');
+    btn.innerHTML = `<span class="choice-label">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}`;
+    btn.addEventListener('click', () => handleChoiceClick(btn, qIdx, i), { once: true });
+    choicesDiv.appendChild(btn);
+  });
+
+  if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
+  updateTimeLeft();
+  window.qTimer = setInterval(updateTimeLeft, 200);
+}
+
+function updateTimeLeft(){
+  if(!questionStartAt){
+    document.getElementById('timeLeft').innerText = '';
+    return;
+  }
+  const elapsed = (Date.now() - questionStartAt) / 1000;
+  const left = Math.max(0, Math.ceil(QUESTION_TIME_LIMIT - elapsed));
+  document.getElementById('timeLeft').innerText = `Tempo restante: ${left}s`;
+  if(left <= 0){
+    if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
+    handleTimeout();
+  }
+}
+
+async function handleTimeout(){
+  const qIdx = currentQ;
+  if(!Number.isInteger(qIdx)) return;
+  if(answeredFor[qIdx]) return;
+  const choiceButtons = document.querySelectorAll('#qChoices button');
+  choiceButtons.forEach(b => b.disabled = true);
+  answeredFor[qIdx] = true;
+  const timeSpent = QUESTION_TIME_LIMIT * 1000;
+  const pontos = 0; const correct = 0;
+  try{
+    await api({ action:'submit', nome: playerName, qIdx: qIdx, acertos: correct, tempo: timeSpent, pontos: pontos });
+  }catch(err){ console.error('Erro ao submeter timeout:', err); }
+  document.getElementById('feedbackMsg').innerText = 'Tempo esgotado — resposta não registrada.';
+  setTimeout(()=>{ currentQ = qIdx + 1; isQuestionVisible = false; showQuestionLocal(currentQ); refreshRanking(); }, 700);
+}
+
+/* copied scoring + submit logic (unchanged behavior) */
+async function handleChoiceClick(btn, qIdx, choiceIdx){
+  const choiceButtons = document.querySelectorAll('#qChoices button');
+  choiceButtons.forEach(b=> b.disabled = true);
+
+  const at = Date.now();
+  const timeSpent = Math.max(0, at - questionStartAt);   // ms
+  const timeSpentSec = timeSpent / 1000;                 // s
+  const timeLeft = Math.max(0, QUESTION_TIME_LIMIT - timeSpentSec); // segundos (float)
+
+  const q = questions[qIdx];
+  const correct = (choiceIdx === q.answer) ? 1 : 0;
+
+  // valores exatos
+  const maxPontos = 110/15;       // 6.666666...
+  const minPontos = maxPontos/2;
+  const punish    = maxPontos/4;
+
+  const t = timeLeft;
+  let pontos = 0;
+
+  if (correct) {
+    if (t >= 15 && t <= 20) {
+      pontos = maxPontos;
+    } else {
+      const ratio = Math.min(14, Math.max(0, t)) / 14;
+      pontos = minPontos + (maxPontos - minPontos) * ratio;
+    }
+  } else {
+    if (t >= 15 && t <= 20) {
+      pontos = -punish;
+    } else {
+      pontos = 0;
+    }
+  }
+
+  choiceButtons.forEach((b, idx)=>{
+    if(idx === choiceIdx){
+      b.style.borderColor = correct ? 'rgba(40,167,69,0.95)' : 'rgba(231,76,60,0.95)';
+      b.style.background = correct ? 'linear-gradient(90deg, rgba(40,167,69,0.12), rgba(40,167,69,0.04))' : 'linear-gradient(90deg, rgba(231,76,60,0.10), rgba(231,76,60,0.03))';
+      b.style.boxShadow = '0 10px 26px rgba(0,0,0,0.06)';
+    }
+    if(idx === q.answer){
+      b.style.borderColor = 'rgba(40,167,69,0.95)';
+      b.style.background = 'linear-gradient(90deg, rgba(40,167,69,0.06), rgba(40,167,69,0.02))';
+    }
+  });
+
+  try{
+    await api({ action:'submit', nome: playerName, qIdx: qIdx, acertos: correct, tempo: timeSpent, pontos: pontos });
+  }catch(err){ console.error('Erro ao submeter resposta:', err); }
+
+  answeredFor[qIdx] = true;
+  document.getElementById('feedbackMsg').innerText = correct ? `Acertou +${pontos} pts` : (pontos < 0 ? `Errou (${pontos} pts)` : 'Errou (0 pts)');
+
+  if(window.qTimer){ clearInterval(window.qTimer); window.qTimer = null; }
+  setTimeout(()=> { currentQ = qIdx + 1; isQuestionVisible = false; showQuestionLocal(currentQ); refreshRanking(); }, 650);
+}
+
+function escapeHtml(str){ if(!str && str !== 0) return ''; return String(str).replace(/[&<>"']/g, function(m){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
+
+/* cleanup */
+window.addEventListener('beforeunload', ()=>{ if(pollTimer) clearInterval(pollTimer); if(rankTimer) clearInterval(rankTimer); if(window.qTimer) clearInterval(window.qTimer); });
+</script>
+</body>
+</html>

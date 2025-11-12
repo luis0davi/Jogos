@@ -6,85 +6,76 @@
 <title>Criar Quiz — Plataforma</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg1:#0b1b4d; --bg2:#2b3b87; --card:#0f1430; --accent:#ffd36b; --muted:#bfc6da;
-  }
-  body{margin:20px;font-family:Inter,system-ui, -apple-system, "Segoe UI", Roboto;color:#fff;
-    background: linear-gradient(180deg,var(--bg1),var(--bg2));-webkit-font-smoothing:antialiased;}
-  .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:20px;border-radius:12px;max-width:980px;margin:0 auto;border:1px solid rgba(255,255,255,0.03)}
+  body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#0b1b4d;color:#fff}
+  .container{max-width:980px;margin:0 auto}
+  .card{background:linear-gradient(180deg,#0f1730,#12162c);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
   h1{margin:0 0 8px 0}
-  label{display:block;margin-top:12px;color:var(--muted);font-size:13px}
-  input[type=text], textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
+  label{display:block;margin-top:12px;color:#dfe8ff;font-weight:600}
+  input[type="text"], textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
   .row{display:flex;gap:8px}
-  .small{flex:1}
-  .btn{margin-top:10px;padding:10px 14px;border-radius:10px;border:0;background:linear-gradient(180deg,#2b57f7,#0b3bdf);cursor:pointer;font-weight:700}
-  .muted{color:var(--muted);font-size:13px}
-  .qbox{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);margin-top:12px;border:1px solid rgba(255,255,255,0.02)}
-  .choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-  .mini{font-size:13px;color:var(--muted)}
-  .actions{display:flex;gap:8px;margin-top:12px}
-  .linkout{margin-top:12px;padding:12px;border-radius:10px;background:rgba(0,0,0,0.2);word-break:break-all}
-  .trash{background:#e54a4a}
-  @media(max-width:720px){ .row{flex-direction:column} .choices{grid-template-columns:1fr} }
+  .small{font-size:13px;color:#bfc6da}
+  .btn{margin-top:12px;padding:10px 14px;border-radius:10px;border:0;background:linear-gradient(180deg,#2b57f7,#0b3bdf);cursor:pointer;color:#fff;font-weight:700}
+  .muted{color:#9fb0e6;font-size:13px}
+  .questions{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+  .qcard{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  .q-actions{display:flex;gap:8px;margin-top:8px}
+  .linkbox{margin-top:14px;background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
+  .danger{background:#ff4d4d;color:#fff;padding:6px;border-radius:8px;border:0}
+  .flex-between{display:flex;justify-content:space-between;align-items:center}
+  .hint{font-size:13px;color:#bfc6da}
+  .inline{display:inline-block}
+  .small-btn{padding:6px 10px;border-radius:8px;border:0;background:rgba(255,255,255,0.04);color:#fff;cursor:pointer}
+  .center{display:flex;gap:8px;align-items:center}
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Criar Quiz</h1>
-    <div class="muted">Crie um quiz público — será salvo na planilha (aba: QUIZZES).</div>
+  <div class="container">
+    <div class="card">
+      <div class="flex-between">
+        <div>
+          <h1>Criar novo Quiz</h1>
+          <div class="muted">Crie perguntas e gere um link público para jogar.</div>
+        </div>
+        <div class="small muted">Backend: Google Apps Script</div>
+      </div>
 
-    <label>Título do quiz</label>
-    <input id="quizTitle" type="text" placeholder="Ex: Quiz NR-18 — Treinamento" />
+      <label>Título do quiz</label>
+      <input id="quizTitle" placeholder="Ex: NR-18 - Roteiro 2025" />
 
-    <label>Número de perguntas</label>
-    <select id="qCount">
-      <option value="5">5</option>
-      <option value="10" selected>10</option>
-      <option value="15">15</option>
-      <option value="20">20</option>
-    </select>
+      <label>Nº de perguntas</label>
+      <select id="numQ">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+      </select>
 
-    <div class="actions">
-      <button id="btnMake" class="btn">Gerar formulário</button>
-      <div class="muted" style="align-self:center">Preencha perguntas e clique em "Salvar Quiz".</div>
+      <div style="margin-top:10px" class="center">
+        <button id="btnMake" class="btn">Gerar formulário</button>
+        <div class="hint">ou adicione perguntas manualmente abaixo</div>
+      </div>
+
+      <div id="questionsWrap" class="questions" style="margin-top:12px"></div>
+
+      <div style="margin-top:10px" class="center">
+        <button id="btnAddQ" class="small-btn">+ Adicionar pergunta</button>
+        <button id="btnCreate" class="btn">Criar quiz e gerar link</button>
+      </div>
+
+      <div id="resultBox" class="linkbox" style="display:none;margin-top:12px"></div>
+
+      <div style="margin-top:12px" class="muted small">O quiz será salvo na aba "QUIZZES" da sua planilha (Apps Script).</div>
     </div>
-
-    <div id="formArea"></div>
-
-    <div id="resultArea" style="margin-top:14px"></div>
   </div>
 
 <script>
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx8qN07FPwIVQvoKfKRkhJ5NQSBbGALjEZy4pVry0ZuZ95USwK1eSw4XdwsY0OlVbUsbA/exec";
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
 
-/**
- * Faz requisição GET ao Apps Script e devolve o objeto JSON do servidor.
- * Tratamento robusto de erros (network / parse / server error).
- */
-async function apiGet(params){
-  try{
-    // monta query string com encoding cuidadoso (especialmente para o campo quiz)
-    const qs = Object.keys(params).map(k => {
-      const v = params[k];
-      // se for string longa (JSON) encodeURIComponent garante que não quebre a URL
-      return encodeURIComponent(k) + '=' + encodeURIComponent(String(v));
-    }).join('&');
-    const url = SHEET_API_URL + '?' + qs;
-    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-    const text = await res.text();
-    try{
-      const data = JSON.parse(text);
-      return data;
-    }catch(parseErr){
-      // servidor retornou texto não-json — repassa para debug
-      return { ok:false, error: 'Resposta não-JSON do servidor', raw: text };
-    }
-  }catch(networkErr){
-    return { ok:false, error: 'Erro de rede: ' + (networkErr.message || networkErr) };
-  }
+function api(params){
+  const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
+  return fetch(url, {method:'GET', cache:'no-store'}).then(r=>r.json());
 }
 
-/* monta um cartão de pergunta (mesma função sua) */
 function makeQuestionCard(qdata = null){
   const idx = document.querySelectorAll('.qcard').length;
   const div = document.createElement('div'); div.className = 'qcard';
@@ -110,12 +101,19 @@ function makeQuestionCard(qdata = null){
       <button class="small-btn btn-rem">Remover</button>
     </div>
   `;
+  // set correct if qdata
   setTimeout(()=> {
     if(qdata && typeof qdata.answer === 'number'){
       div.querySelector('.correct').value = String(qdata.answer);
     }
   }, 10);
-  div.querySelector('.btn-rem').addEventListener('click', ()=> { div.remove(); refreshQuestionIndices(); });
+
+  // remove handler
+  div.querySelector('.btn-rem').addEventListener('click', ()=> {
+    div.remove();
+    refreshQuestionIndices();
+  });
+
   return div;
 }
 
@@ -125,7 +123,6 @@ function refreshQuestionIndices(){
   });
 }
 
-/* handlers dos botões (preservei UX original) */
 document.getElementById('btnMake').addEventListener('click', ()=>{
   const n = Number(document.getElementById('numQ').value);
   const wrap = document.getElementById('questionsWrap');
@@ -133,12 +130,12 @@ document.getElementById('btnMake').addEventListener('click', ()=>{
   for(let i=0;i<n;i++) wrap.appendChild(makeQuestionCard());
   refreshQuestionIndices();
 });
+
 document.getElementById('btnAddQ').addEventListener('click', ()=>{
   document.getElementById('questionsWrap').appendChild(makeQuestionCard());
   refreshQuestionIndices();
 });
 
-/* ======= CRIAR QUIZ: versão robusta ======= */
 document.getElementById('btnCreate').addEventListener('click', async ()=>{
   const title = document.getElementById('quizTitle').value.trim();
   if(!title) return alert('Informe um título para o quiz.');
@@ -152,7 +149,7 @@ document.getElementById('btnCreate').addEventListener('click', async ()=>{
     return { q, choices: opts, answer: ans };
   });
 
-  // validação básica
+  // basic validation
   for(let i=0;i<questions.length;i++){
     const qq = questions[i];
     if(!qq.q) return alert('Pergunta ' + (i+1) + ' sem texto.');
@@ -160,52 +157,39 @@ document.getElementById('btnCreate').addEventListener('click', async ()=>{
     if(typeof qq.answer !== 'number') return alert('Marque a alternativa correta (pergunta ' + (i+1) + ').');
   }
 
-  // prepara payload (serializa o quiz)
-  const quizObj = { title: title, questions: questions };
-  const quizJson = JSON.stringify(quizObj);
-
-  // chama o endpoint createQuiz via GET (codificando com encodeURIComponent)
-  const payload = {
-    action: 'createQuiz',
-    title: title,
-    quiz: quizJson
-  };
-
-  // mostrar status temporário
-  const resultBox = document.getElementById('resultBox');
-  resultBox.style.display = 'block';
-  resultBox.innerHTML = '<div class="muted">Criando quiz, aguarde...</div>';
-
-  const res = await apiGet(payload);
-
-  // tratar respostas
-  if(res && res.ok && res.id){
-    const id = res.id;
-    const base = location.origin + location.pathname.replace(/[^/]+$/, '');
-    const link = `${base}jogar.html?quiz=${encodeURIComponent(id)}`;
-    resultBox.innerHTML = `<div><strong>Quiz criado!</strong></div>
-      <div style="margin-top:8px"><input id="quizLink" value="${link}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff" /></div>
-      <div style="margin-top:8px" class="center">
-        <button class="small-btn" id="copyBtn">Copiar link</button>
-        <a class="small-btn" href="${link}" target="_blank">Abrir link</a>
-      </div>`;
-    document.getElementById('copyBtn').addEventListener('click', ()=>{
-      document.getElementById('quizLink').select();
-      document.execCommand('copy');
-      alert('Link copiado');
-    });
-  } else {
-    // mostra erro do servidor se houver
-    const errMsg = (res && (res.error || res.raw)) ? String(res.error || res.raw) : 'Erro ao criar quiz. Tente novamente.';
-    resultBox.innerHTML = `<div style="color:#ffb3b3"><strong>Erro ao criar quiz:</strong> ${escapeHtml(errMsg)}</div>
-      <div class="muted" style="margin-top:8px">Verifique o log do Apps Script e tente novamente.</div>`;
-    console.error('createQuiz error response:', res);
+  // send to backend (createQuiz)
+  try{
+    const payload = {
+      action: 'createQuiz',
+      title: title,
+      quiz: JSON.stringify({ title, questions })
+    };
+    const res = await api(payload);
+    if(res && res.ok && res.id){
+      const id = res.id;
+      const link = `${location.origin}${location.pathname.replace(/[^/]+$/, '')}jogar.html?quiz=${encodeURIComponent(id)}`;
+      document.getElementById('resultBox').style.display = 'block';
+      document.getElementById('resultBox').innerHTML = `<div><strong>Quiz criado!</strong></div>
+        <div style="margin-top:8px"><input id="quizLink" value="${link}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff" /></div>
+        <div style="margin-top:8px" class="center">
+          <button class="small-btn" id="copyBtn">Copiar link</button>
+          <a class="small-btn" href="${link}" target="_blank">Abrir link</a>
+        </div>`;
+      document.getElementById('copyBtn').addEventListener('click', ()=>{
+        document.getElementById('quizLink').select();
+        document.execCommand('copy');
+        alert('Link copiado');
+      });
+    } else {
+      alert('Erro ao criar quiz: ' + (res && res.error || 'resposta inesperada'));
+    }
+  }catch(err){
+    console.error(err); alert('Erro na criação: '+ err.message);
   }
 });
 
-/* small helper escape */
+// helper
 function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
 </script>
-
 </body>
 </html>

@@ -71,11 +71,34 @@
 <script>
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx8qN07FPwIVQvoKfKRkhJ5NQSBbGALjEZy4pVry0ZuZ95USwK1eSw4XdwsY0OlVbUsbA/exec";
 
-function api(params){
-  const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
-  return fetch(url, {method:'GET', cache:'no-store'}).then(r=>r.json());
+/**
+ * Faz requisição GET ao Apps Script e devolve o objeto JSON do servidor.
+ * Tratamento robusto de erros (network / parse / server error).
+ */
+async function apiGet(params){
+  try{
+    // monta query string com encoding cuidadoso (especialmente para o campo quiz)
+    const qs = Object.keys(params).map(k => {
+      const v = params[k];
+      // se for string longa (JSON) encodeURIComponent garante que não quebre a URL
+      return encodeURIComponent(k) + '=' + encodeURIComponent(String(v));
+    }).join('&');
+    const url = SHEET_API_URL + '?' + qs;
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    const text = await res.text();
+    try{
+      const data = JSON.parse(text);
+      return data;
+    }catch(parseErr){
+      // servidor retornou texto não-json — repassa para debug
+      return { ok:false, error: 'Resposta não-JSON do servidor', raw: text };
+    }
+  }catch(networkErr){
+    return { ok:false, error: 'Erro de rede: ' + (networkErr.message || networkErr) };
+  }
 }
 
+/* monta um cartão de pergunta (mesma função sua) */
 function makeQuestionCard(qdata = null){
   const idx = document.querySelectorAll('.qcard').length;
   const div = document.createElement('div'); div.className = 'qcard';
@@ -101,19 +124,12 @@ function makeQuestionCard(qdata = null){
       <button class="small-btn btn-rem">Remover</button>
     </div>
   `;
-  // set correct if qdata
   setTimeout(()=> {
     if(qdata && typeof qdata.answer === 'number'){
       div.querySelector('.correct').value = String(qdata.answer);
     }
   }, 10);
-
-  // remove handler
-  div.querySelector('.btn-rem').addEventListener('click', ()=> {
-    div.remove();
-    refreshQuestionIndices();
-  });
-
+  div.querySelector('.btn-rem').addEventListener('click', ()=> { div.remove(); refreshQuestionIndices(); });
   return div;
 }
 
@@ -123,6 +139,7 @@ function refreshQuestionIndices(){
   });
 }
 
+/* handlers dos botões (preservei UX original) */
 document.getElementById('btnMake').addEventListener('click', ()=>{
   const n = Number(document.getElementById('numQ').value);
   const wrap = document.getElementById('questionsWrap');
@@ -130,12 +147,12 @@ document.getElementById('btnMake').addEventListener('click', ()=>{
   for(let i=0;i<n;i++) wrap.appendChild(makeQuestionCard());
   refreshQuestionIndices();
 });
-
 document.getElementById('btnAddQ').addEventListener('click', ()=>{
   document.getElementById('questionsWrap').appendChild(makeQuestionCard());
   refreshQuestionIndices();
 });
 
+/* ======= CRIAR QUIZ: versão robusta ======= */
 document.getElementById('btnCreate').addEventListener('click', async ()=>{
   const title = document.getElementById('quizTitle').value.trim();
   if(!title) return alert('Informe um título para o quiz.');
@@ -149,7 +166,7 @@ document.getElementById('btnCreate').addEventListener('click', async ()=>{
     return { q, choices: opts, answer: ans };
   });
 
-  // basic validation
+  // validação básica
   for(let i=0;i<questions.length;i++){
     const qq = questions[i];
     if(!qq.q) return alert('Pergunta ' + (i+1) + ' sem texto.');
@@ -157,39 +174,52 @@ document.getElementById('btnCreate').addEventListener('click', async ()=>{
     if(typeof qq.answer !== 'number') return alert('Marque a alternativa correta (pergunta ' + (i+1) + ').');
   }
 
-  // send to backend (createQuiz)
-  try{
-    const payload = {
-      action: 'createQuiz',
-      title: title,
-      quiz: JSON.stringify({ title, questions })
-    };
-    const res = await api(payload);
-    if(res && res.ok && res.id){
-      const id = res.id;
-      const link = `${location.origin}${location.pathname.replace(/[^/]+$/, '')}jogar.html?quiz=${encodeURIComponent(id)}`;
-      document.getElementById('resultBox').style.display = 'block';
-      document.getElementById('resultBox').innerHTML = `<div><strong>Quiz criado!</strong></div>
-        <div style="margin-top:8px"><input id="quizLink" value="${link}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff" /></div>
-        <div style="margin-top:8px" class="center">
-          <button class="small-btn" id="copyBtn">Copiar link</button>
-          <a class="small-btn" href="${link}" target="_blank">Abrir link</a>
-        </div>`;
-      document.getElementById('copyBtn').addEventListener('click', ()=>{
-        document.getElementById('quizLink').select();
-        document.execCommand('copy');
-        alert('Link copiado');
-      });
-    } else {
-      alert('Erro ao criar quiz: ' + (res && res.error || 'resposta inesperada'));
-    }
-  }catch(err){
-    console.error(err); alert('Erro na criação: '+ err.message);
+  // prepara payload (serializa o quiz)
+  const quizObj = { title: title, questions: questions };
+  const quizJson = JSON.stringify(quizObj);
+
+  // chama o endpoint createQuiz via GET (codificando com encodeURIComponent)
+  const payload = {
+    action: 'createQuiz',
+    title: title,
+    quiz: quizJson
+  };
+
+  // mostrar status temporário
+  const resultBox = document.getElementById('resultBox');
+  resultBox.style.display = 'block';
+  resultBox.innerHTML = '<div class="muted">Criando quiz, aguarde...</div>';
+
+  const res = await apiGet(payload);
+
+  // tratar respostas
+  if(res && res.ok && res.id){
+    const id = res.id;
+    const base = location.origin + location.pathname.replace(/[^/]+$/, '');
+    const link = `${base}jogar.html?quiz=${encodeURIComponent(id)}`;
+    resultBox.innerHTML = `<div><strong>Quiz criado!</strong></div>
+      <div style="margin-top:8px"><input id="quizLink" value="${link}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff" /></div>
+      <div style="margin-top:8px" class="center">
+        <button class="small-btn" id="copyBtn">Copiar link</button>
+        <a class="small-btn" href="${link}" target="_blank">Abrir link</a>
+      </div>`;
+    document.getElementById('copyBtn').addEventListener('click', ()=>{
+      document.getElementById('quizLink').select();
+      document.execCommand('copy');
+      alert('Link copiado');
+    });
+  } else {
+    // mostra erro do servidor se houver
+    const errMsg = (res && (res.error || res.raw)) ? String(res.error || res.raw) : 'Erro ao criar quiz. Tente novamente.';
+    resultBox.innerHTML = `<div style="color:#ffb3b3"><strong>Erro ao criar quiz:</strong> ${escapeHtml(errMsg)}</div>
+      <div class="muted" style="margin-top:8px">Verifique o log do Apps Script e tente novamente.</div>`;
+    console.error('createQuiz error response:', res);
   }
 });
 
-// helper
+/* small helper escape */
 function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
 </script>
+
 </body>
 </html>

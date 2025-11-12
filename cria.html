@@ -57,88 +57,155 @@
 <script>
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx8qN07FPwIVQvoKfKRkhJ5NQSBbGALjEZy4pVry0ZuZ95USwK1eSw4XdwsY0OlVbUsbA/exec";
 
-// create dynamic form for n questions
-document.getElementById('btnMake').addEventListener('click', ()=>{
-  const n = parseInt(document.getElementById('qCount').value,10);
-  const area = document.getElementById('formArea');
-  area.innerHTML = '';
-  for(let i=0;i<n;i++){
-    area.appendChild(renderQuestionBox(i));
+/**
+ * Faz requisição GET ao Apps Script e devolve o objeto JSON do servidor.
+ * Tratamento robusto de erros (network / parse / server error).
+ */
+async function apiGet(params){
+  try{
+    // monta query string com encoding cuidadoso (especialmente para o campo quiz)
+    const qs = Object.keys(params).map(k => {
+      const v = params[k];
+      // se for string longa (JSON) encodeURIComponent garante que não quebre a URL
+      return encodeURIComponent(k) + '=' + encodeURIComponent(String(v));
+    }).join('&');
+    const url = SHEET_API_URL + '?' + qs;
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    const text = await res.text();
+    try{
+      const data = JSON.parse(text);
+      return data;
+    }catch(parseErr){
+      // servidor retornou texto não-json — repassa para debug
+      return { ok:false, error: 'Resposta não-JSON do servidor', raw: text };
+    }
+  }catch(networkErr){
+    return { ok:false, error: 'Erro de rede: ' + (networkErr.message || networkErr) };
   }
-  // add save button
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'btn';
-  saveBtn.innerText = 'Salvar Quiz e Gerar Link';
-  saveBtn.addEventListener('click', saveQuiz);
-  area.appendChild(saveBtn);
+}
+
+/* monta um cartão de pergunta (mesma função sua) */
+function makeQuestionCard(qdata = null){
+  const idx = document.querySelectorAll('.qcard').length;
+  const div = document.createElement('div'); div.className = 'qcard';
+  div.innerHTML = `
+    <label>Pergunta ${idx+1}</label>
+    <input class="q-text" placeholder="Texto da pergunta" value="${qdata?escapeHtml(qdata.q):''}" />
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input class="opt" placeholder="A" value="${qdata?escapeHtml(qdata.choices[0]||''):''}" />
+      <input class="opt" placeholder="B" value="${qdata?escapeHtml(qdata.choices[1]||''):''}" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input class="opt" placeholder="C" value="${qdata?escapeHtml(qdata.choices[2]||''):''}" />
+      <input class="opt" placeholder="D" value="${qdata?escapeHtml(qdata.choices[3]||''):''}" />
+    </div>
+    <div class="q-actions">
+      <label class="small muted">Correta:</label>
+      <select class="correct">
+        <option value="0">A</option>
+        <option value="1">B</option>
+        <option value="2">C</option>
+        <option value="3">D</option>
+      </select>
+      <button class="small-btn btn-rem">Remover</button>
+    </div>
+  `;
+  setTimeout(()=> {
+    if(qdata && typeof qdata.answer === 'number'){
+      div.querySelector('.correct').value = String(qdata.answer);
+    }
+  }, 10);
+  div.querySelector('.btn-rem').addEventListener('click', ()=> { div.remove(); refreshQuestionIndices(); });
+  return div;
+}
+
+function refreshQuestionIndices(){
+  document.querySelectorAll('.qcard').forEach((el,i)=>{
+    el.querySelector('label').innerText = `Pergunta ${i+1}`;
+  });
+}
+
+/* handlers dos botões (preservei UX original) */
+document.getElementById('btnMake').addEventListener('click', ()=>{
+  const n = Number(document.getElementById('numQ').value);
+  const wrap = document.getElementById('questionsWrap');
+  wrap.innerHTML = '';
+  for(let i=0;i<n;i++) wrap.appendChild(makeQuestionCard());
+  refreshQuestionIndices();
+});
+document.getElementById('btnAddQ').addEventListener('click', ()=>{
+  document.getElementById('questionsWrap').appendChild(makeQuestionCard());
+  refreshQuestionIndices();
 });
 
-// render single question block
-function renderQuestionBox(i){
-  const box = document.createElement('div');
-  box.className = 'qbox';
-  box.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <strong>Pergunta ${i+1}</strong>
-      <div class="mini">Marque a alternativa correta abaixo</div>
-    </div>
-    <label class="mini">Texto</label>
-    <input class="qtext" placeholder="Escreva a pergunta..." />
-    <div class="choices">
-      <div><label class="mini">A</label><input class="choice" placeholder="Alternativa A" /></div>
-      <div><label class="mini">B</label><input class="choice" placeholder="Alternativa B" /></div>
-      <div><label class="mini">C</label><input class="choice" placeholder="Alternativa C" /></div>
-      <div><label class="mini">D</label><input class="choice" placeholder="Alternativa D" /></div>
-    </div>
-    <label class="mini">Correta</label>
-    <select class="correct">
-      <option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option>
-    </select>
-  `;
-  return box;
-}
-
-// collect data and call backend
-async function saveQuiz(){
+/* ======= CRIAR QUIZ: versão robusta ======= */
+document.getElementById('btnCreate').addEventListener('click', async ()=>{
   const title = document.getElementById('quizTitle').value.trim();
-  if(!title) return alert('Digite o título do quiz');
-  const qboxes = Array.from(document.querySelectorAll('.qbox'));
-  if(qboxes.length === 0) return alert('Gere o formulário com perguntas primeiro.');
+  if(!title) return alert('Informe um título para o quiz.');
+  const cards = Array.from(document.querySelectorAll('.qcard'));
+  if(cards.length === 0) return alert('Adicione pelo menos 1 pergunta.');
 
-  const questions = [];
-  for(let i=0;i<qboxes.length;i++){
-    const el = qboxes[i];
-    const qText = el.querySelector('.qtext').value.trim();
-    const choices = Array.from(el.querySelectorAll('.choice')).map(inp => inp.value.trim());
-    const correct = parseInt(el.querySelector('.correct').value,10);
-    if(!qText || choices.some(c=>!c)) return alert('Preencha todas as perguntas e alternativas');
-    questions.push({ q: qText, choices: choices, answer: correct });
+  const questions = cards.map(c=>{
+    const q = c.querySelector('.q-text').value.trim();
+    const opts = Array.from(c.querySelectorAll('.opt')).map(x=>x.value.trim());
+    const ans = Number(c.querySelector('.correct').value);
+    return { q, choices: opts, answer: ans };
+  });
+
+  // validação básica
+  for(let i=0;i<questions.length;i++){
+    const qq = questions[i];
+    if(!qq.q) return alert('Pergunta ' + (i+1) + ' sem texto.');
+    if(qq.choices.some(ch => !ch)) return alert('Todas as alternativas devem estar preenchidas (pergunta ' + (i+1) + ').');
+    if(typeof qq.answer !== 'number') return alert('Marque a alternativa correta (pergunta ' + (i+1) + ').');
   }
 
-  // prepare payload
+  // prepara payload (serializa o quiz)
+  const quizObj = { title: title, questions: questions };
+  const quizJson = JSON.stringify(quizObj);
+
+  // chama o endpoint createQuiz via GET (codificando com encodeURIComponent)
   const payload = {
-    title,
-    questions,
-    createdAt: Date.now()
+    action: 'createQuiz',
+    title: title,
+    quiz: quizJson
   };
 
-  // call Apps Script
-  try{
-    const url = SHEET_API_URL + '?' + new URLSearchParams({ action:'createQuiz', quiz: JSON.stringify(payload) });
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data && data.success && data.id){
-      const id = data.id;
-      const link = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}jogar.html?quiz=${id}`;
-      document.getElementById('resultArea').innerHTML = `<div class="linkout"><strong>Quiz criado!</strong><div class="muted">Link público:</div><div style="margin-top:6px"><a href="${link}" target="_blank" style="color:var(--accent)">${link}</a></div></div>`;
-    } else {
-      alert('Erro ao criar quiz. Tente novamente.');
-      console.error(data);
-    }
-  }catch(e){
-    console.error(e); alert('Erro de rede ao criar quiz');
+  // mostrar status temporário
+  const resultBox = document.getElementById('resultBox');
+  resultBox.style.display = 'block';
+  resultBox.innerHTML = '<div class="muted">Criando quiz, aguarde...</div>';
+
+  const res = await apiGet(payload);
+
+  // tratar respostas
+  if(res && res.ok && res.id){
+    const id = res.id;
+    const base = location.origin + location.pathname.replace(/[^/]+$/, '');
+    const link = `${base}jogar.html?quiz=${encodeURIComponent(id)}`;
+    resultBox.innerHTML = `<div><strong>Quiz criado!</strong></div>
+      <div style="margin-top:8px"><input id="quizLink" value="${link}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff" /></div>
+      <div style="margin-top:8px" class="center">
+        <button class="small-btn" id="copyBtn">Copiar link</button>
+        <a class="small-btn" href="${link}" target="_blank">Abrir link</a>
+      </div>`;
+    document.getElementById('copyBtn').addEventListener('click', ()=>{
+      document.getElementById('quizLink').select();
+      document.execCommand('copy');
+      alert('Link copiado');
+    });
+  } else {
+    // mostra erro do servidor se houver
+    const errMsg = (res && (res.error || res.raw)) ? String(res.error || res.raw) : 'Erro ao criar quiz. Tente novamente.';
+    resultBox.innerHTML = `<div style="color:#ffb3b3"><strong>Erro ao criar quiz:</strong> ${escapeHtml(errMsg)}</div>
+      <div class="muted" style="margin-top:8px">Verifique o log do Apps Script e tente novamente.</div>`;
+    console.error('createQuiz error response:', res);
   }
-}
+});
+
+/* small helper escape */
+function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
 </script>
+
 </body>
 </html>

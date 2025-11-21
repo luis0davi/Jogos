@@ -254,13 +254,7 @@ async function api(params){
 }
 
 /* ========== UI control buttons ========== */
-document.getElementById('btnStartQuestions').addEventListener('click', async ()=>{
-  if(!confirm('Iniciar sequência de perguntas sem apagar a planilha?')) return;
-  try{
-    await api({action:'state_set', op:'start_questions'}); // adapte se necessário
-    status('Iniciado: perguntas (sem limpar)');
-  }catch(e){ console.error(e); status('Erro: '+ (e.message || e)); }
-});
+
 document.getElementById('btnStart').addEventListener('click', async ()=>{
   if(!confirm('Iniciar jogo e limpar planilha?')) return;
   await api({action:'state_set', op:'start'});
@@ -514,5 +508,6 @@ setTimeout(()=>fireBurst(), 900);
 </script>
 </body>
 </html>
+
 
 

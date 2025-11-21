@@ -3,223 +3,504 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Criar Quiz — Plataforma</title>
+<title>Quiz — Criar / Admin / Jogar</title>
+<link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
 <style>
-  body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#0b1b4d;color:#fff}
-  .container{max-width:980px;margin:0 auto}
-  .card{background:linear-gradient(180deg,#0f1730,#12162c);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
-  h1{margin:0 0 8px 0}
-  label{display:block;margin-top:12px;color:#dfe8ff;font-weight:600}
-  input[type="text"], textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
-  .row{display:flex;gap:8px}
-  .small{font-size:13px;color:#bfc6da}
-  .btn{margin-top:12px;padding:10px 14px;border-radius:10px;border:0;background:linear-gradient(180deg,#2b57f7,#0b3bdf);cursor:pointer;color:#fff;font-weight:700}
-  .muted{color:#9fb0e6;font-size:13px}
-  .questions{margin-top:14px;display:flex;flex-direction:column;gap:12px}
-  .qcard{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-  .q-actions{display:flex;gap:8px;margin-top:8px}
-  .linkbox{margin-top:14px;background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
-  .danger{background:#ff4d4d;color:#fff;padding:6px;border-radius:8px;border:0}
-  .flex-between{display:flex;justify-content:space-between;align-items:center}
-  .hint{font-size:13px;color:#bfc6da}
-  .inline{display:inline-block}
-  .small-btn{padding:6px 10px;border-radius:8px;border:0;background:rgba(255,255,255,0.04);color:#fff;cursor:pointer}
-  .center{display:flex;gap:8px;align-items:center}
+/* --- simplified combined styles (keeps your visual) --- */
+:root{
+  --bg1:#0b1b4d; --bg2:#2b3b87; --muted:#bfc6da; --accent:#ffd36b;
+}
+html,body{height:100%}
+body{
+  margin:18px;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#eef3ff;
+  background: radial-gradient(900px 400px at 10% 10%, rgba(255,214,107,0.04), transparent 6%), linear-gradient(180deg,var(--bg1),var(--bg2));
+}
+.container{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 360px;gap:18px}
+@media(max-width:980px){ .container{grid-template-columns:1fr} }
+.card{padding:18px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+h1{margin:0 0 8px 0}
+.muted{color:var(--muted);font-size:13px}
+.controls-row{display:flex;gap:8px;align-items:center;margin-top:10px}
+input[type="text"], input{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff;min-width:0}
+.btn{cursor:pointer;border:0;padding:10px 14px;border-radius:10px;font-weight:700;background:linear-gradient(180deg,#2b57f7,#0b3bdf);color:#fff}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted)}
+small{color:var(--muted);display:block;margin-top:6px}
+textarea{width:100%;min-height:60px;border-radius:10px;padding:10px;background:transparent;border:1px solid rgba(255,255,255,0.06);color:#fff}
+.questions-list{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.q-row{padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02)}
+.choice-input{display:flex;gap:8px;align-items:center;margin-top:6px}
+.small{font-size:13px;color:var(--muted)}
+.pill{background:rgba(255,255,255,0.02);padding:6px 10px;border-radius:999px;font-weight:600;color:var(--muted)}
+.leaderboard .rank-row{display:flex;justify-content:space-between;padding:10px;border-radius:10px;margin-top:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.02)}
+.notice{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02);color:var(--muted);margin-top:12px}
 </style>
 </head>
 <body>
   <div class="container">
-    <div class="card">
-      <div class="flex-between">
-        <div>
-          <h1>Criar novo Quiz</h1>
-          <div class="muted">Crie perguntas e gere um link público para jogar.</div>
+    <div id="main" class="card" role="main" aria-live="polite">
+      <h1 id="pageTitle">Quiz</h1>
+      <div class="muted" id="pageSubtitle">Carregando...</div>
+
+      <!-- CREATE MODE -->
+      <div id="createArea" style="display:none;margin-top:12px">
+        <div class="small">Crie um quiz rápido — preencha título, perguntas e clique em "Gerar Quiz".</div>
+
+        <div style="margin-top:12px">
+          <label class="small">Título do Quiz</label>
+          <input type="text" id="quizTitle" placeholder="Ex: Quiz NR-18" />
         </div>
-        <div class="small muted">Backend: Google Apps Script</div>
+
+        <div style="margin-top:10px">
+          <label class="small">Quantidade inicial de perguntas</label>
+          <input type="number" id="quizCount" value="10" min="1" max="100" />
+          <button id="btnInit" class="btn ghost">Criar espaço de perguntas</button>
+        </div>
+
+        <div id="questionsEditor" class="questions-list" style="display:none">
+          <!-- perguntas serão injetadas aqui -->
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+          <button id="btnGenerate" class="btn">Gerar Quiz</button>
+          <button id="btnExportJSON" class="btn ghost">Exportar JSON</button>
+          <div class="pill" id="createStatus">Pronto</div>
+        </div>
       </div>
 
-      <label>Título do quiz</label>
-      <input id="quizTitle" placeholder="Ex: NR-18 - Roteiro 2025" />
+      <!-- ADMIN MODE -->
+      <div id="adminArea" style="display:none;margin-top:12px">
+        <div class="small">Painel do administrador — controle do quiz específico</div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button id="btnAdminStart" class="btn">Start (limpa pontuações)</button>
+          <button id="btnAdminNext" class="btn ghost">Próxima Pergunta</button>
+          <button id="btnAdminStop" class="btn ghost">Encerrar</button>
+          <div class="pill" id="adminStatus">—</div>
+        </div>
 
-      <label>Nº de perguntas</label>
-      <select id="numQ">
-        <option value="5">5</option>
-        <option value="10" selected>10</option>
-        <option value="15">15</option>
-        <option value="20">20</option>
-      </select>
+        <div style="margin-top:12px">
+          <div class="small">Quiz ID: <strong id="showQuizId">-</strong></div>
+          <div class="small">Link Jogador: <a id="playerLink" href="#" target="_blank" style="color:var(--accent)"></a></div>
+          <div class="small">Link Admin: <a id="adminLink" href="#" target="_blank" style="color:var(--accent)"></a></div>
+        </div>
 
-      <div style="margin-top:10px" class="center">
-        <button id="btnMake" class="btn">Gerar formulário</button>
-        <div class="hint">ou adicione perguntas manualmente abaixo</div>
+        <div style="margin-top:12px">
+          <h3>Perguntas (preview)</h3>
+          <div id="adminQuestionsList"></div>
+        </div>
+
+        <div style="margin-top:12px">
+          <h3>Leaderboard (ao vivo)</h3>
+          <div id="adminLeaderboard" class="leaderboard"></div>
+        </div>
       </div>
 
-      <div id="questionsWrap" class="questions" style="margin-top:12px"></div>
+      <!-- PLAY MODE -->
+      <div id="playArea" style="display:none;margin-top:12px">
+        <div class="small">Insira seu nome para participar</div>
+        <div class="controls-row" style="margin-top:8px">
+          <input id="playerName" placeholder="Seu nome" />
+          <button id="btnReg" class="btn">Registrar</button>
+        </div>
 
-      <div style="margin-top:10px" class="center">
-        <button id="btnAddQ" class="small-btn">+ Adicionar pergunta</button>
-        <button id="btnCreate" class="btn">Criar quiz e gerar link</button>
+        <div id="waiting" style="display:none;margin-top:12px">
+          <div class="small">Aguardando o administrador iniciar o quiz...</div>
+          <div style="margin-top:8px">Seu nome: <strong id="showName"></strong></div>
+        </div>
+
+        <div id="questionArea" style="display:none;margin-top:12px">
+          <div id="qTitle" class="small"></div>
+          <div id="qChoices" style="margin-top:8px;display:flex;flex-direction:column;gap:8px"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+            <div class="small" id="timeLeft">Tempo restante: -</div>
+            <div class="small" id="feedback"></div>
+          </div>
+        </div>
+
+        <div id="endArea" style="display:none;margin-top:12px">
+          <div class="small"><strong>Quiz finalizado</strong></div>
+        </div>
       </div>
 
-      <div id="resultBox" class="linkbox" style="display:none;margin-top:12px"></div>
+    </div>
 
-      <div style="margin-top:12px" class="muted small">O quiz será salvo na aba "QUIZZES" da sua planilha (Apps Script).</div>
+    <!-- RIGHT PANEL: info / leaderboard / help -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><h3 style="margin:0">Dashboard</h3><small class="muted">Modo: <span id="modeBadge">—</span></small></div>
+        <div class="pill" id="pollPill">Polling: OFF</div>
+      </div>
+
+      <div style="margin-top:12px">
+        <h4 style="margin:0">Quick Help</h4>
+        <small class="muted">Use ?mode=create para criar um quiz, ?mode=admin&quizId=XYZ para administrar, ?mode=play&quizId=XYZ para jogar.</small>
+      </div>
+
+      <div style="margin-top:12px">
+        <h4 style="margin:0">Mini Leaderboard</h4>
+        <div id="miniLeader" style="margin-top:8px"></div>
+      </div>
+
+      <div class="notice">
+        Deploy: publique o Apps Script e cole a URL em `SHEET_API_URL` no script abaixo.
+      </div>
     </div>
   </div>
 
 <script>
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx8qN07FPwIVQvoKfKRkhJ5NQSBbGALjEZy4pVry0ZuZ95USwK1eSw4XdwsY0OlVbUsbA/exec";
+/* -----------------------------
+   CONFIG (cole a URL do Apps Script aqui)
+   ----------------------------- */
+const SHEET_API_URL = "PASTE_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE"; // <<<< substitua
+const POLL_MS = 600;
+let mode = 'create';
+let quizId = null;
+let quizData = null;
 
-/**
- * Faz requisição GET ao Apps Script e devolve o objeto JSON do servidor.
- * Tratamento robusto de erros (network / parse / server error).
- */
-async function apiGet(params){
-  try{
-    // monta query string com encoding cuidadoso (especialmente para o campo quiz)
-    const qs = Object.keys(params).map(k => {
-      const v = params[k];
-      // se for string longa (JSON) encodeURIComponent garante que não quebre a URL
-      return encodeURIComponent(k) + '=' + encodeURIComponent(String(v));
-    }).join('&');
-    const url = SHEET_API_URL + '?' + qs;
-    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-    const text = await res.text();
+/* ---------- helpers ---------- */
+function $(sel){ return document.querySelector(sel); }
+function qAll(sel){ return Array.from(document.querySelectorAll(sel)); }
+function byId(id){ return document.getElementById(id); }
+function param(name){ const u = new URL(location.href); return u.searchParams.get(name); }
+function uuid(len=8){ return Math.random().toString(36).slice(2,2+len); }
+function api(params){ 
+  const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
+  return fetch(url, {cache:'no-store'}).then(r=>r.json());
+}
+function escapeHtml(s=''){ return String(s).replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;","`":"&#96;"}[c])); }
+
+/* ---------- init ---------- */
+function init(){
+  const m = param('mode') || 'create';
+  mode = m;
+  quizId = param('quizId') || null;
+  byId('modeBadge').innerText = mode;
+
+  if(mode === 'create') { initCreate(); showOnly('create'); }
+  else if(mode === 'admin') { if(!quizId) return alert('Adicione ?quizId=XYZ'); initAdmin(); showOnly('admin'); }
+  else if(mode === 'play') { if(!quizId) return alert('Adicione ?quizId=XYZ'); initPlay(); showOnly('play'); }
+  else { showOnly('create'); }
+
+  byId('pageTitle').innerText = mode === 'create' ? 'Criar Quiz' : (mode === 'admin' ? 'Admin — Quiz' : 'Jogar — Quiz');
+  byId('pageSubtitle').innerText = mode === 'create' ? 'Crie e gere um quiz — obtenha links admin & jogador' : 'Painel / jogador';
+}
+
+/* ---------- show/hide areas ---------- */
+function showOnly(which){
+  byId('createArea').style.display = which === 'create' ? 'block' : 'none';
+  byId('adminArea').style.display = which === 'admin' ? 'block' : 'none';
+  byId('playArea').style.display = which === 'play' ? 'block' : 'none';
+}
+
+/* ==========================
+   CREATE MODE
+   ========================== */
+function initCreate(){
+  byId('createStatus').innerText = 'Pronto';
+  byId('btnInit').addEventListener('click', ()=>{
+    const n = parseInt(byId('quizCount').value) || 10;
+    renderQuestionInputs(n);
+  });
+
+  byId('btnExportJSON').addEventListener('click', ()=>{
+    const j = buildLocalQuiz();
+    const blob = new Blob([JSON.stringify(j, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${j.title || 'quiz'}.json`; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  byId('btnGenerate').addEventListener('click', async ()=>{
+    const payload = buildLocalQuiz();
+    if(!payload.title){ return alert('Preencha o título'); }
     try{
-      const data = JSON.parse(text);
-      return data;
-    }catch(parseErr){
-      // servidor retornou texto não-json — repassa para debug
-      return { ok:false, error: 'Resposta não-JSON do servidor', raw: text };
+      byId('createStatus').innerText = 'Gerando...';
+      const res = await api({ action: 'createQuiz', payload: JSON.stringify(payload) });
+      if(res && res.ok){
+        const id = res.quizId;
+        byId('createStatus').innerText = 'Criado: ' + id;
+        // copy links
+        const host = location.origin + location.pathname;
+        const adminLink = `${host}?mode=admin&quizId=${id}`;
+        const playLink = `${host}?mode=play&quizId=${id}`;
+        alert(`Quiz criado! ID: ${id}\nAdmin: ${adminLink}\nJogador: ${playLink}`);
+      } else {
+        byId('createStatus').innerText = 'Erro ao criar';
+        console.error(res);
+        alert('Erro ao criar quiz (ver console).');
+      }
+    }catch(err){
+      byId('createStatus').innerText = 'Erro';
+      console.error(err);
+      alert('Erro ao contatar backend.');
     }
-  }catch(networkErr){
-    return { ok:false, error: 'Erro de rede: ' + (networkErr.message || networkErr) };
-  }
-}
-
-/* monta um cartão de pergunta (mesma função sua) */
-function makeQuestionCard(qdata = null){
-  const idx = document.querySelectorAll('.qcard').length;
-  const div = document.createElement('div'); div.className = 'qcard';
-  div.innerHTML = `
-    <label>Pergunta ${idx+1}</label>
-    <input class="q-text" placeholder="Texto da pergunta" value="${qdata?escapeHtml(qdata.q):''}" />
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <input class="opt" placeholder="A" value="${qdata?escapeHtml(qdata.choices[0]||''):''}" />
-      <input class="opt" placeholder="B" value="${qdata?escapeHtml(qdata.choices[1]||''):''}" />
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <input class="opt" placeholder="C" value="${qdata?escapeHtml(qdata.choices[2]||''):''}" />
-      <input class="opt" placeholder="D" value="${qdata?escapeHtml(qdata.choices[3]||''):''}" />
-    </div>
-    <div class="q-actions">
-      <label class="small muted">Correta:</label>
-      <select class="correct">
-        <option value="0">A</option>
-        <option value="1">B</option>
-        <option value="2">C</option>
-        <option value="3">D</option>
-      </select>
-      <button class="small-btn btn-rem">Remover</button>
-    </div>
-  `;
-  setTimeout(()=> {
-    if(qdata && typeof qdata.answer === 'number'){
-      div.querySelector('.correct').value = String(qdata.answer);
-    }
-  }, 10);
-  div.querySelector('.btn-rem').addEventListener('click', ()=> { div.remove(); refreshQuestionIndices(); });
-  return div;
-}
-
-function refreshQuestionIndices(){
-  document.querySelectorAll('.qcard').forEach((el,i)=>{
-    el.querySelector('label').innerText = `Pergunta ${i+1}`;
   });
 }
 
-/* handlers dos botões (preservei UX original) */
-document.getElementById('btnMake').addEventListener('click', ()=>{
-  const n = Number(document.getElementById('numQ').value);
-  const wrap = document.getElementById('questionsWrap');
-  wrap.innerHTML = '';
-  for(let i=0;i<n;i++) wrap.appendChild(makeQuestionCard());
-  refreshQuestionIndices();
-});
-document.getElementById('btnAddQ').addEventListener('click', ()=>{
-  document.getElementById('questionsWrap').appendChild(makeQuestionCard());
-  refreshQuestionIndices();
-});
-
-/* ======= CRIAR QUIZ: versão robusta ======= */
-document.getElementById('btnCreate').addEventListener('click', async ()=>{
-  const title = document.getElementById('quizTitle').value.trim();
-  if(!title) return alert('Informe um título para o quiz.');
-  const cards = Array.from(document.querySelectorAll('.qcard'));
-  if(cards.length === 0) return alert('Adicione pelo menos 1 pergunta.');
-
-  const questions = cards.map(c=>{
-    const q = c.querySelector('.q-text').value.trim();
-    const opts = Array.from(c.querySelectorAll('.opt')).map(x=>x.value.trim());
-    const ans = Number(c.querySelector('.correct').value);
-    return { q, choices: opts, answer: ans };
+/* build local quiz object from editor */
+function buildLocalQuiz(){
+  const title = (byId('quizTitle').value || '').trim();
+  const nodes = document.querySelectorAll('.q-row');
+  const questions = [];
+  nodes.forEach((node, idx)=>{
+    const qtxt = node.querySelector('.q-text').value.trim();
+    const choices = [];
+    node.querySelectorAll('.choice').forEach(ch=> choices.push(ch.value.trim()));
+    const answer = parseInt(node.querySelector('.answerIdx').value) || 0;
+    const timeLimit = parseInt(node.querySelector('.timeLimit').value) || 20;
+    if(!qtxt) return;
+    questions.push({ q: qtxt, choices, answer, timeLimit });
   });
+  return { title, questions };
+}
 
-  // validação básica
-  for(let i=0;i<questions.length;i++){
-    const qq = questions[i];
-    if(!qq.q) return alert('Pergunta ' + (i+1) + ' sem texto.');
-    if(qq.choices.some(ch => !ch)) return alert('Todas as alternativas devem estar preenchidas (pergunta ' + (i+1) + ').');
-    if(typeof qq.answer !== 'number') return alert('Marque a alternativa correta (pergunta ' + (i+1) + ').');
+/* render question inputs */
+function renderQuestionInputs(n){
+  const container = byId('questionsEditor');
+  container.innerHTML = '';
+  for(let i=0;i<n;i++){
+    const div = document.createElement('div');
+    div.className = 'q-row';
+    div.innerHTML = `
+      <label class="small">Pergunta ${i+1}</label>
+      <textarea class="q-text" placeholder="Texto da pergunta"></textarea>
+      <div class="choice-input">
+        <input class="choice" placeholder="A)" />
+        <input class="choice" placeholder="B)" />
+        <input class="choice" placeholder="C)" />
+        <input class="choice" placeholder="D)" />
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+        <label class="small">Resposta correta (0..3)</label>
+        <input class="answerIdx" value="0" style="width:60px" />
+        <label class="small">Tempo (s)</label>
+        <input class="timeLimit" value="20" style="width:80px" />
+      </div>
+    `;
+    container.appendChild(div);
   }
+  container.style.display = 'block';
+}
 
-  // prepara payload (serializa o quiz)
-  const quizObj = { title: title, questions: questions };
-  const quizJson = JSON.stringify(quizObj);
+/* ==========================
+   ADMIN MODE
+   ========================== */
+let adminPoll = null;
+async function initAdmin(){
+  byId('showQuizId').innerText = quizId;
+  const host = location.origin + location.pathname;
+  byId('adminLink').href = `${host}?mode=admin&quizId=${quizId}`;
+  byId('adminLink').innerText = `Abrir admin`;
+  byId('playerLink').href = `${host}?mode=play&quizId=${quizId}`;
+  byId('playerLink').innerText = `Abrir jogador`;
 
-  // chama o endpoint createQuiz via GET (codificando com encodeURIComponent)
-  const payload = {
-    action: 'createQuiz',
-    title: title,
-    quiz: quizJson
-  };
+  // load quiz
+  try{
+    const res = await api({ action: 'getQuiz', quizId });
+    if(!res || !res.ok) return alert('Quiz não encontrado');
+    quizData = res.quiz;
+    renderAdminQuestions();
+    startAdminPolling();
+  }catch(err){ console.error(err); alert('Erro ao carregar quiz'); }
 
-  // mostrar status temporário
-  const resultBox = document.getElementById('resultBox');
-  resultBox.style.display = 'block';
-  resultBox.innerHTML = '<div class="muted">Criando quiz, aguarde...</div>';
+  byId('btnAdminStart').addEventListener('click', async ()=>{
+    if(!confirm('Iniciar quiz e resetar pontuações?')) return;
+    await api({ action:'state_set', quizId, op:'start' });
+  });
+  byId('btnAdminNext').addEventListener('click', async ()=> {
+    await api({ action:'state_set', quizId, op:'next' });
+  });
+  byId('btnAdminStop').addEventListener('click', async ()=> {
+    await api({ action:'state_set', quizId, op:'stop' });
+  });
+}
 
-  const res = await apiGet(payload);
+function renderAdminQuestions(){
+  const box = byId('adminQuestionsList');
+  box.innerHTML = '';
+  quizData.questions.forEach((q,i)=>{
+    const el = document.createElement('div');
+    el.className = 'q-row';
+    el.innerHTML = `<strong>Q${i+1}</strong> ${escapeHtml(q.q)} <div class="small">A:${escapeHtml(q.choices[0]||'')} B:${escapeHtml(q.choices[1]||'')} C:${escapeHtml(q.choices[2]||'')} D:${escapeHtml(q.choices[3]||'')}</div>`;
+    box.appendChild(el);
+  });
+}
 
-  // tratar respostas
-  if(res && res.ok && res.id){
-    const id = res.id;
-    const base = location.origin + location.pathname.replace(/[^/]+$/, '');
-    const link = `${base}jogar.html?quiz=${encodeURIComponent(id)}`;
-    resultBox.innerHTML = `<div><strong>Quiz criado!</strong></div>
-      <div style="margin-top:8px"><input id="quizLink" value="${link}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff" /></div>
-      <div style="margin-top:8px" class="center">
-        <button class="small-btn" id="copyBtn">Copiar link</button>
-        <a class="small-btn" href="${link}" target="_blank">Abrir link</a>
-      </div>`;
-    document.getElementById('copyBtn').addEventListener('click', ()=>{
-      document.getElementById('quizLink').select();
-      document.execCommand('copy');
-      alert('Link copiado');
-    });
+/* admin polling: state + leaderboard */
+async function startAdminPolling(){
+  if(adminPoll) clearInterval(adminPoll);
+  adminPoll = setInterval(async ()=>{
+    try{
+      const [sRes, lbRes] = await Promise.all([
+        api({ action:'state_get', quizId }),
+        api({ action:'leaderboard', quizId })
+      ]);
+      byId('adminStatus').innerText = sRes && sRes.status ? `Status: ${sRes.status} • Q:${sRes.questionIndex ?? '-'} ` : '—';
+      renderMiniLeader(byId('adminLeaderboard'), lbRes && lbRes.leaderboard ? lbRes.leaderboard.slice(0,10) : []);
+      byId('pollPill').innerText = `Polling: ON`;
+    }catch(err){
+      console.error(err);
+      byId('pollPill').innerText = `Polling: ERR`;
+    }
+  }, POLL_MS);
+}
+
+/* ==========================
+   PLAY MODE (jogador)
+   ========================== */
+let playPoll = null;
+let playerName = null;
+let answered = {};
+let currentLocalQ = 0;
+let questionStartAt = null;
+function initPlay(){
+  byId('showName').innerText = '';
+  byId('btnReg').addEventListener('click', async ()=>{
+    const v = byId('playerName').value.trim();
+    if(!v) return alert('Digite seu nome');
+    playerName = v;
+    await api({ action:'register', quizId, nome: playerName }).catch(()=>{});
+    byId('showName').innerText = playerName;
+    byId('stepRegistered')?.remove?.();
+    byId('waiting').style.display = 'block';
+    startPlayPolling();
+  });
+}
+
+/* play polling checks state + leaderboard and shows question when live */
+async function startPlayPolling(){
+  if(playPoll) clearInterval(playPoll);
+  playPoll = setInterval(async ()=>{
+    try{
+      const state = await api({ action:'state_get', quizId });
+      const lbRes = await api({ action:'leaderboard', quizId });
+      renderMiniLeader(byId('miniLeader'), lbRes && lbRes.leaderboard ? lbRes.leaderboard.slice(0,5) : []);
+      if(!state || state.status === 'waiting' || state.status === 'stopped'){
+        byId('waiting').style.display = 'block';
+        byId('questionArea').style.display = 'none';
+        byId('endArea').style.display = 'none';
+      } else if(state.status === 'live'){
+        const qIdx = state.questionIndex || 0;
+        if(answered[qIdx]) {
+          byId('waiting').style.display = 'block';
+          byId('questionArea').style.display = 'none';
+        } else {
+          showQuestionToPlayer(qIdx);
+        }
+      } else if(state.status === 'finished'){
+        byId('waiting').style.display = 'none';
+        byId('questionArea').style.display = 'none';
+        byId('endArea').style.display = 'block';
+      }
+    }catch(err){
+      console.error(err);
+    }
+  }, POLL_MS);
+}
+
+/* render small leaderboard helper */
+function renderMiniLeader(target, list){
+  if(!target) return;
+  if(!list || list.length===0){ target.innerHTML = `<div class="small muted">Sem resultados</div>`; return; }
+  target.innerHTML = list.map((r,i)=>`<div class="rank-row"><div><strong>#${i+1} ${escapeHtml(r.nome)}</strong><div class="small muted">acertos: ${r.acertos ?? 0}</div></div><div><strong>${r.pontos ?? 0}</strong></div></div>`).join('');
+}
+
+/* show question object to player (local) */
+function showQuestionToPlayer(qIdx){
+  if(!quizData){
+    // fetch quiz once
+    api({ action:'getQuiz', quizId }).then(res=>{ quizData = res.quiz; showQuestionToPlayer(qIdx); }).catch(console.error);
+    return;
+  }
+  const q = quizData.questions[qIdx];
+  if(!q){
+    byId('questionArea').style.display = 'none';
+    byId('waiting').style.display = 'none';
+    byId('endArea').style.display = 'block';
+    return;
+  }
+  byId('waiting').style.display = 'none';
+  byId('endArea').style.display = 'none';
+  byId('questionArea').style.display = 'block';
+  byId('qTitle').innerText = `Pergunta ${qIdx+1}: ${q.q}`;
+  const choicesDiv = byId('qChoices');
+  choicesDiv.innerHTML = '';
+  questionStartAt = Date.now();
+  q.choices.forEach((c,i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn ghost';
+    btn.innerHTML = `${String.fromCharCode(65+i)} — ${escapeHtml(c)}`;
+    btn.addEventListener('click', ()=> handlePlayerChoice(btn, qIdx, i));
+    choicesDiv.appendChild(btn);
+  });
+  // start timer UI
+  startQuestionTimer(qIdx, q.timeLimit || 20);
+}
+
+/* question timer UI */
+let qTimer = null;
+function startQuestionTimer(qIdx, timeLimit){
+  if(qTimer) clearInterval(qTimer);
+  function update(){
+    const elapsed = Math.floor((Date.now() - questionStartAt) / 1000);
+    const left = Math.max(0, timeLimit - elapsed);
+    byId('timeLeft').innerText = `Tempo restante: ${left}s`;
+    if(left<=0){
+      clearInterval(qTimer);
+      submitPlayerAnswer(qIdx, null, timeLimit*1000, 0);
+    }
+  }
+  update();
+  qTimer = setInterval(update, 300);
+}
+
+/* handle player choice */
+async function handlePlayerChoice(btn, qIdx, choiceIdx){
+  // disable all
+  qAll('#qChoices button').forEach(b=> b.disabled = true);
+  if(qTimer) clearInterval(qTimer);
+  const q = quizData.questions[qIdx];
+  const timeSpent = Date.now() - questionStartAt;
+  const correct = (choiceIdx === q.answer) ? 1 : 0;
+
+  // compute pontos same formula as original (mirrored)
+  const maxPontos = 110/15;
+  const minPontos = maxPontos/2;
+  const punish = maxPontos/4;
+  const timeLeft = Math.max(0, q.timeLimit - (timeSpent/1000));
+  let pontos = 0;
+  if(correct){
+    if(timeLeft >= 15 && timeLeft <= 20) pontos = maxPontos;
+    else {
+      const ratio = Math.min(14, Math.max(0, timeLeft)) / 14;
+      pontos = minPontos + (maxPontos - minPontos) * ratio;
+    }
   } else {
-    // mostra erro do servidor se houver
-    const errMsg = (res && (res.error || res.raw)) ? String(res.error || res.raw) : 'Erro ao criar quiz. Tente novamente.';
-    resultBox.innerHTML = `<div style="color:#ffb3b3"><strong>Erro ao criar quiz:</strong> ${escapeHtml(errMsg)}</div>
-      <div class="muted" style="margin-top:8px">Verifique o log do Apps Script e tente novamente.</div>`;
-    console.error('createQuiz error response:', res);
+    if(timeLeft >= 15 && timeLeft <= 20) pontos = -punish; else pontos = 0;
   }
-});
 
-/* small helper escape */
-function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+  // visual feedback
+  btn.style.background = correct ? 'linear-gradient(90deg, rgba(40,167,69,0.06), rgba(40,167,69,0.02))' : 'linear-gradient(90deg, rgba(231,76,60,0.06), rgba(231,76,60,0.02))';
+  byId('feedback').innerText = correct ? `Acertou +${pontos.toFixed(2)} pts` : `Errou (${pontos.toFixed(2)} pts)`;
+
+  // submit
+  await submitPlayerAnswer(qIdx, choiceIdx, timeSpent, pontos, correct);
+  answered[qIdx] = true;
+}
+
+/* submit player's answer to backend */
+async function submitPlayerAnswer(qIdx, choiceIdx, timeMs, pontos, acertos=0){
+  try{
+    await api({ action:'submit', quizId, nome: playerName, qIdx, acertos, tempo: Math.round(timeMs), pontos: Math.round(pontos*100)/100 });
+  }catch(err){ console.error('submit error', err); }
+}
+
+/* ==========================
+   bootstrap
+   ========================== */
+init();
 </script>
-
 </body>
 </html>

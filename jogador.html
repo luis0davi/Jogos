@@ -227,36 +227,46 @@ let isQuestionVisible = false;      // flag para evitar rerender desnecessário
    PERGUNTAS (15 perguntas NR-18 embutidas)
    ============================================================ */
 const questions = [
+  { q:"O Sol é uma estrela situada no centro do Sistema Solar. Os planetas giram permanentemente ao redor do Sol. Cada planeta segue um caminho chamado:", 
+    choices:["Cometas","Órbita","Espaço","Satélites"], 
+    answer:1 },
 
-  { q:"Qual o objetivo principal da NR-18?", choices:["Regulamentar o uso de EPIs","Estabelecer diretrizes de segurança para a indústria da construção","Definir normas de transporte rodoviário","Normatizar uso de produtos químicos"], answer:1 },
+  { q:"Quais são os quatro planetas mais próximos do Sol?", 
+    choices:["Mercúrio, Vênus, Terra e Marte","Mercúrio, Saturno, Netuno e Terra","Júpiter, Saturno, Urano e Netuno","Urano, Terra, Júpiter e Marte"], 
+    answer:0 },
 
-  { q:"Qual é o documento central da NR-18 hoje?", choices:["CAT","LTCAT","PGR","APR"], answer:2 },
+  { q:"Qual planeta possui um brilho intenso, visível da Terra, e é conhecido como 'Estrela Dalva'?", 
+    choices:["Vênus","Marte","Netuno","Saturno"], 
+    answer:0 },
 
-  { q:"PGR é obrigatório em que tipo de obra?", choices:["Apenas prédios acima de 10 andares","Apenas obras públicas","Todas as obras da construção civil","Somente reformas"], answer:2 },
+  { q:"Quantos são os planetas do Sistema Solar?", 
+    choices:["7","8","9","11"], 
+    answer:1 },
 
-  { q:"O PGR é ______ ao longo da obra.", choices:["Arquivado após aprovação","Atualizado conforme avança a obra","Um documento fixo","Opcional"], answer:1 },
+  { q:"Os pequenos corpos menores que os planetas anões, que orbitam o Sol, são chamados de:", 
+    choices:["Asteroides","Satélites","Cometas","Planetas"], 
+    answer:0 },
 
-  { q:"Qual órgão fiscaliza o cumprimento da NR-18?", choices:["CREA","CONFEA","Ministério do Trabalho","INMETRO"], answer:2 },
+  { q:"O que são satélites naturais?", 
+    choices:["Planetas que giram ao redor da Lua","Estrelas que brilham perto da Terra","Meteoros que circulam pelo universo","Astros que orbitam um planeta"], 
+    answer:3 },
 
-  { q:"Quem é o responsável final pela segurança no canteiro?", choices:["Operador de máquina","Empregador/Contratante","Técnico em segurança","Cipeiro"], answer:1 },
+  { q:"Entre quais planetas está localizado o Cinturão de Asteroides?", 
+    choices:["Entre Mercúrio e Vênus","Entre Terra e Netuno","Entre Marte e Júpiter","Entre Urano e Terra"], 
+    answer:2 },
 
-  { q:"Trabalhador tem direito de recusar tarefa quando há:", choices:["Preguiça","Risco grave e iminente","Falta de material","Desconforto térmico"], answer:1 },
+  { q:"Qual é o maior planeta do Sistema Solar?", 
+    choices:["Júpiter","Marte","Terra","Saturno"], 
+    answer:0 },
 
-  { q:"Qual pilar representa 'ambiente digno para viver dentro do canteiro'?", choices:["Pessoas","Equipamentos","Áreas de vivência","Conformidades tributárias"], answer:2 },
+  { q:"Assinale a alternativa que mostra a associação correta entre os quadros:", 
+    choices:["I-D, II-B, III-C e IV-A","I-D, II-C, III-A e IV-B","I-A, II-C, III-B e IV-D","I-B, II-D, III-A e IV-C"], 
+    answer:0 },
 
-  { q:"Qual o pilar que trata de treinamentos e capacitações?", choices:["Equipamentos","Ambientes","Inspeções","Pessoas"], answer:3 },
+  { q:"O trecho: 'Trata-se de uma força atrativa que surge entre todos os corpos que possuem massa...' refere-se a:", 
+    choices:["As estrelas","Os corpos celestes","Os planetas do Sistema Solar","A força gravitacional"], 
+    answer:3 }
 
-  { q:"O que está ligado à comunicação de perigo no canteiro?", choices:["Apenas EPI","Rodízio de equipes","Sinalização e avisos visíveis","Somente supervisão oral"], answer:2 },
-
-  { q:"Contêiner pode ser usado como área de vivência?", choices:["Nunca","Só para estoque","Sim, se cumprir requisitos","Apenas em rodovia"], answer:2 },
-
-  { q:"O que são Soluções Alternativas?", choices:["Gambiarra autorizada","Redução de custo","Tecnologia mais segura comprovada com análise de risco","Proposta sindical"], answer:2 },
-
-  { q:"O uso de EPI substitui proteção coletiva?", choices:["Sim, se for bom","Sim, se for até 5m altura","Somente até 2m de altura","Não, coletiva é prioridade"], answer:3 },
-
-  { q:"Antes de trabalhar em altura deve existir:", choices:["Apenas cinto","Sistema de proteção contra queda","Liberação verbal do mestre","Botina adequada"], answer:1 },
-
-  { q:"Áreas de circulação devem ser:", choices:["Apenas limpas","Apenas largas","Protegidas e sinalizadas","Livres para improviso"], answer:2 }
 ];
 
 
@@ -689,6 +699,7 @@ if(lbNode) lbObs.observe(lbNode, { childList: true, subtree: true });
 </script>
 </body>
 </html>
+
 
 
 

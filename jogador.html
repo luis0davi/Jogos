@@ -158,6 +158,15 @@
         </div>
       </div>
 
+
+      
+      <div class="admin-row">
+          <button id="btnAdmin" class="admin-btn" title="Área do administrador">🔒 Área ADM</button>
+        
+      </div>
+
+
+      
       <!-- aguardando -->
       <div id="waiting" style="display:none;margin-top:12px">
         <div class="muted-xs">Aguardando administrador iniciar o jogo...</div>
@@ -198,6 +207,19 @@
       <div class="notice">Dica: responda rápido e acerte para subir no ranking.</div>
     </div>
   </div>
+    <!-- modal admin -->
+  <div id="modalAdmin" style="display:none" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h4>Área do Administrador</h4>
+      <div class="muted">Digite a senha para abrir a página de administração.</div>
+      <input id="adminPassword" placeholder="Senha" type="password" aria-label="Senha do administrador" />
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="adminCancel" class="btn ghost">Cancelar</button>
+        <button id="adminOk" class="btn">Entrar</button>
+      </div>
+      <div id="adminMsg" class="muted-xs" style="margin-top:12px;color:var(--muted)"></div>
+    </div>
+  </div>
 
   <!-- ===========================
        ORIGINAL SCRIPT (mantive intacto)
@@ -211,6 +233,7 @@ const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGl
 const POLL_MS = 500;               // frequência de polling do estado / ranking
 const QUESTION_TIME_LIMIT = 20;     // segundos por pergunta (contagem regressiva 20 -> 0)
 const POINTS_BASE = 1;              // pontos base por pergunta
+const ADMIN_PASSWORD = '1029384756';
 
 /* ============================================================
    ESTADO LOCAL (variáveis que guardam o estado do jogador)
@@ -295,7 +318,31 @@ document.getElementById('btnReg').addEventListener('click', async ()=>{
   startPolling();
   startRankPolling();
 });
-
+/* ============================================================
+   Admin modal + redirect with password
+   ============================================================ */
+const modal = document.getElementById('modalAdmin');
+document.getElementById('btnAdmin').addEventListener('click', ()=>{
+  document.getElementById('adminPassword').value = '';
+  document.getElementById('adminMsg').innerText = '';
+  modal.style.display = 'flex';
+  document.getElementById('adminPassword').focus();
+});
+document.getElementById('adminCancel').addEventListener('click', ()=> modal.style.display = 'none');
+document.getElementById('adminOk').addEventListener('click', ()=>{
+  const v = document.getElementById('adminPassword').value.trim();
+  if(v === ADMIN_PASSWORD){
+    // success -> redirect to admin page
+    modal.style.display = 'none';
+    window.location.href = 'https://luis0davi.github.io/Jogos/adm.html';
+  } else {
+    document.getElementById('adminMsg').innerText = 'Senha incorreta.';
+    AudioEngine.wrong();
+  }
+});
+document.getElementById('adminPassword').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') document.getElementById('adminOk').click();
+});
 /* ============================================================
    POLLING DO ESTADO GLOBAL
    ============================================================ */
@@ -700,6 +747,7 @@ if(lbNode) lbObs.observe(lbNode, { childList: true, subtree: true });
 </script>
 </body>
 </html>
+
 
 
 

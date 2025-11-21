@@ -135,11 +135,15 @@
     </div>
 
     <div class="controls">
-      <button id="btnStartQuestions">▶ Start Perguntas (sem apagar nada)</button>
-      <button id="btnStart" class="ghost">START (limpa planilha)</button>
-      <button id="btnReset" class="ghost">RESET</button>
+      <!-- BOTÃO "INICIAR JOGO" (limpa planilha) -->
+      <button id="btnStart" class="btn-main">🔥 Iniciar Jogo</button>
+    
+      <!-- BOTÃO "AGUARDAR JOGADORES ENTRAREM" -->
+      <button id="btnReset" class="btn-wait">⏳ Aguardar jogadores entrarem</button>
+    
       <div class="pill" id="pollPill">Polling: ON</div>
     </div>
+
 
     <div class="muted" id="statusDiv">carregando...</div>
 
@@ -468,3 +472,4 @@ setTimeout(()=>fireBurst(), 900);
 </script>
 </body>
 </html>
+

@@ -253,51 +253,94 @@ let pollTimer = null;               // timer para checar estado global
 let rankTimer = null;               // timer para atualizar ranking
 let isQuestionVisible = false;      // flag para evitar rerender desnecessário
 
+
+
+  
 /* ============================================================
-   PERGUNTAS (15 perguntas NR-18 embutidas)
+   PERGUNTAS — TEXTO INFORMATIVO + CAATINGA + PRESERVAÇÃO
    ============================================================ */
 const questions = [
-  { q:"O Sol é uma estrela situada no centro do Sistema Solar. Os planetas giram permanentemente ao redor do Sol. Cada planeta segue um caminho chamado:", 
-    choices:["Cometas","Órbita","Espaço","Satélites"], 
-    answer:1 },
-
-  { q:"Quais são os quatro planetas mais próximos do Sol?", 
-    choices:["Mercúrio, Vênus, Terra e Marte","Mercúrio, Saturno, Netuno e Terra","Júpiter, Saturno, Urano e Netuno","Urano, Terra, Júpiter e Marte"], 
-    answer:0 },
-
-  { q:"Qual planeta possui um brilho intenso, visível da Terra, e é conhecido como 'Estrela Dalva'?", 
-    choices:["Vênus","Marte","Netuno","Saturno"], 
-    answer:0 },
-
-  { q:"Quantos são os planetas do Sistema Solar?", 
-    choices:["7","8","9","11"], 
-    answer:1 },
-
-  { q:"Os pequenos corpos menores que os planetas anões, que orbitam o Sol, são chamados de:", 
-    choices:["Asteroides","Satélites","Cometas","Planetas"], 
-    answer:0 },
-
-  { q:"O que são satélites naturais?", 
-    choices:["Planetas que giram ao redor da Lua","Estrelas que brilham perto da Terra","Meteoros que circulam pelo universo","Astros que orbitam um planeta"], 
-    answer:3 },
-
-  { q:"Entre quais planetas está localizado o Cinturão de Asteroides?", 
-    choices:["Entre Mercúrio e Vênus","Entre Terra e Netuno","Entre Marte e Júpiter","Entre Urano e Terra"], 
+  { q:"O texto informativo tem como principal objetivo:", 
+    choices:["Convencer o leitor","Contar uma história","Informar com dados e fatos","Expressar sentimentos"], 
     answer:2 },
 
-  { q:"Qual é o maior planeta do Sistema Solar?", 
-    choices:["Júpiter","Marte","Terra","Saturno"], 
-    answer:0 },
+  { q:"Uma característica importante do texto informativo é:", 
+    choices:["Uso de fantasia","Linguagem informal","Presença de opiniões pessoais","Informações verdadeiras e verificáveis"], 
+    answer:3 },
 
-  // 🔄 NOVA QUESTÃO 9
-  { q:"Qual desses astros é responsável por fornecer luz e calor essenciais para a vida na Terra?",
-    choices:["A Lua","O Sol","Marte","Vênus"], 
+  { q:"Segundo o texto estudado, onde a Caatinga está localizada?", 
+    choices:["Sul do Brasil","Nordeste do Brasil","Região Norte","Região Sudeste"], 
     answer:1 },
 
-  { q:"O trecho: 'Trata-se de uma força atrativa que surge entre todos os corpos que possuem massa...' refere-se a:", 
-    choices:["As estrelas","Os corpos celestes","Os planetas do Sistema Solar","A força gravitacional"], 
-    answer:3 }
+  { q:"O clima da Caatinga é descrito como:", 
+    choices:["Frio e úmido","Tropical chuvoso","Quente e seco, com pouca chuva","Frio com neve no inverno"], 
+    answer:2 },
+
+  { q:"Qual é uma característica das plantas da Caatinga apresentada no texto?", 
+    choices:["Necessitam de muita água","Possuem folhas grandes","São adaptadas à seca","Crescem apenas em brejos"], 
+    answer:2 },
+
+  { q:"O Mandacaru e o Xique-Xique são exemplos de:", 
+    choices:["Árvores frutíferas tropicais","Plantas típicas da Caatinga","Vegetação de manguezal","Plantas de clima frio"], 
+    answer:1 },
+
+  { q:"De acordo com o texto, os animais da Caatinga são:", 
+    choices:["Adaptados ao calor","Adaptados ao gelo","Aquáticos","Animais de florestas densas"], 
+    answer:0 },
+
+  { q:"Qual animal citado no texto é comum nesse bioma?", 
+    choices:["Foca","Tamanduá-bandeira","Onça-branca da neve","Arara-vermelha"], 
+    answer:1 },
+
+  { q:"Por que as plantas da Caatinga possuem espinhos e folhas pequenas?", 
+    choices:["Para atrair pássaros","Para armazenar mais água","Para enfeitar a paisagem","Para perder menos água"], 
+    answer:3 },
+
+  { q:"O texto destaca que a Caatinga é um bioma:", 
+    choices:["Internacional","Exclusivo do Brasil","Encontrado no Canadá","Localizado apenas em montanhas"], 
+    answer:1 },
+
+  { q:"O que prejudica gravemente o bioma da Caatinga, segundo o texto?", 
+    choices:["Chuvas fortes","Desmatamento e queimadas","Baixa temperatura","Ventos gelados"], 
+    answer:1 },
+
+  { q:"Um texto informativo sobre preservação deve:", 
+    choices:["Inventar histórias sobre o bioma","Apresentar apenas opiniões do autor","Trazer dados, exemplos e explicações","Usar linguagem poética"], 
+    answer:2 },
+
+  { q:"O passeio 360° pela Caatinga ajuda o aluno a:", 
+    choices:["Imaginar florestas densas","Visualizar de perto o bioma e suas características","Ver animais de outro continente","Assistir a filmes sobre o Pantanal"], 
+    answer:1 },
+
+  { q:"A vegetação da Caatinga é composta principalmente por:", 
+    choices:["Árvores altas e frondosas","Cactos, arbustos e plantas resistentes","Plantas aquáticas","Samambaias e musgos"], 
+    answer:1 },
+
+  { q:"Qual ação contribui para preservar a Caatinga?", 
+    choices:["Aumentar queimadas","Jogar lixo no solo","Reflorestar áreas degradadas","Caçar animais silvestres"], 
+    answer:2 },
+
+  { q:"O gênero textual informativo sobre a Caatinga ajuda o leitor a:", 
+    choices:["Criar histórias de aventura","Entender melhor o bioma por meio de fatos","Expressar emoções","Compor poemas sobre o Sertão"], 
+    answer:1 },
+
+  { q:"Uma ameaça destacada no texto informativo é:", 
+    choices:["Aumentar a população de cactos","Uso incorreto do solo","Ventos fortes","Falta de animais silvestres"], 
+    answer:1 },
+
+  { q:"Um dos objetivos da preservação ambiental na Caatinga é:", 
+    choices:["Manter apenas as árvores frutíferas","Garantir que o bioma continue existindo","Substituir as plantas nativas","Construir mais estradas"], 
+    answer:1 },
+
+  { q:"O texto informativo sobre o bioma também serve para:", 
+    choices:["Ensinar ficção científica","Ajudar na tomada de decisões conscientes","Criar mitos sobre o Sertão","Ensinar receitas culinárias"], 
+    answer:1 },
+
+  { q:"Preservar a Caatinga significa:", 
+    choices:["Destruir a vegetação para criar pastos","Ignorar as queimadas","Cuidar do único bioma exclusivamente brasileiro","Caçar animais típicos do Sertão"], 
+    answer:2 }
 ];
+
 
 
 

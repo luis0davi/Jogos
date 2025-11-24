@@ -1,275 +1,31 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>ADM — Editor de Perguntas (Quiz)</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-  :root{--bg:#071a34;--card:#0e2a4a;--muted:#bfc6da;--accent:#ffd36b;--glass:rgba(255,255,255,0.03)}
-  body{margin:18px;font-family:Inter,system-ui; background:linear-gradient(180deg,#03102a,#072040);color:#eef3ff}
-  .wrap{max-width:1100px;margin:0 auto}
-  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
-  h1{margin:0 0 8px 0}
-  .muted{color:var(--muted);font-size:13px}
-  .row{display:flex;gap:8px;align-items:center}
-  input[type="text"], textarea, select{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff;width:100%}
-  button{padding:8px 12px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent),#ffb84d);color:#111;font-weight:700;cursor:pointer}
-  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-  .list{margin-top:12px;display:flex;flex-direction:column;gap:10px}
-  .qrow{padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);display:grid;grid-template-columns:1fr 140px;gap:8px;align-items:center}
-  .qcontrols{display:flex;gap:6px;justify-content:flex-end;align-items:center}
-  .small{font-size:13px;color:var(--muted)}
-  textarea{min-height:64px}
-  .imgs-urls{display:flex;gap:6px;flex-wrap:wrap}
-  .imgurl{background:rgba(255,255,255,0.02);padding:6px;border-radius:6px;font-size:12px;color:var(--muted)}
-  .topbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .preview{margin-top:8px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
-  .jsonarea{width:100%;min-height:160px;background:transparent;border:1px dashed rgba(255,255,255,0.03);padding:10px;border-radius:8px;color:#fff}
-  .danger{background:#ff6b6b;color:#111}
-  .success{background:#7ef08a;color:#111}
-  .note{font-size:13px;color:var(--muted);margin-top:8px}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Loja Digital — Modelo</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="topbar">
-        <div>
-          <h1>ADM — Editor de Perguntas</h1>
-          <div class="muted">Edite perguntas, alternativas, marque a correta e salve no servidor.</div>
-        </div>
-        <div class="row">
-          <button id="btnLogout" class="btn-ghost">Sair</button>
-        </div>
-      </div>
-
-      <!-- login -->
-      <div id="loginBox" class="card" style="margin-bottom:12px;">
-        <div class="row" style="gap:12px">
-          <div style="flex:1">
-            <div class="small">Digite a senha de administrador</div>
-            <input id="admPass" type="password" placeholder="Senha" />
-          </div>
-          <div>
-            <button id="btnLogin">Entrar</button>
-          </div>
-        </div>
-        <div id="loginMsg" class="note"></div>
-      </div>
-
-      <!-- editor -->
-      <div id="editorWrap" style="display:none">
-        <div style="display:flex;gap:8px;align-items:center">
-          <button id="btnAdd" class="btn">+ Nova pergunta</button>
-          <button id="btnSaveAll" class="btn">Salvar todas</button>
-          <button id="btnExport" class="btn btn-ghost">Exportar JSON</button>
-          <button id="btnImport" class="btn btn-ghost">Importar JSON</button>
-          <div style="margin-left:auto" class="small">Origem do PDF: <strong class="muted">/mnt/data/ATIVIDADE - SISTEMA SOLAR - TUDO SALA DE AULA.pdf</strong></div>
-        </div>
-
-        <div class="list" id="questionsList"></div>
-
-        <div style="margin-top:12px">
-          <div class="small">Importar / Colar JSON (formato: array de objetos com q, choices, answer, opcional imgs[])</div>
-          <textarea id="jsonArea" class="jsonarea" placeholder='[{"q":"...","choices":["A","B","C","D"],"answer":1, "imgs":["url1","url2"]}, ...]'></textarea>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="btnLoadFromJson" class="btn">Carregar JSON</button>
-            <button id="btnClearAll" class="btn btn-ghost danger" style="background:#ff6b6b;color:#111">Remover tudo</button>
-          </div>
-        </div>
-
-        <div class="note">Obs: Ao salvar, o servidor responderá se a operação foi bem-sucedida. Se o save falhar, o editor manterá o estado local.</div>
-      </div>
-
-      <div id="preview" class="preview" style="display:none">
-        <div class="small">Preview rápido (pergunta selecionada)</div>
-        <div id="previewContent"></div>
-      </div>
+  <header class="site-header">
+    <div class="container">
+      <h1 class="logo">Loja — Modelo</h1>
+      <nav>
+        <a href="index.html">Loja</a>
+        <a href="admin.html">Configurar</a>
+        <a id="cart-link" href="checkout.html">Carrinho (<span id="cart-count">0</span>)</a>
+      </nav>
     </div>
-  </div>
+  </header>
 
-<script>
-/* CONFIG */
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwbcsewmkC-G5oUGlKKYupDVMgkv_3XCHkrqN-Vcx_FLD0ckE7p2DMzdzC3jxZ5P6XvHg/exec";
-const ADMIN_PASSWORD = '1029384756';
+  <main class="container">
+    <section id="products" class="products-grid"></section>
+  </main>
 
-/* estado */
-let questions = []; // array local
-let logged = false;
+  <footer class="site-footer container">
+    <p>Modelo de loja estática — pagamentos via Mercado Pago (link direto).</p>
+  </footer>
 
-/* helpers */
-function el(tag, attrs={}, children=[]){
-  const e = document.createElement(tag);
-  for(const k in attrs) { if(k === 'class') e.className = attrs[k]; else e.setAttribute(k, attrs[k]); }
-  (Array.isArray(children)?children:[children]).forEach(c=> { if(typeof c === 'string') e.appendChild(document.createTextNode(c)); else if(c) e.appendChild(c); });
-  return e;
-}
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-/* login */
-document.getElementById('btnLogin').addEventListener('click', ()=>{
-  const v = document.getElementById('admPass').value.trim();
-  if(v === ADMIN_PASSWORD){ logged = true; document.getElementById('loginBox').style.display='none'; document.getElementById('editorWrap').style.display='block'; loadQuestionsFromServer(); }
-  else { document.getElementById('loginMsg').innerText = 'Senha incorreta'; }
-});
-document.getElementById('btnLogout').addEventListener('click', ()=> location.href = '/');
-
-/* UI: adicionar nova pergunta local */
-document.getElementById('btnAdd').addEventListener('click', ()=>{
-  const idx = questions.length;
-  const qObj = { q: 'Nova pergunta...', choices: ['Opção A','Opção B','Opção C','Opção D'], answer: 0, imgs: [] };
-  questions.push(qObj);
-  renderQuestionsList();
-  openPreview(idx);
-});
-
-/* render lista */
-function renderQuestionsList(){
-  const box = document.getElementById('questionsList');
-  box.innerHTML = '';
-  questions.forEach((q, idx)=>{
-    const qrow = el('div',{class:'qrow'});
-    const left = el('div',{}, [
-      el('div',{}, [
-        el('input', {type:'text', value: q.q, placeholder: 'Pergunta...', 'data-idx': idx, 'data-field':'q', class:''})
-      ]),
-      el('div', {style:'display:flex;gap:8px;margin-top:8px'}, [
-        el('input', {type:'text', value: q.choices[0]||'', 'data-idx': idx, 'data-field':'c0', placeholder:'A'}),
-        el('input', {type:'text', value: q.choices[1]||'', 'data-idx': idx, 'data-field':'c1', placeholder:'B'}),
-        el('input', {type:'text', value: q.choices[2]||'', 'data-idx': idx, 'data-field':'c2', placeholder:'C'}),
-        el('input', {type:'text', value: q.choices[3]||'', 'data-idx': idx, 'data-field':'c3', placeholder:'D'})
-      ]),
-      el('div',{style:'display:flex;gap:8px;align-items:center;margin-top:8px'}, [
-        el('label',{}, ['Correta: ']),
-        (()=>{ const s = el('select', {'data-idx': idx, 'data-field':'answer'}); [0,1,2,3].forEach(i=> { const o=el('option',{value:i}, [`${i} (${escapeHtml(q.choices[i]||'')})`]); if(q.answer==i) o.selected=true; s.appendChild(o); }); return s; })(),
-        el('button',{class:'btn btn-ghost', 'data-idx': idx, 'data-action':'images'}, ['Imgs']),
-        el('button',{class:'btn btn-ghost', 'data-idx': idx, 'data-action':'up'}, ['↑']),
-        el('button',{class:'btn btn-ghost', 'data-idx': idx, 'data-action':'down'}, ['↓'])
-      ]),
-      el('div',{class:'imgs-urls', style:'margin-top:8px'}, q.imgs.map(u=> el('span',{class:'imgurl'}, [u])))
-    ]);
-    const right = el('div', {class:'qcontrols'}, [
-      el('button',{class:'btn btn-ghost', 'data-idx': idx,'data-action':'preview'}, ['Preview']),
-      el('button',{class:'btn btn-ghost', 'data-idx': idx,'data-action':'remove'}, ['Remover'])
-    ]);
-    qrow.appendChild(left); qrow.appendChild(right);
-    box.appendChild(qrow);
-  });
-
-  // attach events for input changes and buttons
-  box.querySelectorAll('input[type="text"]').forEach(inp=>{
-    inp.addEventListener('input', (e)=>{
-      const idx = +e.target.dataset.idx;
-      const field = e.target.dataset.field;
-      if(field === 'q'){ questions[idx].q = e.target.value; }
-      else if(field && field.startsWith('c')){ const i = +field.slice(1); questions[idx].choices[i] = e.target.value; }
-      renderQuestionsList(); // re-render to update select text
-    });
-  });
-  box.querySelectorAll('select').forEach(sel=>{
-    sel.addEventListener('change', (e)=> { const idx = +e.target.dataset.idx; questions[idx].answer = +e.target.value; renderQuestionsList(); });
-  });
-  box.querySelectorAll('button[data-action]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      const idx = +btn.dataset.idx;
-      const action = btn.dataset.action;
-      if(action === 'remove'){ if(confirm('Remover pergunta?')){ questions.splice(idx,1); renderQuestionsList(); } }
-      if(action === 'preview') openPreview(idx);
-      if(action === 'images') editImages(idx);
-      if(action === 'up' && idx>0){ const a=questions.splice(idx,1)[0]; questions.splice(idx-1,0,a); renderQuestionsList(); }
-      if(action === 'down' && idx<questions.length-1){ const a=questions.splice(idx,1)[0]; questions.splice(idx+1,0,a); renderQuestionsList(); }
-    });
-  });
-}
-
-/* preview */
-function openPreview(idx){
-  const q = questions[idx];
-  document.getElementById('preview').style.display = 'block';
-  const ct = document.getElementById('previewContent');
-  ct.innerHTML = `<strong>Pergunta ${idx+1}:</strong> ${escapeHtml(q.q)}<br/><div style="margin-top:8px">${q.choices.map((c,i)=> `<div><strong>${String.fromCharCode(65+i)}</strong> ${escapeHtml(c)}</div>`).join('')}</div>`;
-  if(q.imgs && q.imgs.length) ct.innerHTML += `<div style="margin-top:8px"><img src="${q.imgs[0]}" style="max-width:240px;border-radius:8px"/></div>`;
-}
-
-/* edit images of a question */
-function editImages(idx){
-  const newUrls = prompt('Cole as URLs das imagens separadas por vírgula (deixe vazio para limpar)', (questions[idx].imgs||[]).join(','));
-  if(newUrls === null) return;
-  questions[idx].imgs = newUrls.trim() ? newUrls.split(',').map(s=>s.trim()) : [];
-  renderQuestionsList();
-}
-
-/* Load from server */
-async function loadQuestionsFromServer(){
-  document.getElementById('loginMsg').innerText = 'Carregando perguntas...';
-  try{
-    const res = await fetch(SHEET_API_URL + '?action=get_questions');
-    const data = await res.json();
-    if(Array.isArray(data.questions)){ questions = data.questions; document.getElementById('loginMsg').innerText = ''; renderQuestionsList(); }
-    else { document.getElementById('loginMsg').innerText = 'Resposta inesperada do servidor.'; questions = []; renderQuestionsList(); }
-  }catch(err){
-    console.error(err);
-    document.getElementById('loginMsg').innerText = 'Falha ao carregar perguntas (verifique o endpoint).';
-  }
-}
-
-/* Save to server */
-document.getElementById('btnSaveAll').addEventListener('click', async ()=>{
-  if(!confirm('Salvar todas as perguntas no servidor? Isso irá sobrescrever o conjunto atual.')) return;
-  try{
-    const payload = { action: 'save_questions', questions: questions };
-    const res = await fetch(SHEET_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const j = await res.json();
-    if(j && j.ok){ alert('Salvo com sucesso'); }
-    else { alert('Servidor respondeu com erro. Veja console.'); console.log(j); }
-  }catch(e){
-    console.error(e);
-    alert('Erro ao salvar (ver console).');
-  }
-});
-
-/* export / import json */
-document.getElementById('btnExport').addEventListener('click', ()=>{
-  const txt = JSON.stringify(questions, null, 2);
-  document.getElementById('jsonArea').value = txt;
-  alert('JSON exportado para a caixa abaixo.');
-});
-document.getElementById('btnImport').addEventListener('click', ()=> {
-  const txt = document.getElementById('jsonArea').value.trim();
-  if(!txt) return alert('Cole o JSON na caixa abaixo antes de importar.');
-  try {
-    const parsed = JSON.parse(txt);
-    if(!Array.isArray(parsed)) throw new Error('JSON deve ser um array');
-    questions = parsed;
-    renderQuestionsList();
-    alert('JSON carregado localmente. Lembre-se de SALVAR no servidor.');
-  } catch(e) { alert('JSON inválido: ' + e.message); }
-});
-
-document.getElementById('btnLoadFromJson').addEventListener('click', ()=> {
-  const txt = document.getElementById('jsonArea').value.trim();
-  if(!txt) return alert('Cole o JSON na caixa abaixo antes de carregar.');
-  try {
-    const parsed = JSON.parse(txt);
-    if(!Array.isArray(parsed)) throw new Error('JSON deve ser um array');
-    questions = parsed;
-    renderQuestionsList();
-    alert('JSON carregado localmente.');
-  } catch(e) { alert('JSON inválido: ' + e.message); }
-});
-
-document.getElementById('btnClearAll').addEventListener('click', ()=> {
-  if(confirm('Remover todas as perguntas localmente?')){ questions = []; renderQuestionsList(); document.getElementById('jsonArea').value = ''; }
-});
-
-/* init: empty */
-renderQuestionsList();
-
-</script>
+  <script src="js/app.js"></script>
 </body>
 </html>

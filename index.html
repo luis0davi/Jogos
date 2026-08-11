@@ -1,118 +1,1007 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="pt-BR">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Monitor de Fornos</title>
-  <meta name="description" content="Protótipo de monitoramento de temperatura para fornos de cerâmica.">
-  <link rel="stylesheet" href="style.css">
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>IS4000 Monitor</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  background:
+    #0f172a;
+
+  color:
+    #f8fafc;
+
+  min-height:
+    100vh;
+
+  padding:
+    16px;
+}
+
+.container {
+
+  width:
+    100%;
+
+  max-width:
+    600px;
+
+  margin:
+    auto;
+}
+
+/* ---------------------------------- */
+
+.header {
+
+  padding:
+    10px 4px 20px;
+}
+
+.header h1 {
+
+  font-size:
+    24px;
+
+  font-weight:
+    700;
+}
+
+.header p {
+
+  color:
+    #94a3b8;
+
+  font-size:
+    14px;
+
+  margin-top:
+    4px;
+}
+
+/* ---------------------------------- */
+
+.status {
+
+  background:
+    #1e293b;
+
+  border-radius:
+    18px;
+
+  padding:
+    18px;
+
+  margin-bottom:
+    16px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+}
+
+.status-left {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    10px;
+}
+
+.status-dot {
+
+  width:
+    12px;
+
+  height:
+    12px;
+
+  border-radius:
+    50%;
+
+  background:
+    #64748b;
+}
+
+.status-dot.online {
+
+  background:
+    #22c55e;
+
+  box-shadow:
+    0 0 12px #22c55e;
+}
+
+.status-text {
+
+  font-weight:
+    700;
+}
+
+.last {
+
+  color:
+    #94a3b8;
+
+  font-size:
+    12px;
+
+  text-align:
+    right;
+}
+
+/* ---------------------------------- */
+
+.cards {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    12px;
+
+  margin-bottom:
+    16px;
+}
+
+.card {
+
+  background:
+    #1e293b;
+
+  border-radius:
+    18px;
+
+  padding:
+    20px;
+
+  box-shadow:
+    0 8px 30px rgba(0,0,0,.20);
+}
+
+.card-title {
+
+  font-size:
+    12px;
+
+  color:
+    #94a3b8;
+
+  text-transform:
+    uppercase;
+
+  letter-spacing:
+    .8px;
+
+  margin-bottom:
+    12px;
+}
+
+.temperature {
+
+  font-size:
+    38px;
+
+  font-weight:
+    800;
+}
+
+.temperature span {
+
+  font-size:
+    18px;
+
+  color:
+    #94a3b8;
+}
+
+/* ---------------------------------- */
+
+.info {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    12px;
+
+  margin-bottom:
+    16px;
+}
+
+.info-card {
+
+  background:
+    #1e293b;
+
+  border-radius:
+    16px;
+
+  padding:
+    16px;
+}
+
+.info-title {
+
+  font-size:
+    12px;
+
+  color:
+    #94a3b8;
+
+  margin-bottom:
+    6px;
+}
+
+.info-value {
+
+  font-size:
+    16px;
+
+  font-weight:
+    700;
+}
+
+/* ---------------------------------- */
+
+.chart-card {
+
+  background:
+    #1e293b;
+
+  border-radius:
+    18px;
+
+  padding:
+    18px;
+
+  margin-bottom:
+    16px;
+}
+
+.chart-title {
+
+  font-size:
+    15px;
+
+  font-weight:
+    700;
+
+  margin-bottom:
+    15px;
+}
+
+.chart-container {
+
+  height:
+    280px;
+}
+
+/* ---------------------------------- */
+
+.history {
+
+  background:
+    #1e293b;
+
+  border-radius:
+    18px;
+
+  padding:
+    18px;
+
+  margin-bottom:
+    20px;
+}
+
+.history h2 {
+
+  font-size:
+    16px;
+
+  margin-bottom:
+    14px;
+}
+
+.history-row {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    1.3fr 1fr 1fr;
+
+  padding:
+    10px 0;
+
+  border-bottom:
+    1px solid #334155;
+
+  font-size:
+    13px;
+}
+
+.history-row:last-child {
+
+  border-bottom:
+    none;
+}
+
+.history-header {
+
+  color:
+    #94a3b8;
+
+  font-size:
+    11px;
+
+  text-transform:
+    uppercase;
+}
+
+/* ---------------------------------- */
+
+.footer {
+
+  text-align:
+    center;
+
+  color:
+    #64748b;
+
+  font-size:
+    11px;
+
+  padding:
+    10px;
+}
+
+/* ---------------------------------- */
+
+@media(max-width:430px) {
+
+  body {
+    padding: 12px;
+  }
+
+  .temperature {
+    font-size: 32px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+}
+
+</style>
+
 </head>
+
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">🔥</div>
-        <div><strong>MONITOR</strong><span>DE FORNOS</span></div>
-      </div>
-      <nav>
-        <button class="nav-btn active" data-screen="dashboard">▦ <span>Fornos</span></button>
-        <button class="nav-btn" data-screen="history">◷ <span>Histórico</span></button>
-        <button class="nav-btn" data-screen="alerts">⚠ <span>Alertas</span></button>
-        <button class="nav-btn" data-screen="settings">⚙ <span>Configurações</span></button>
-      </nav>
-      <div class="connection">
-        <span class="dot"></span>
-        <div><b>Modo protótipo</b><small>Dados simulados</small></div>
-      </div>
-    </aside>
 
-    <main class="main">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">CONTROLE DE TEMPERATURA</p>
-          <h1 id="page-title">Meus Fornos</h1>
-        </div>
-        <div class="top-actions">
-          <span id="last-update">Atualizado agora</span>
-          <button class="icon-btn" id="refresh-btn" title="Atualizar">↻</button>
-          <button class="profile">MF</button>
-        </div>
-      </header>
+<div class="container">
 
-      <section id="screen-dashboard" class="screen active">
-        <div class="hero-card">
-          <div>
-            <p class="eyebrow">VISÃO GERAL</p>
-            <h2>Seus fornos em tempo real</h2>
-            <p>Acompanhe temperatura, meta, status e evolução dos ciclos em um só lugar.</p>
-          </div>
-          <button class="primary" id="simulate-btn">Simular leitura</button>
-        </div>
+  <div class="header">
 
-        <div class="stats">
-          <div class="stat"><span>Em operação</span><strong id="stat-running">2</strong></div>
-          <div class="stat"><span>Temperatura média</span><strong id="stat-avg">—</strong></div>
-          <div class="stat"><span>Alertas ativos</span><strong id="stat-alerts">1</strong></div>
-        </div>
+    <h1>🔥 IS4000 Monitor</h1>
 
-        <div class="section-head">
-          <div><h3>Fornos</h3><p>Selecione um forno para abrir o monitor detalhado.</p></div>
-          <button class="secondary" id="add-oven-btn">+ Adicionar forno</button>
-        </div>
-        <div id="oven-grid" class="oven-grid"></div>
-      </section>
+    <p>
+      Monitoramento de temperatura do forno
+    </p>
 
-      <section id="screen-detail" class="screen">
-        <button class="back-btn" id="back-dashboard">← Voltar para fornos</button>
-        <div id="detail-content"></div>
-      </section>
-
-      <section id="screen-history" class="screen">
-        <div class="section-head"><div><h3>Histórico</h3><p>Ciclos e temperaturas registradas.</p></div></div>
-        <div class="panel">
-          <div class="filters"><select id="history-oven"></select><select><option>Últimos 7 dias</option><option>Últimos 30 dias</option></select></div>
-          <div id="history-table"></div>
-        </div>
-      </section>
-
-      <section id="screen-alerts" class="screen">
-        <div class="section-head"><div><h3>Alertas</h3><p>Eventos que precisam da sua atenção.</p></div></div>
-        <div id="alerts-list" class="alerts-list"></div>
-      </section>
-
-      <section id="screen-settings" class="screen">
-        <div class="section-head"><div><h3>Configurações</h3><p>Conexão, unidades e limites.</p></div></div>
-        <div class="settings-grid">
-          <div class="panel">
-            <h4>Conexão de dados</h4>
-            <label>URL da API / Google Apps Script</label>
-            <input id="api-url" placeholder="https://script.google.com/macros/s/.../exec">
-            <small>Deixe vazio para usar o modo protótipo.</small>
-            <button class="primary full" id="save-api">Salvar conexão</button>
-          </div>
-          <div class="panel">
-            <h4>Preferências</h4>
-            <label>Unidade</label>
-            <select><option>°C — Celsius</option><option>°F — Fahrenheit</option></select>
-            <label class="check"><input type="checkbox" checked> Notificar temperatura alta</label>
-            <label class="check"><input type="checkbox" checked> Notificar perda de conexão</label>
-          </div>
-        </div>
-      </section>
-    </main>
   </div>
 
-  <div id="modal" class="modal hidden">
-    <div class="modal-card">
-      <button class="close" id="close-modal">×</button>
-      <h3>Adicionar forno</h3>
-      <p>Crie um forno para testar a interface antes de conectar o ESP8266.</p>
-      <input id="new-name" placeholder="Ex.: Forno 4">
-      <input id="new-target" type="number" placeholder="Meta °C">
-      <button class="primary full" id="create-oven">Criar forno</button>
+  <!-- STATUS -->
+
+  <div class="status">
+
+    <div class="status-left">
+
+      <div
+        id="statusDot"
+        class="status-dot"
+      ></div>
+
+      <div
+        id="statusText"
+        class="status-text"
+      >
+        Verificando...
+      </div>
+
     </div>
+
+    <div class="last">
+
+      Última leitura
+
+      <br>
+
+      <span id="lastUpdate">
+        --
+      </span>
+
+    </div>
+
   </div>
 
-<script src="app.js"></script>
+  <!-- TEMPERATURAS -->
+
+  <div class="cards">
+
+    <div class="card">
+
+      <div class="card-title">
+        Canal Superior
+      </div>
+
+      <div class="temperature">
+
+        <span id="ch1">
+          --
+        </span>
+
+        <span>
+          °C
+        </span>
+
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="card-title">
+        Canal Inferior
+      </div>
+
+      <div class="temperature">
+
+        <span id="ch2">
+          --
+        </span>
+
+        <span>
+          °C
+        </span>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- INFORMAÇÕES -->
+
+  <div class="info">
+
+    <div class="info-card">
+
+      <div class="info-title">
+        Wi-Fi
+      </div>
+
+      <div
+        id="rssi"
+        class="info-value"
+      >
+        --
+      </div>
+
+    </div>
+
+    <div class="info-card">
+
+      <div class="info-title">
+        Atualização
+      </div>
+
+      <div
+        id="updateStatus"
+        class="info-value"
+      >
+        --
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- GRÁFICO -->
+
+  <div class="chart-card">
+
+    <div class="chart-title">
+
+      Histórico de temperatura
+
+    </div>
+
+    <div class="chart-container">
+
+      <canvas id="temperatureChart"></canvas>
+
+    </div>
+
+  </div>
+
+  <!-- HISTÓRICO -->
+
+  <div class="history">
+
+    <h2>
+      Últimas leituras
+    </h2>
+
+    <div
+      class="history-row history-header"
+    >
+
+      <div>
+        Hora
+      </div>
+
+      <div>
+        Superior
+      </div>
+
+      <div>
+        Inferior
+      </div>
+
+    </div>
+
+    <div id="historyList">
+
+      Carregando...
+
+    </div>
+
+  </div>
+
+  <div class="footer">
+
+    IS4000 • Monitoramento online
+
+  </div>
+
+</div>
+
+<script>
+
+// =====================================================
+// URL DO GOOGLE APPS SCRIPT
+// =====================================================
+
+const API_URL =
+  "https://script.google.com/macros/s/SEU_ID_AQUI/exec";
+
+const TOKEN =
+  "IS4000_2026";
+
+// =====================================================
+// GRÁFICO
+// =====================================================
+
+let chart;
+
+function criarGrafico() {
+
+  const ctx =
+    document
+      .getElementById("temperatureChart")
+      .getContext("2d");
+
+  chart =
+    new Chart(ctx, {
+
+      type: "line",
+
+      data: {
+
+        labels: [],
+
+        datasets: [
+
+          {
+
+            label:
+              "Canal Superior",
+
+            data: [],
+
+            borderWidth: 2,
+
+            tension: 0.3,
+
+            pointRadius: 2
+          },
+
+          {
+
+            label:
+              "Canal Inferior",
+
+            data: [],
+
+            borderWidth: 2,
+
+            tension: 0.3,
+
+            pointRadius: 2
+          }
+
+        ]
+
+      },
+
+      options: {
+
+        responsive: true,
+
+        maintainAspectRatio: false,
+
+        interaction: {
+
+          intersect: false,
+
+          mode: "index"
+        },
+
+        scales: {
+
+          x: {
+
+            ticks: {
+
+              color: "#94a3b8",
+
+              maxTicksLimit: 6
+            }
+
+          },
+
+          y: {
+
+            ticks: {
+
+              color: "#94a3b8"
+            }
+
+          }
+
+        },
+
+        plugins: {
+
+          legend: {
+
+            labels: {
+
+              color: "#f8fafc"
+            }
+
+          }
+
+        }
+
+      }
+
+    });
+}
+
+// =====================================================
+// BUSCAR HISTÓRICO
+// =====================================================
+
+async function carregarDados() {
+
+  try {
+
+    const url =
+      API_URL +
+      "?action=history" +
+      "&token=" +
+      encodeURIComponent(TOKEN) +
+      "&limit=100";
+
+    const resposta =
+      await fetch(url);
+
+    const json =
+      await resposta.json();
+
+    if (!json.sucesso) {
+
+      throw new Error(json.erro);
+    }
+
+    atualizarInterface(json.dados);
+
+  }
+
+  catch (erro) {
+
+    console.error(erro);
+
+    document.getElementById(
+      "statusText"
+    ).innerText =
+      "Erro de conexão";
+
+  }
+
+}
+
+// =====================================================
+// ATUALIZAR INTERFACE
+// =====================================================
+
+function atualizarInterface(dados) {
+
+  if (!dados || dados.length === 0) {
+
+    return;
+  }
+
+  const ultimo =
+    dados[dados.length - 1];
+
+  // -----------------------------------------------
+  // TEMPERATURA
+  // -----------------------------------------------
+
+  document.getElementById("ch1")
+    .innerText =
+    ultimo.ch1;
+
+  document.getElementById("ch2")
+    .innerText =
+    ultimo.ch2;
+
+  // -----------------------------------------------
+  // DATA
+  // -----------------------------------------------
+
+  const data =
+    new Date(ultimo.timestamp);
+
+  document.getElementById(
+    "lastUpdate"
+  ).innerText =
+    data.toLocaleTimeString(
+      "pt-BR"
+    );
+
+  // -----------------------------------------------
+  // RSSI
+  // -----------------------------------------------
+
+  document.getElementById(
+    "rssi"
+  ).innerText =
+    ultimo.rssi + " dBm";
+
+  // -----------------------------------------------
+  // STATUS
+  // -----------------------------------------------
+
+  verificarOnline(data);
+
+  // -----------------------------------------------
+  // GRÁFICO
+  // -----------------------------------------------
+
+  const ultimos =
+    dados.slice(-50);
+
+  const labels =
+    ultimos.map(item => {
+
+      return new Date(
+        item.timestamp
+      ).toLocaleTimeString(
+        "pt-BR",
+        {
+          hour: "2-digit",
+          minute: "2-digit"
+        }
+      );
+
+    });
+
+  chart.data.labels =
+    labels;
+
+  chart.data.datasets[0].data =
+    ultimos.map(
+      item => item.ch1
+    );
+
+  chart.data.datasets[1].data =
+    ultimos.map(
+      item => item.ch2
+    );
+
+  chart.update();
+
+  // -----------------------------------------------
+  // HISTÓRICO
+  // -----------------------------------------------
+
+  montarHistorico(
+    dados.slice(-10).reverse()
+  );
+
+}
+
+// =====================================================
+// VERIFICAR ONLINE
+// =====================================================
+
+function verificarOnline(data) {
+
+  const agora =
+    new Date();
+
+  const diferenca =
+    (agora - data) / 1000;
+
+  const online =
+    diferenca <= 15;
+
+  const dot =
+    document.getElementById(
+      "statusDot"
+    );
+
+  const texto =
+    document.getElementById(
+      "statusText"
+    );
+
+  if (online) {
+
+    dot.classList.add(
+      "online"
+    );
+
+    texto.innerText =
+      "ONLINE";
+
+  }
+
+  else {
+
+    dot.classList.remove(
+      "online"
+    );
+
+    texto.innerText =
+      "OFFLINE";
+
+  }
+
+  document.getElementById(
+    "updateStatus"
+  ).innerText =
+    Math.round(diferenca) +
+    " s atrás";
+}
+
+// =====================================================
+// HISTÓRICO
+// =====================================================
+
+function montarHistorico(dados) {
+
+  const lista =
+    document.getElementById(
+      "historyList"
+    );
+
+  lista.innerHTML = "";
+
+  dados.forEach(item => {
+
+    const data =
+      new Date(item.timestamp);
+
+    const hora =
+      data.toLocaleTimeString(
+        "pt-BR"
+      );
+
+    const linha =
+      document.createElement(
+        "div"
+      );
+
+    linha.className =
+      "history-row";
+
+    linha.innerHTML = `
+
+      <div>
+        ${hora}
+      </div>
+
+      <div>
+        ${item.ch1} °C
+      </div>
+
+      <div>
+        ${item.ch2} °C
+      </div>
+
+    `;
+
+    lista.appendChild(
+      linha
+    );
+
+  });
+}
+
+// =====================================================
+// INICIALIZAÇÃO
+// =====================================================
+
+criarGrafico();
+
+carregarDados();
+
+// Atualiza a cada 5 segundos
+
+setInterval(
+  carregarDados,
+  5000
+);
+
+</script>
+
 </body>
+
 </html>

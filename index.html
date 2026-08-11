@@ -1,1006 +1,4741 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 
 <head>
 
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0"
->
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
 
-<title>IS4000 Monitor</title>
+    <meta name="theme-color" content="#0d2638">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Monitor de Fornos</title>
 
-<style>
+    <!-- =====================================================
+         CHART.JS
+    ====================================================== -->
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-body {
 
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+    <!-- =====================================================
+         ÍCONES
+    ====================================================== -->
 
-  background:
-    #0f172a;
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
 
-  color:
-    #f8fafc;
 
-  min-height:
-    100vh;
+    <!-- =====================================================
+         ESTILO
+    ====================================================== -->
 
-  padding:
-    16px;
-}
+    <style>
 
-.container {
+        /* =====================================================
+           VARIÁVEIS
+        ====================================================== */
 
-  width:
-    100%;
+        :root {
 
-  max-width:
-    600px;
+            --bg:
+                #071b2b;
 
-  margin:
-    auto;
-}
+            --bg-secondary:
+                #0d2638;
 
-/* ---------------------------------- */
+            --card:
+                #102f44;
 
-.header {
+            --card-light:
+                #163a51;
 
-  padding:
-    10px 4px 20px;
-}
+            --orange:
+                #f47b20;
 
-.header h1 {
+            --orange-light:
+                #ff963d;
 
-  font-size:
-    24px;
+            --orange-dark:
+                #d85d0c;
 
-  font-weight:
-    700;
-}
+            --blue:
+                #3b82b6;
 
-.header p {
+            --text:
+                #ffffff;
 
-  color:
-    #94a3b8;
+            --text-secondary:
+                #a9bdc9;
 
-  font-size:
-    14px;
+            --green:
+                #25c66f;
 
-  margin-top:
-    4px;
-}
+            --red:
+                #ef5350;
 
-/* ---------------------------------- */
+            --yellow:
+                #f5a623;
 
-.status {
+            --border:
+                rgba(255,255,255,0.07);
 
-  background:
-    #1e293b;
+            --shadow:
+                0 10px 30px rgba(0,0,0,0.22);
 
-  border-radius:
-    18px;
+        }
 
-  padding:
-    18px;
 
-  margin-bottom:
-    16px;
+        /* =====================================================
+           RESET
+        ====================================================== */
 
-  display:
-    flex;
+        * {
 
-  align-items:
-    center;
+            margin:
+                0;
 
-  justify-content:
-    space-between;
-}
+            padding:
+                0;
 
-.status-left {
+            box-sizing:
+                border-box;
 
-  display:
-    flex;
+            -webkit-tap-highlight-color:
+                transparent;
 
-  align-items:
-    center;
+        }
 
-  gap:
-    10px;
-}
 
-.status-dot {
+        html,
+        body {
 
-  width:
-    12px;
+            width:
+                100%;
 
-  height:
-    12px;
+            min-height:
+                100%;
 
-  border-radius:
-    50%;
+            background:
+                var(--bg);
 
-  background:
-    #64748b;
-}
+            color:
+                var(--text);
 
-.status-dot.online {
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Helvetica,
+                Arial,
+                sans-serif;
 
-  background:
-    #22c55e;
+        }
 
-  box-shadow:
-    0 0 12px #22c55e;
-}
 
-.status-text {
+        body {
 
-  font-weight:
-    700;
-}
+            overflow-x:
+                hidden;
 
-.last {
+            padding-bottom:
+                85px;
 
-  color:
-    #94a3b8;
+        }
 
-  font-size:
-    12px;
 
-  text-align:
-    right;
-}
+        button {
 
-/* ---------------------------------- */
+            font-family:
+                inherit;
 
-.cards {
+            border:
+                none;
 
-  display:
-    grid;
+            cursor:
+                pointer;
 
-  grid-template-columns:
-    1fr 1fr;
+        }
 
-  gap:
-    12px;
 
-  margin-bottom:
-    16px;
-}
+        /* =====================================================
+           APP
+        ====================================================== */
 
-.card {
+        .app {
 
-  background:
-    #1e293b;
+            width:
+                100%;
 
-  border-radius:
-    18px;
+            max-width:
+                600px;
 
-  padding:
-    20px;
+            margin:
+                0 auto;
 
-  box-shadow:
-    0 8px 30px rgba(0,0,0,.20);
-}
+            min-height:
+                100vh;
 
-.card-title {
+        }
 
-  font-size:
-    12px;
 
-  color:
-    #94a3b8;
+        /* =====================================================
+           HEADER
+        ====================================================== */
 
-  text-transform:
-    uppercase;
+        .top-header {
 
-  letter-spacing:
-    .8px;
+            height:
+                72px;
 
-  margin-bottom:
-    12px;
-}
+            padding:
+                18px 18px 10px;
 
-.temperature {
+            display:
+                flex;
 
-  font-size:
-    38px;
+            align-items:
+                center;
 
-  font-weight:
-    800;
-}
+            justify-content:
+                space-between;
 
-.temperature span {
+        }
 
-  font-size:
-    18px;
 
-  color:
-    #94a3b8;
-}
+        .header-left {
 
-/* ---------------------------------- */
+            display:
+                flex;
 
-.info {
+            align-items:
+                center;
 
-  display:
-    grid;
+            gap:
+                14px;
 
-  grid-template-columns:
-    1fr 1fr;
+        }
 
-  gap:
-    12px;
 
-  margin-bottom:
-    16px;
-}
+        .menu-button,
+        .back-button {
 
-.info-card {
+            width:
+                38px;
 
-  background:
-    #1e293b;
+            height:
+                38px;
 
-  border-radius:
-    16px;
+            border-radius:
+                12px;
 
-  padding:
-    16px;
-}
+            display:
+                flex;
 
-.info-title {
+            align-items:
+                center;
 
-  font-size:
-    12px;
+            justify-content:
+                center;
 
-  color:
-    #94a3b8;
+            background:
+                transparent;
 
-  margin-bottom:
-    6px;
-}
+            color:
+                var(--text);
 
-.info-value {
+            font-size:
+                18px;
 
-  font-size:
-    16px;
+        }
 
-  font-weight:
-    700;
-}
 
-/* ---------------------------------- */
+        .menu-button:active,
+        .back-button:active {
 
-.chart-card {
+            background:
+                rgba(255,255,255,.08);
 
-  background:
-    #1e293b;
+        }
 
-  border-radius:
-    18px;
 
-  padding:
-    18px;
+        .page-title {
 
-  margin-bottom:
-    16px;
-}
+            font-size:
+                18px;
 
-.chart-title {
+            font-weight:
+                700;
 
-  font-size:
-    15px;
+            letter-spacing:
+                .2px;
 
-  font-weight:
-    700;
+        }
 
-  margin-bottom:
-    15px;
-}
 
-.chart-container {
+        .header-action {
 
-  height:
-    280px;
-}
+            width:
+                38px;
 
-/* ---------------------------------- */
+            height:
+                38px;
 
-.history {
+            border-radius:
+                50%;
 
-  background:
-    #1e293b;
+            background:
+                var(--orange);
 
-  border-radius:
-    18px;
+            color:
+                white;
 
-  padding:
-    18px;
+            font-size:
+                18px;
 
-  margin-bottom:
-    20px;
-}
+            display:
+                flex;
 
-.history h2 {
+            align-items:
+                center;
 
-  font-size:
-    16px;
+            justify-content:
+                center;
 
-  margin-bottom:
-    14px;
-}
+            box-shadow:
+                0 5px 15px rgba(244,123,32,.25);
 
-.history-row {
+        }
 
-  display:
-    grid;
 
-  grid-template-columns:
-    1.3fr 1fr 1fr;
+        .header-settings {
 
-  padding:
-    10px 0;
+            width:
+                38px;
 
-  border-bottom:
-    1px solid #334155;
+            height:
+                38px;
 
-  font-size:
-    13px;
-}
+            border-radius:
+                12px;
 
-.history-row:last-child {
+            background:
+                transparent;
 
-  border-bottom:
-    none;
-}
+            color:
+                var(--text);
 
-.history-header {
+            font-size:
+                17px;
 
-  color:
-    #94a3b8;
+        }
 
-  font-size:
-    11px;
 
-  text-transform:
-    uppercase;
-}
+        /* =====================================================
+           TELAS
+        ====================================================== */
 
-/* ---------------------------------- */
+        .screen {
 
-.footer {
+            display:
+                none;
 
-  text-align:
-    center;
+            padding:
+                0 16px;
 
-  color:
-    #64748b;
+            animation:
+                fadeIn .25s ease;
 
-  font-size:
-    11px;
+        }
 
-  padding:
-    10px;
-}
 
-/* ---------------------------------- */
+        .screen.active {
 
-@media(max-width:430px) {
+            display:
+                block;
 
-  body {
-    padding: 12px;
-  }
+        }
 
-  .temperature {
-    font-size: 32px;
-  }
 
-  .card {
-    padding: 16px;
-  }
+        @keyframes fadeIn {
 
-}
+            from {
 
-</style>
+                opacity:
+                    0;
+
+                transform:
+                    translateY(5px);
+
+            }
+
+            to {
+
+                opacity:
+                    1;
+
+                transform:
+                    translateY(0);
+
+            }
+
+        }
+
+
+        /* =====================================================
+           SPLASH
+        ====================================================== */
+
+        #splashScreen {
+
+            position:
+                fixed;
+
+            inset:
+                0;
+
+            z-index:
+                9999;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #082238,
+                    #0d2c42
+                );
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            text-align:
+                center;
+
+            padding:
+                30px;
+
+        }
+
+
+        .splash-content {
+
+            width:
+                100%;
+
+            max-width:
+                340px;
+
+        }
+
+
+        .logo-icon {
+
+            width:
+                125px;
+
+            height:
+                125px;
+
+            margin:
+                0 auto 25px;
+
+            border-radius:
+                50%;
+
+            border:
+                5px solid var(--orange);
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            font-size:
+                65px;
+
+            color:
+                var(--orange);
+
+            box-shadow:
+                0 0 40px rgba(244,123,32,.12);
+
+        }
+
+
+        .splash-title {
+
+            font-size:
+                31px;
+
+            line-height:
+                1.05;
+
+            font-weight:
+                800;
+
+            text-transform:
+                uppercase;
+
+        }
+
+
+        .splash-title span {
+
+            display:
+                block;
+
+            color:
+                var(--orange);
+
+        }
+
+
+        .splash-subtitle {
+
+            margin-top:
+                16px;
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                14px;
+
+            line-height:
+                1.5;
+
+        }
+
+
+        .enter-button {
+
+            margin-top:
+                35px;
+
+            width:
+                100%;
+
+            height:
+                52px;
+
+            border-radius:
+                12px;
+
+            background:
+                var(--orange);
+
+            color:
+                white;
+
+            font-size:
+                15px;
+
+            font-weight:
+                700;
+
+            box-shadow:
+                0 10px 25px rgba(244,123,32,.25);
+
+        }
+
+
+        .version {
+
+            margin-top:
+                22px;
+
+            color:
+                #647f90;
+
+            font-size:
+                11px;
+
+        }
+
+
+        /* =====================================================
+           CARD FORNO
+        ====================================================== */
+
+        .oven-card {
+
+            background:
+                var(--card);
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                18px;
+
+            padding:
+                17px;
+
+            margin-bottom:
+                13px;
+
+            box-shadow:
+                var(--shadow);
+
+            position:
+                relative;
+
+            overflow:
+                hidden;
+
+        }
+
+
+        .oven-card:active {
+
+            transform:
+                scale(.99);
+
+        }
+
+
+        .oven-card-top {
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            margin-bottom:
+                9px;
+
+        }
+
+
+        .oven-name {
+
+            font-size:
+                15px;
+
+            font-weight:
+                700;
+
+        }
+
+
+        .oven-status {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                6px;
+
+            font-size:
+                10px;
+
+            color:
+                var(--text-secondary);
+
+        }
+
+
+        .status-dot {
+
+            width:
+                7px;
+
+            height:
+                7px;
+
+            border-radius:
+                50%;
+
+            background:
+                #697f8d;
+
+        }
+
+
+        .status-dot.online {
+
+            background:
+                var(--green);
+
+            box-shadow:
+                0 0 9px rgba(37,198,111,.7);
+
+        }
+
+
+        .status-dot.warning {
+
+            background:
+                var(--yellow);
+
+        }
+
+
+        .status-dot.offline {
+
+            background:
+                var(--red);
+
+        }
+
+
+        .oven-main {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                1fr 105px;
+
+            align-items:
+                center;
+
+            gap:
+                10px;
+
+        }
+
+
+        .oven-temperature {
+
+            font-size:
+                35px;
+
+            font-weight:
+                800;
+
+            color:
+                var(--orange);
+
+            line-height:
+                1;
+
+        }
+
+
+        .oven-temperature small {
+
+            font-size:
+                16px;
+
+            color:
+                var(--orange-light);
+
+        }
+
+
+        .oven-label {
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                11px;
+
+            margin-top:
+                7px;
+
+        }
+
+
+        .oven-meta {
+
+            margin-top:
+                13px;
+
+            padding-top:
+                12px;
+
+            border-top:
+                1px solid var(--border);
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                11px;
+
+        }
+
+
+        /* =====================================================
+           MINI GRÁFICO
+        ====================================================== */
+
+        .mini-chart {
+
+            height:
+                55px;
+
+        }
+
+
+        /* =====================================================
+           BOTÃO ADICIONAR
+        ====================================================== */
+
+        .add-oven-button {
+
+            width:
+                100%;
+
+            padding:
+                15px;
+
+            border-radius:
+                14px;
+
+            border:
+                1px dashed rgba(255,255,255,.18);
+
+            background:
+                rgba(255,255,255,.025);
+
+            color:
+                var(--text-secondary);
+
+            margin-top:
+                4px;
+
+        }
+
+
+        .add-oven-button i {
+
+            color:
+                var(--orange);
+
+            margin-right:
+                7px;
+
+        }
+
+
+        /* =====================================================
+           FORNO INDIVIDUAL
+        ====================================================== */
+
+        .oven-detail-status {
+
+            text-align:
+                center;
+
+            margin-top:
+                5px;
+
+            color:
+                var(--green);
+
+            font-size:
+                13px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            gap:
+                7px;
+
+        }
+
+
+        .detail-temperature {
+
+            text-align:
+                center;
+
+            font-size:
+                62px;
+
+            font-weight:
+                800;
+
+            color:
+                var(--orange);
+
+            margin-top:
+                13px;
+
+            line-height:
+                1;
+
+        }
+
+
+        .detail-temperature span {
+
+            font-size:
+                25px;
+
+        }
+
+
+        .detail-label {
+
+            text-align:
+                center;
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                12px;
+
+            margin-top:
+                7px;
+
+        }
+
+
+        /* =====================================================
+           ESTATÍSTICAS
+        ====================================================== */
+
+        .stats-grid {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap:
+                10px;
+
+            margin:
+                20px 0;
+
+        }
+
+
+        .stat-card {
+
+            background:
+                var(--card);
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                13px;
+
+            padding:
+                13px;
+
+        }
+
+
+        .stat-title {
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                10px;
+
+            margin-bottom:
+                6px;
+
+        }
+
+
+        .stat-value {
+
+            font-size:
+                17px;
+
+            font-weight:
+                700;
+
+        }
+
+
+        /* =====================================================
+           TABS
+        ====================================================== */
+
+        .tabs {
+
+            background:
+                #0a2233;
+
+            padding:
+                4px;
+
+            border-radius:
+                12px;
+
+            display:
+                flex;
+
+            margin-bottom:
+                15px;
+
+        }
+
+
+        .tab {
+
+            flex:
+                1;
+
+            padding:
+                10px 4px;
+
+            border-radius:
+                9px;
+
+            background:
+                transparent;
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                11px;
+
+        }
+
+
+        .tab.active {
+
+            background:
+                var(--card-light);
+
+            color:
+                white;
+
+            box-shadow:
+                0 2px 8px rgba(0,0,0,.15);
+
+        }
+
+
+        /* =====================================================
+           CONTEÚDO DAS ABAS
+        ====================================================== */
+
+        .tab-content {
+
+            display:
+                none;
+
+        }
+
+
+        .tab-content.active {
+
+            display:
+                block;
+
+        }
+
+
+        /* =====================================================
+           GRÁFICO
+        ====================================================== */
+
+        .chart-card {
+
+            background:
+                var(--card);
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                17px;
+
+            padding:
+                15px;
+
+            margin-bottom:
+                12px;
+
+        }
+
+
+        .period-select {
+
+            width:
+                100%;
+
+            background:
+                #18394d;
+
+            color:
+                white;
+
+            border:
+                none;
+
+            border-radius:
+                10px;
+
+            padding:
+                11px;
+
+            margin-bottom:
+                12px;
+
+            outline:
+                none;
+
+        }
+
+
+        .chart-wrapper {
+
+            height:
+                280px;
+
+            position:
+                relative;
+
+        }
+
+
+        /* =====================================================
+           HISTÓRICO
+        ====================================================== */
+
+        .history-card {
+
+            background:
+                var(--card);
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                15px;
+
+            padding:
+                13px;
+
+            margin-bottom:
+                9px;
+
+        }
+
+
+        .history-date {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                space-between;
+
+        }
+
+
+        .history-time {
+
+            font-size:
+                12px;
+
+            color:
+                var(--text-secondary);
+
+        }
+
+
+        .history-values {
+
+            display:
+                flex;
+
+            gap:
+                18px;
+
+            margin-top:
+                7px;
+
+        }
+
+
+        .history-value {
+
+            font-size:
+                15px;
+
+            font-weight:
+                700;
+
+            color:
+                var(--orange);
+
+        }
+
+
+        /* =====================================================
+           ALERTAS
+        ====================================================== */
+
+        .filter {
+
+            width:
+                100%;
+
+            background:
+                var(--card);
+
+            color:
+                white;
+
+            border:
+                none;
+
+            border-radius:
+                11px;
+
+            padding:
+                12px;
+
+            margin-bottom:
+                12px;
+
+        }
+
+
+        .alert-card {
+
+            background:
+                var(--card);
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                14px;
+
+            padding:
+                14px;
+
+            margin-bottom:
+                10px;
+
+            display:
+                flex;
+
+            gap:
+                12px;
+
+        }
+
+
+        .alert-icon {
+
+            width:
+                35px;
+
+            height:
+                35px;
+
+            border-radius:
+                10px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            flex-shrink:
+                0;
+
+        }
+
+
+        .alert-danger {
+
+            background:
+                rgba(239,83,80,.15);
+
+            color:
+                var(--red);
+
+        }
+
+
+        .alert-warning {
+
+            background:
+                rgba(245,166,35,.15);
+
+            color:
+                var(--yellow);
+
+        }
+
+
+        .alert-info {
+
+            background:
+                rgba(59,130,182,.15);
+
+            color:
+                #60a5fa;
+
+        }
+
+
+        .alert-title {
+
+            font-size:
+                13px;
+
+            font-weight:
+                700;
+
+        }
+
+
+        .alert-description {
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                11px;
+
+            margin-top:
+                4px;
+
+        }
+
+
+        .alert-date {
+
+            color:
+                #71899a;
+
+            font-size:
+                10px;
+
+            margin-top:
+                7px;
+
+        }
+
+
+        /* =====================================================
+           CONFIGURAÇÕES
+        ====================================================== */
+
+        .settings-section {
+
+            margin-bottom:
+                20px;
+
+        }
+
+
+        .settings-title {
+
+            color:
+                var(--text-secondary);
+
+            text-transform:
+                uppercase;
+
+            font-size:
+                10px;
+
+            letter-spacing:
+                1px;
+
+            margin:
+                0 4px 8px;
+
+        }
+
+
+        .settings-card {
+
+            background:
+                var(--card);
+
+            border-radius:
+                15px;
+
+            overflow:
+                hidden;
+
+        }
+
+
+        .setting-item {
+
+            padding:
+                15px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                space-between;
+
+            border-bottom:
+                1px solid var(--border);
+
+        }
+
+
+        .setting-item:last-child {
+
+            border-bottom:
+                none;
+
+        }
+
+
+        .setting-left {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                12px;
+
+        }
+
+
+        .setting-icon {
+
+            width:
+                35px;
+
+            height:
+                35px;
+
+            border-radius:
+                10px;
+
+            background:
+                #18394d;
+
+            color:
+                var(--orange);
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+        }
+
+
+        .setting-name {
+
+            font-size:
+                13px;
+
+        }
+
+
+        .setting-description {
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                10px;
+
+            margin-top:
+                3px;
+
+        }
+
+
+        .setting-arrow {
+
+            color:
+                #668091;
+
+        }
+
+
+        /* =====================================================
+           MODAL
+        ====================================================== */
+
+        .modal {
+
+            position:
+                fixed;
+
+            inset:
+                0;
+
+            background:
+                rgba(0,0,0,.65);
+
+            z-index:
+                5000;
+
+            display:
+                none;
+
+            align-items:
+                flex-end;
+
+            justify-content:
+                center;
+
+        }
+
+
+        .modal.active {
+
+            display:
+                flex;
+
+        }
+
+
+        .modal-content {
+
+            width:
+                100%;
+
+            max-width:
+                600px;
+
+            background:
+                var(--bg-secondary);
+
+            border-radius:
+                25px 25px 0 0;
+
+            padding:
+                22px;
+
+            animation:
+                slideUp .25s ease;
+
+        }
+
+
+        @keyframes slideUp {
+
+            from {
+
+                transform:
+                    translateY(100%);
+
+            }
+
+            to {
+
+                transform:
+                    translateY(0);
+
+            }
+
+        }
+
+
+        .modal-title {
+
+            font-size:
+                18px;
+
+            font-weight:
+                700;
+
+            margin-bottom:
+                20px;
+
+        }
+
+
+        .form-group {
+
+            margin-bottom:
+                15px;
+
+        }
+
+
+        .form-label {
+
+            display:
+                block;
+
+            color:
+                var(--text-secondary);
+
+            font-size:
+                11px;
+
+            margin-bottom:
+                7px;
+
+        }
+
+
+        .form-input {
+
+            width:
+                100%;
+
+            padding:
+                13px;
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                10px;
+
+            background:
+                var(--card);
+
+            color:
+                white;
+
+            outline:
+                none;
+
+        }
+
+
+        .form-input:focus {
+
+            border-color:
+                var(--orange);
+
+        }
+
+
+        .save-button {
+
+            width:
+                100%;
+
+            height:
+                48px;
+
+            border-radius:
+                11px;
+
+            background:
+                var(--orange);
+
+            color:
+                white;
+
+            font-weight:
+                700;
+
+            margin-top:
+                5px;
+
+        }
+
+
+        /* =====================================================
+           MENU INFERIOR
+        ====================================================== */
+
+        .bottom-nav {
+
+            position:
+                fixed;
+
+            z-index:
+                3000;
+
+            bottom:
+                0;
+
+            left:
+                50%;
+
+            transform:
+                translateX(-50%);
+
+            width:
+                100%;
+
+            max-width:
+                600px;
+
+            height:
+                75px;
+
+            padding:
+                8px 12px;
+
+            background:
+                rgba(7,27,43,.97);
+
+            border-top:
+                1px solid var(--border);
+
+            backdrop-filter:
+                blur(15px);
+
+            display:
+                grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+        }
+
+
+        .nav-item {
+
+            background:
+                transparent;
+
+            color:
+                #708999;
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            gap:
+                5px;
+
+            font-size:
+                10px;
+
+        }
+
+
+        .nav-item i {
+
+            font-size:
+                17px;
+
+        }
+
+
+        .nav-item.active {
+
+            color:
+                var(--orange);
+
+        }
+
+
+        /* =====================================================
+           LOADING
+        ====================================================== */
+
+        .loading {
+
+            text-align:
+                center;
+
+            color:
+                var(--text-secondary);
+
+            padding:
+                30px 10px;
+
+            font-size:
+                13px;
+
+        }
+
+
+        .spinner {
+
+            width:
+                24px;
+
+            height:
+                24px;
+
+            border:
+                2px solid rgba(255,255,255,.15);
+
+            border-top-color:
+                var(--orange);
+
+            border-radius:
+                50%;
+
+            animation:
+                spin .7s linear infinite;
+
+            margin:
+                0 auto 10px;
+
+        }
+
+
+        @keyframes spin {
+
+            to {
+
+                transform:
+                    rotate(360deg);
+
+            }
+
+        }
+
+
+        /* =====================================================
+           RESPONSIVO
+        ====================================================== */
+
+        @media(max-width:380px) {
+
+            .detail-temperature {
+
+                font-size:
+                    53px;
+
+            }
+
+            .oven-temperature {
+
+                font-size:
+                    30px;
+
+            }
+
+        }
+
+    </style>
 
 </head>
 
+
 <body>
 
-<div class="container">
 
-  <div class="header">
+<!-- ========================================================
+     SPLASH SCREEN
+========================================================= -->
 
-    <h1>🔥 IS4000 Monitor</h1>
+<div id="splashScreen">
 
-    <p>
-      Monitoramento de temperatura do forno
-    </p>
+    <div class="splash-content">
 
-  </div>
+        <div class="logo-icon">
 
-  <!-- STATUS -->
+            <i class="fa-solid fa-fire-flame-curved"></i>
 
-  <div class="status">
+        </div>
 
-    <div class="status-left">
+        <div class="splash-title">
 
-      <div
-        id="statusDot"
-        class="status-dot"
-      ></div>
+            Monitor
 
-      <div
-        id="statusText"
-        class="status-text"
-      >
-        Verificando...
-      </div>
+            <span>de Fornos</span>
 
-    </div>
+        </div>
 
-    <div class="last">
+        <div class="splash-subtitle">
 
-      Última leitura
+            Acompanhe a temperatura dos seus
+            fornos em tempo real.
 
-      <br>
+        </div>
 
-      <span id="lastUpdate">
-        --
-      </span>
+        <button
+            class="enter-button"
+            onclick="entrarAplicativo()"
+        >
 
-    </div>
+            Entrar
 
-  </div>
+        </button>
 
-  <!-- TEMPERATURAS -->
+        <div class="version">
 
-  <div class="cards">
+            Versão 1.0.0
 
-    <div class="card">
-
-      <div class="card-title">
-        Canal Superior
-      </div>
-
-      <div class="temperature">
-
-        <span id="ch1">
-          --
-        </span>
-
-        <span>
-          °C
-        </span>
-
-      </div>
+        </div>
 
     </div>
-
-    <div class="card">
-
-      <div class="card-title">
-        Canal Inferior
-      </div>
-
-      <div class="temperature">
-
-        <span id="ch2">
-          --
-        </span>
-
-        <span>
-          °C
-        </span>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <!-- INFORMAÇÕES -->
-
-  <div class="info">
-
-    <div class="info-card">
-
-      <div class="info-title">
-        Wi-Fi
-      </div>
-
-      <div
-        id="rssi"
-        class="info-value"
-      >
-        --
-      </div>
-
-    </div>
-
-    <div class="info-card">
-
-      <div class="info-title">
-        Atualização
-      </div>
-
-      <div
-        id="updateStatus"
-        class="info-value"
-      >
-        --
-      </div>
-
-    </div>
-
-  </div>
-
-  <!-- GRÁFICO -->
-
-  <div class="chart-card">
-
-    <div class="chart-title">
-
-      Histórico de temperatura
-
-    </div>
-
-    <div class="chart-container">
-
-      <canvas id="temperatureChart"></canvas>
-
-    </div>
-
-  </div>
-
-  <!-- HISTÓRICO -->
-
-  <div class="history">
-
-    <h2>
-      Últimas leituras
-    </h2>
-
-    <div
-      class="history-row history-header"
-    >
-
-      <div>
-        Hora
-      </div>
-
-      <div>
-        Superior
-      </div>
-
-      <div>
-        Inferior
-      </div>
-
-    </div>
-
-    <div id="historyList">
-
-      Carregando...
-
-    </div>
-
-  </div>
-
-  <div class="footer">
-
-    IS4000 • Monitoramento online
-
-  </div>
 
 </div>
 
+
+
+<!-- ========================================================
+     APLICATIVO
+========================================================= -->
+
+<div class="app">
+
+
+    <!-- ====================================================
+         HEADER
+    ===================================================== -->
+
+    <header class="top-header">
+
+        <div class="header-left">
+
+            <button
+                id="backButton"
+                class="back-button"
+                onclick="voltarLista()"
+                style="display:none;"
+            >
+
+                <i class="fa-solid fa-arrow-left"></i>
+
+            </button>
+
+
+            <button
+                id="menuButton"
+                class="menu-button"
+                onclick="mostrarMenu()"
+            >
+
+                <i class="fa-solid fa-bars"></i>
+
+            </button>
+
+
+            <div
+                id="pageTitle"
+                class="page-title"
+            >
+
+                Meus Fornos
+
+            </div>
+
+        </div>
+
+
+        <button
+            id="headerAction"
+            class="header-action"
+            onclick="abrirModalForno()"
+        >
+
+            <i class="fa-solid fa-plus"></i>
+
+        </button>
+
+
+        <button
+            id="headerSettings"
+            class="header-settings"
+            onclick="mostrarTela('config')"
+            style="display:none;"
+        >
+
+            <i class="fa-solid fa-gear"></i>
+
+        </button>
+
+    </header>
+
+
+
+    <!-- ====================================================
+         TELA: FORNOS
+    ===================================================== -->
+
+    <main
+        id="screenFornos"
+        class="screen active"
+    >
+
+        <div id="listaFornos">
+
+            <div class="loading">
+
+                <div class="spinner"></div>
+
+                Carregando fornos...
+
+            </div>
+
+        </div>
+
+
+        <button
+            class="add-oven-button"
+            onclick="abrirModalForno()"
+        >
+
+            <i class="fa-solid fa-plus"></i>
+
+            Adicionar outro forno
+
+        </button>
+
+    </main>
+
+
+
+    <!-- ====================================================
+         TELA: FORNO INDIVIDUAL
+    ===================================================== -->
+
+    <main
+        id="screenForno"
+        class="screen"
+    >
+
+        <!-- STATUS -->
+
+        <div class="oven-detail-status">
+
+            <span
+                id="detailStatusDot"
+                class="status-dot online"
+            ></span>
+
+            <span id="detailStatus">
+                Em operação
+            </span>
+
+        </div>
+
+
+        <!-- TEMPERATURA -->
+
+        <div
+            id="detailTemperature"
+            class="detail-temperature"
+        >
+
+            --
+
+            <span>°C</span>
+
+        </div>
+
+
+        <div class="detail-label">
+
+            Temperatura atual
+
+        </div>
+
+
+        <!-- ESTATÍSTICAS -->
+
+        <div class="stats-grid">
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+
+                    <i class="fa-solid fa-bullseye"></i>
+                    Meta
+
+                </div>
+
+                <div
+                    id="detailMeta"
+                    class="stat-value"
+                >
+
+                    1300°C
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+
+                    <i class="fa-regular fa-clock"></i>
+                    Tempo em operação
+
+                </div>
+
+                <div
+                    id="detailTempo"
+                    class="stat-value"
+                >
+
+                    00:00:00
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TABS -->
+
+        <div class="tabs">
+
+            <button
+                class="tab active"
+                onclick="trocarAba('tempo')"
+            >
+
+                Tempo real
+
+            </button>
+
+            <button
+                class="tab"
+                onclick="trocarAba('grafico')"
+            >
+
+                Gráfico
+
+            </button>
+
+            <button
+                class="tab"
+                onclick="trocarAba('historico')"
+            >
+
+                Histórico
+
+            </button>
+
+        </div>
+
+
+        <!-- ABA TEMPO REAL -->
+
+        <div
+            id="tabTempo"
+            class="tab-content active"
+        >
+
+            <div class="chart-card">
+
+                <div
+                    style="
+                        text-align:center;
+                        color:#94a9b7;
+                        font-size:12px;
+                        margin-bottom:12px;
+                    "
+                >
+
+                    Temperatura atual
+
+                </div>
+
+
+                <div
+                    style="
+                        height:210px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                    "
+                >
+
+                    <div
+                        style="
+                            width:180px;
+                            height:180px;
+                            border-radius:50%;
+                            border:14px solid #18394d;
+                            border-top-color:#f47b20;
+                            border-right-color:#f47b20;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            position:relative;
+                        "
+                    >
+
+                        <div
+                            style="
+                                text-align:center;
+                            "
+                        >
+
+                            <div
+                                id="gaugeTemperature"
+                                style="
+                                    color:#f47b20;
+                                    font-size:27px;
+                                    font-weight:800;
+                                "
+                            >
+
+                                --°C
+
+                            </div>
+
+                            <div
+                                style="
+                                    color:#71899a;
+                                    font-size:10px;
+                                    margin-top:4px;
+                                "
+                            >
+
+                                Atual
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    style="
+                        text-align:center;
+                        color:#71899a;
+                        font-size:11px;
+                    "
+                >
+
+                    Atualizado há
+                    <span id="secondsAgo">
+                        --
+                    </span>
+
+                    segundos
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- ABA GRÁFICO -->
+
+        <div
+            id="tabGrafico"
+            class="tab-content"
+        >
+
+            <select
+                id="periodSelect"
+                class="period-select"
+                onchange="carregarHistorico()"
+            >
+
+                <option value="50">
+                    Últimas leituras
+                </option>
+
+                <option value="100">
+                    Últimos registros
+                </option>
+
+                <option value="200">
+                    Histórico
+                </option>
+
+            </select>
+
+
+            <div class="chart-card">
+
+                <div class="chart-wrapper">
+
+                    <canvas
+                        id="temperatureChart"
+                    ></canvas>
+
+                </div>
+
+            </div>
+
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Temperatura máxima
+                    </div>
+
+                    <div
+                        id="maxTemp"
+                        class="stat-value"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Temperatura mínima
+                    </div>
+
+                    <div
+                        id="minTemp"
+                        class="stat-value"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Temperatura média
+                    </div>
+
+                    <div
+                        id="avgTemp"
+                        class="stat-value"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Tempo total
+                    </div>
+
+                    <div
+                        id="totalTime"
+                        class="stat-value"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- ABA HISTÓRICO -->
+
+        <div
+            id="tabHistorico"
+            class="tab-content"
+        >
+
+            <select
+                class="period-select"
+                onchange="carregarHistorico()"
+            >
+
+                <option>
+                    Últimos 7 dias
+                </option>
+
+                <option>
+                    Hoje
+                </option>
+
+                <option>
+                    Últimas 24 horas
+                </option>
+
+            </select>
+
+
+            <div id="historyList">
+
+                <div class="loading">
+
+                    <div class="spinner"></div>
+
+                    Carregando histórico...
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+
+    <!-- ====================================================
+         TELA: ALERTAS
+    ===================================================== -->
+
+    <main
+        id="screenAlertas"
+        class="screen"
+    >
+
+        <select class="filter">
+
+            <option>
+                Todos os alertas
+            </option>
+
+            <option>
+                Temperatura alta
+            </option>
+
+            <option>
+                Temperatura baixa
+            </option>
+
+            <option>
+                Conexão
+            </option>
+
+        </select>
+
+
+        <div id="alertsContainer">
+
+            <div class="alert-card">
+
+                <div class="alert-icon alert-danger">
+
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+
+                </div>
+
+                <div>
+
+                    <div class="alert-title">
+
+                        Forno 1 - Temperatura alta
+
+                    </div>
+
+                    <div class="alert-description">
+
+                        Temperatura acima do limite configurado.
+
+                    </div>
+
+                    <div class="alert-date">
+
+                        Nenhum alerta recente
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="alert-card">
+
+                <div class="alert-icon alert-warning">
+
+                    <i class="fa-solid fa-wifi"></i>
+
+                </div>
+
+                <div>
+
+                    <div class="alert-title">
+
+                        Monitoramento de conexão
+
+                    </div>
+
+                    <div class="alert-description">
+
+                        O sistema verifica automaticamente a comunicação.
+
+                    </div>
+
+                    <div class="alert-date">
+
+                        Monitoramento ativo
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+
+    <!-- ====================================================
+         TELA: CONFIGURAÇÕES
+    ===================================================== -->
+
+    <main
+        id="screenConfig"
+        class="screen"
+    >
+
+        <div class="settings-section">
+
+            <div class="settings-title">
+
+                Sistema
+
+            </div>
+
+
+            <div class="settings-card">
+
+                <div
+                    class="setting-item"
+                    onclick="abrirModalForno()"
+                >
+
+                    <div class="setting-left">
+
+                        <div class="setting-icon">
+
+                            <i class="fa-solid fa-temperature-half"></i>
+
+                        </div>
+
+                        <div>
+
+                            <div class="setting-name">
+
+                                Dispositivos
+
+                            </div>
+
+                            <div class="setting-description">
+
+                                Gerenciar fornos conectados
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <i class="fa-solid fa-chevron-right setting-arrow"></i>
+
+                </div>
+
+
+                <div class="setting-item">
+
+                    <div class="setting-left">
+
+                        <div class="setting-icon">
+
+                            <i class="fa-solid fa-sliders"></i>
+
+                        </div>
+
+                        <div>
+
+                            <div class="setting-name">
+
+                                Unidade de temperatura
+
+                            </div>
+
+                            <div class="setting-description">
+
+                                Celsius (°C)
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <i class="fa-solid fa-chevron-right setting-arrow"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="settings-section">
+
+            <div class="settings-title">
+
+                Alertas
+
+            </div>
+
+
+            <div class="settings-card">
+
+                <div class="setting-item">
+
+                    <div class="setting-left">
+
+                        <div class="setting-icon">
+
+                            <i class="fa-regular fa-bell"></i>
+
+                        </div>
+
+                        <div>
+
+                            <div class="setting-name">
+
+                                Notificações
+
+                            </div>
+
+                            <div class="setting-description">
+
+                                Alertas de temperatura e conexão
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <i class="fa-solid fa-chevron-right setting-arrow"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="settings-section">
+
+            <div class="settings-title">
+
+                Aplicativo
+
+            </div>
+
+
+            <div class="settings-card">
+
+                <div class="setting-item">
+
+                    <div class="setting-left">
+
+                        <div class="setting-icon">
+
+                            <i class="fa-solid fa-circle-info"></i>
+
+                        </div>
+
+                        <div>
+
+                            <div class="setting-name">
+
+                                Sobre o aplicativo
+
+                            </div>
+
+                            <div class="setting-description">
+
+                                Monitor de Fornos v1.0.0
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <i class="fa-solid fa-chevron-right setting-arrow"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+
+    <!-- ====================================================
+         MENU INFERIOR
+    ===================================================== -->
+
+    <nav class="bottom-nav">
+
+        <button
+            id="navFornos"
+            class="nav-item active"
+            onclick="mostrarTela('fornos')"
+        >
+
+            <i class="fa-solid fa-fire-flame-curved"></i>
+
+            <span>Fornos</span>
+
+        </button>
+
+
+        <button
+            id="navHistorico"
+            class="nav-item"
+            onclick="abrirHistoricoGeral()"
+        >
+
+            <i class="fa-solid fa-clock-rotate-left"></i>
+
+            <span>Histórico</span>
+
+        </button>
+
+
+        <button
+            id="navAlertas"
+            class="nav-item"
+            onclick="mostrarTela('alertas')"
+        >
+
+            <i class="fa-regular fa-bell"></i>
+
+            <span>Alertas</span>
+
+        </button>
+
+
+        <button
+            id="navConfig"
+            class="nav-item"
+            onclick="mostrarTela('config')"
+        >
+
+            <i class="fa-solid fa-gear"></i>
+
+            <span>Config.</span>
+
+        </button>
+
+    </nav>
+
+</div>
+
+
+
+<!-- ========================================================
+     MODAL ADICIONAR FORNO
+========================================================= -->
+
+<div
+    id="ovenModal"
+    class="modal"
+    onclick="fecharModalFora(event)"
+>
+
+    <div class="modal-content">
+
+        <div class="modal-title">
+
+            Adicionar Forno
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label class="form-label">
+
+                Nome do forno
+
+            </label>
+
+            <input
+                id="ovenNameInput"
+                class="form-input"
+                type="text"
+                placeholder="Ex.: Forno 1"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label class="form-label">
+
+                Meta de temperatura (°C)
+
+            </label>
+
+            <input
+                id="ovenTargetInput"
+                class="form-input"
+                type="number"
+                value="1300"
+            >
+
+        </div>
+
+
+        <button
+            class="save-button"
+            onclick="salvarForno()"
+        >
+
+            Salvar forno
+
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- ========================================================
+     JAVASCRIPT
+========================================================= -->
+
 <script>
 
-// =====================================================
-// URL DO GOOGLE APPS SCRIPT
-// =====================================================
+
+/* =========================================================
+   CONFIGURAÇÃO DA API
+========================================================= */
+
+/*
+
+    COLOQUE AQUI A URL DO SEU GOOGLE APPS SCRIPT.
+
+    Exemplo:
+
+    https://script.google.com/macros/s/AKfycbxxxxxxxx/exec
+
+*/
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbzcEmQRBdBYoP4-A28h2fpdP9Pfj-AXpOy4xJqiHmzY_oKCwUqwfoDRlP2oO5kZ5vDy/exec";
+    "https://script.google.com/macros/s/AKfycbzcEmQRBdBYoP4-A28h2fpdP9Pfj-AXpOy4xJqiHmzY_oKCwUqwfoDRlP2oO5kZ5vDy/exec";
 
-const TOKEN =
-  "IS4000_2026";
 
-// =====================================================
-// GRÁFICO
-// =====================================================
+/* Token utilizado pelo Google Apps Script */
 
-let chart;
+const API_TOKEN =
+    "IS4000_2026";
 
-function criarGrafico() {
 
-  const ctx =
-    document
-      .getElementById("temperatureChart")
-      .getContext("2d");
+/* =========================================================
+   VARIÁVEIS
+========================================================= */
 
-  chart =
-    new Chart(ctx, {
+let dadosHistorico = [];
 
-      type: "line",
+let chart = null;
 
-      data: {
+let fornoAtual = 1;
 
-        labels: [],
+let nomeForno = "Forno 1";
 
-        datasets: [
+let metaTemperatura = 1300;
 
-          {
+let ultimaLeitura = null;
 
-            label:
-              "Canal Superior",
+let aplicativoIniciado = false;
 
-            data: [],
 
-            borderWidth: 2,
+/* =========================================================
+   SPLASH
+========================================================= */
 
-            tension: 0.3,
+function entrarAplicativo() {
 
-            pointRadius: 2
-          },
+    const splash =
+        document.getElementById(
+            "splashScreen"
+        );
 
-          {
+    splash.style.opacity =
+        "0";
 
-            label:
-              "Canal Inferior",
+    splash.style.transition =
+        "opacity .3s ease";
 
-            data: [],
+    setTimeout(() => {
 
-            borderWidth: 2,
+        splash.style.display =
+            "none";
 
-            tension: 0.3,
+        aplicativoIniciado =
+            true;
 
-            pointRadius: 2
-          }
+        carregarDados();
 
-        ]
+    }, 300);
 
-      },
-
-      options: {
-
-        responsive: true,
-
-        maintainAspectRatio: false,
-
-        interaction: {
-
-          intersect: false,
-
-          mode: "index"
-        },
-
-        scales: {
-
-          x: {
-
-            ticks: {
-
-              color: "#94a3b8",
-
-              maxTicksLimit: 6
-            }
-
-          },
-
-          y: {
-
-            ticks: {
-
-              color: "#94a3b8"
-            }
-
-          }
-
-        },
-
-        plugins: {
-
-          legend: {
-
-            labels: {
-
-              color: "#f8fafc"
-            }
-
-          }
-
-        }
-
-      }
-
-    });
 }
 
-// =====================================================
-// BUSCAR HISTÓRICO
-// =====================================================
+
+/* =========================================================
+   MOSTRAR TELA
+========================================================= */
+
+function mostrarTela(tela) {
+
+
+    document
+        .querySelectorAll(".screen")
+        .forEach(screen => {
+
+            screen.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    document
+        .querySelectorAll(".nav-item")
+        .forEach(item => {
+
+            item.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    if (tela === "fornos") {
+
+        document
+            .getElementById(
+                "screenFornos"
+            )
+            .classList.add(
+                "active"
+            );
+
+        document
+            .getElementById(
+                "navFornos"
+            )
+            .classList.add(
+                "active"
+            );
+
+        configurarHeader(
+            "Meus Fornos",
+            "plus"
+        );
+
+    }
+
+
+    else if (tela === "alertas") {
+
+        document
+            .getElementById(
+                "screenAlertas"
+            )
+            .classList.add(
+                "active"
+            );
+
+        document
+            .getElementById(
+                "navAlertas"
+            )
+            .classList.add(
+                "active"
+            );
+
+        configurarHeader(
+            "Alertas",
+            "none"
+        );
+
+    }
+
+
+    else if (tela === "config") {
+
+        document
+            .getElementById(
+                "screenConfig"
+            )
+            .classList.add(
+                "active"
+            );
+
+        document
+            .getElementById(
+                "navConfig"
+            )
+            .classList.add(
+                "active"
+            );
+
+        configurarHeader(
+            "Configurações",
+            "none"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CONFIGURAR HEADER
+========================================================= */
+
+function configurarHeader(
+    titulo,
+    acao
+) {
+
+    document
+        .getElementById(
+            "pageTitle"
+        )
+        .innerText =
+        titulo;
+
+
+    document
+        .getElementById(
+            "backButton"
+        )
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById(
+            "menuButton"
+        )
+        .style.display =
+        "flex";
+
+
+    document
+        .getElementById(
+            "headerSettings"
+        )
+        .style.display =
+        "none";
+
+
+    const action =
+        document.getElementById(
+            "headerAction"
+        );
+
+
+    if (acao === "plus") {
+
+        action.style.display =
+            "flex";
+
+    }
+
+    else {
+
+        action.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =========================================================
+   ABRIR FORNO
+========================================================= */
+
+function abrirForno() {
+
+
+    document
+        .querySelectorAll(".screen")
+        .forEach(screen => {
+
+            screen.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    document
+        .getElementById(
+            "screenForno"
+        )
+        .classList.add(
+            "active"
+        );
+
+
+    document
+        .getElementById(
+            "pageTitle"
+        )
+        .innerText =
+        nomeForno;
+
+
+    document
+        .getElementById(
+            "backButton"
+        )
+        .style.display =
+        "flex";
+
+
+    document
+        .getElementById(
+            "menuButton"
+        )
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById(
+            "headerAction"
+        )
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById(
+            "headerSettings"
+        )
+        .style.display =
+        "flex";
+
+
+    carregarHistorico();
+
+}
+
+
+/* =========================================================
+   VOLTAR
+========================================================= */
+
+function voltarLista() {
+
+    mostrarTela(
+        "fornos"
+    );
+
+}
+
+
+/* =========================================================
+   ABA DO FORNO
+========================================================= */
+
+function trocarAba(aba) {
+
+
+    document
+        .querySelectorAll(".tab")
+        .forEach(tab => {
+
+            tab.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    document
+        .querySelectorAll(".tab-content")
+        .forEach(content => {
+
+            content.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    if (aba === "tempo") {
+
+        document
+            .querySelectorAll(".tab")[0]
+            .classList.add(
+                "active"
+            );
+
+        document
+            .getElementById(
+                "tabTempo"
+            )
+            .classList.add(
+                "active"
+            );
+
+    }
+
+
+    if (aba === "grafico") {
+
+        document
+            .querySelectorAll(".tab")[1]
+            .classList.add(
+                "active"
+            );
+
+        document
+            .getElementById(
+                "tabGrafico"
+            )
+            .classList.add(
+                "active"
+            );
+
+        atualizarGrafico();
+
+    }
+
+
+    if (aba === "historico") {
+
+        document
+            .querySelectorAll(".tab")[2]
+            .classList.add(
+                "active"
+            );
+
+        document
+            .getElementById(
+                "tabHistorico"
+            )
+            .classList.add(
+                "active"
+            );
+
+        carregarHistorico();
+
+    }
+
+}
+
+
+/* =========================================================
+   CARREGAR DADOS
+========================================================= */
 
 async function carregarDados() {
 
-  try {
 
-    const url =
-      API_URL +
-      "?action=history" +
-      "&token=" +
-      encodeURIComponent(TOKEN) +
-      "&limit=100";
+    try {
 
-    const resposta =
-      await fetch(url);
 
-    const json =
-      await resposta.json();
+        const url =
+            API_URL +
+            "?action=history" +
+            "&token=" +
+            encodeURIComponent(
+                API_TOKEN
+            ) +
+            "&limit=100";
 
-    if (!json.sucesso) {
 
-      throw new Error(json.erro);
+        const resposta =
+            await fetch(url);
+
+
+        const json =
+            await resposta.json();
+
+
+        if (!json.sucesso) {
+
+            throw new Error(
+                json.erro
+            );
+
+        }
+
+
+        dadosHistorico =
+            json.dados || [];
+
+
+        if (
+            dadosHistorico.length > 0
+        ) {
+
+            atualizarDadosAtuais();
+
+            atualizarListaFornos();
+
+            atualizarGrafico();
+
+            atualizarHistorico();
+
+        }
+
+
     }
 
-    atualizarInterface(json.dados);
+    catch (erro) {
 
-  }
+        console.error(
+            "Erro ao carregar dados:",
+            erro
+        );
 
-  catch (erro) {
 
-    console.error(erro);
+        mostrarErroConexao();
 
-    document.getElementById(
-      "statusText"
-    ).innerText =
-      "Erro de conexão";
-
-  }
+    }
 
 }
 
-// =====================================================
-// ATUALIZAR INTERFACE
-// =====================================================
 
-function atualizarInterface(dados) {
+/* =========================================================
+   ATUALIZAR DADOS ATUAIS
+========================================================= */
 
-  if (!dados || dados.length === 0) {
+function atualizarDadosAtuais() {
 
-    return;
-  }
 
-  const ultimo =
-    dados[dados.length - 1];
+    if (
+        !dadosHistorico.length
+    ) {
 
-  // -----------------------------------------------
-  // TEMPERATURA
-  // -----------------------------------------------
+        return;
 
-  document.getElementById("ch1")
-    .innerText =
-    ultimo.ch1;
+    }
 
-  document.getElementById("ch2")
-    .innerText =
-    ultimo.ch2;
 
-  // -----------------------------------------------
-  // DATA
-  // -----------------------------------------------
+    const ultimo =
+        dadosHistorico[
+            dadosHistorico.length - 1
+        ];
 
-  const data =
-    new Date(ultimo.timestamp);
 
-  document.getElementById(
-    "lastUpdate"
-  ).innerText =
-    data.toLocaleTimeString(
-      "pt-BR"
-    );
+    ultimaLeitura =
+        new Date(
+            ultimo.timestamp
+        );
 
-  // -----------------------------------------------
-  // RSSI
-  // -----------------------------------------------
 
-  document.getElementById(
-    "rssi"
-  ).innerText =
-    ultimo.rssi + " dBm";
+    const temperatura =
+        Number(
+            ultimo.ch1
+        );
 
-  // -----------------------------------------------
-  // STATUS
-  // -----------------------------------------------
 
-  verificarOnline(data);
+    /* -------------------------------------------
+       LISTA
+    ------------------------------------------- */
 
-  // -----------------------------------------------
-  // GRÁFICO
-  // -----------------------------------------------
+    document
+        .getElementById(
+            "detailTemperature"
+        )
+        .innerHTML =
 
-  const ultimos =
-    dados.slice(-50);
+        temperatura +
+        ' <span>°C</span>';
 
-  const labels =
-    ultimos.map(item => {
 
-      return new Date(
-        item.timestamp
-      ).toLocaleTimeString(
-        "pt-BR",
-        {
-          hour: "2-digit",
-          minute: "2-digit"
-        }
-      );
+    document
+        .getElementById(
+            "gaugeTemperature"
+        )
+        .innerText =
+        temperatura +
+        "°C";
 
-    });
 
-  chart.data.labels =
-    labels;
+    document
+        .getElementById(
+            "detailMeta"
+        )
+        .innerText =
+        metaTemperatura +
+        "°C";
 
-  chart.data.datasets[0].data =
-    ultimos.map(
-      item => item.ch1
-    );
 
-  chart.data.datasets[1].data =
-    ultimos.map(
-      item => item.ch2
-    );
+    /* -------------------------------------------
+       STATUS
+    ------------------------------------------- */
 
-  chart.update();
+    const agora =
+        new Date();
 
-  // -----------------------------------------------
-  // HISTÓRICO
-  // -----------------------------------------------
 
-  montarHistorico(
-    dados.slice(-10).reverse()
-  );
+    const segundos =
+        Math.max(
+            0,
+            Math.round(
+                (
+                    agora -
+                    ultimaLeitura
+                ) / 1000
+            )
+        );
+
+
+    document
+        .getElementById(
+            "secondsAgo"
+        )
+        .innerText =
+        segundos;
+
+
+    const online =
+        segundos <= 15;
+
+
+    const status =
+        document.getElementById(
+            "detailStatus"
+        );
+
+
+    const dot =
+        document.getElementById(
+            "detailStatusDot"
+        );
+
+
+    if (online) {
+
+        status.innerText =
+            "Em operação";
+
+        status.style.color =
+            "var(--green)";
+
+        dot.className =
+            "status-dot online";
+
+    }
+
+    else {
+
+        status.innerText =
+            "Offline";
+
+        status.style.color =
+            "var(--red)";
+
+        dot.className =
+            "status-dot offline";
+
+    }
+
 
 }
 
-// =====================================================
-// VERIFICAR ONLINE
-// =====================================================
 
-function verificarOnline(data) {
+/* =========================================================
+   LISTA DE FORNOS
+========================================================= */
 
-  const agora =
-    new Date();
+function atualizarListaFornos() {
 
-  const diferenca =
-    (agora - data) / 1000;
 
-  const online =
-    diferenca <= 15;
+    if (
+        !dadosHistorico.length
+    ) {
 
-  const dot =
-    document.getElementById(
-      "statusDot"
-    );
+        return;
 
-  const texto =
-    document.getElementById(
-      "statusText"
-    );
+    }
 
-  if (online) {
 
-    dot.classList.add(
-      "online"
-    );
+    const ultimo =
+        dadosHistorico[
+            dadosHistorico.length - 1
+        ];
 
-    texto.innerText =
-      "ONLINE";
 
-  }
+    const ch1 =
+        Number(
+            ultimo.ch1
+        );
 
-  else {
 
-    dot.classList.remove(
-      "online"
-    );
+    const ch2 =
+        Number(
+            ultimo.ch2
+        );
 
-    texto.innerText =
-      "OFFLINE";
-
-  }
-
-  document.getElementById(
-    "updateStatus"
-  ).innerText =
-    Math.round(diferenca) +
-    " s atrás";
-}
-
-// =====================================================
-// HISTÓRICO
-// =====================================================
-
-function montarHistorico(dados) {
-
-  const lista =
-    document.getElementById(
-      "historyList"
-    );
-
-  lista.innerHTML = "";
-
-  dados.forEach(item => {
 
     const data =
-      new Date(item.timestamp);
+        new Date(
+            ultimo.timestamp
+        );
 
-    const hora =
-      data.toLocaleTimeString(
-        "pt-BR"
-      );
 
-    const linha =
-      document.createElement(
-        "div"
-      );
+    const segundos =
+        Math.round(
+            (
+                new Date() -
+                data
+            ) / 1000
+        );
 
-    linha.className =
-      "history-row";
 
-    linha.innerHTML = `
+    const online =
+        segundos <= 15;
 
-      <div>
-        ${hora}
-      </div>
 
-      <div>
-        ${item.ch1} °C
-      </div>
+    const lista =
+        document.getElementById(
+            "listaFornos"
+        );
 
-      <div>
-        ${item.ch2} °C
-      </div>
+
+    lista.innerHTML = `
+
+        <div
+            class="oven-card"
+            onclick="abrirForno()"
+        >
+
+            <div class="oven-card-top">
+
+                <div class="oven-name">
+
+                    ${nomeForno}
+
+                </div>
+
+                <div class="oven-status">
+
+                    <span
+                        class="status-dot ${
+                            online
+                            ? "online"
+                            : "offline"
+                        }"
+                    ></span>
+
+                    ${
+                        online
+                        ? "Em operação"
+                        : "Offline"
+                    }
+
+                </div>
+
+            </div>
+
+
+            <div class="oven-main">
+
+                <div>
+
+                    <div class="oven-temperature">
+
+                        ${ch1}
+
+                        <small>°C</small>
+
+                    </div>
+
+                    <div class="oven-label">
+
+                        Temp. atual
+
+                    </div>
+
+                </div>
+
+
+                <div class="mini-chart">
+
+                    <canvas
+                        id="miniChart"
+                    ></canvas>
+
+                </div>
+
+            </div>
+
+
+            <div class="oven-meta">
+
+                <span>
+
+                    Meta:
+                    ${metaTemperatura}°C
+
+                </span>
+
+                <span>
+
+                    Atualizado há
+                    ${Math.max(0,segundos)}s
+
+                </span>
+
+            </div>
+
+        </div>
 
     `;
 
-    lista.appendChild(
-      linha
-    );
 
-  });
+    criarMiniGrafico();
+
 }
 
-// =====================================================
-// INICIALIZAÇÃO
-// =====================================================
 
-criarGrafico();
+/* =========================================================
+   MINI GRÁFICO
+========================================================= */
 
-carregarDados();
+function criarMiniGrafico() {
 
-// Atualiza a cada 5 segundos
+
+    const canvas =
+        document.getElementById(
+            "miniChart"
+        );
+
+
+    if (!canvas) {
+
+        return;
+
+    }
+
+
+    const ultimos =
+        dadosHistorico.slice(
+            -20
+        );
+
+
+    new Chart(
+        canvas,
+        {
+
+            type:
+                "line",
+
+            data: {
+
+                labels:
+                    ultimos.map(
+                        () => ""
+                    ),
+
+                datasets: [
+
+                    {
+
+                        data:
+                            ultimos.map(
+                                d =>
+                                Number(
+                                    d.ch1
+                                )
+                            ),
+
+                        borderColor:
+                            "#f47b20",
+
+                        backgroundColor:
+                            "rgba(244,123,32,.10)",
+
+                        borderWidth:
+                            2,
+
+                        fill:
+                            true,
+
+                        tension:
+                            .4,
+
+                        pointRadius:
+                            0
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive:
+                    true,
+
+                maintainAspectRatio:
+                    false,
+
+                plugins: {
+
+                    legend: {
+
+                        display:
+                            false
+
+                    }
+
+                },
+
+                scales: {
+
+                    x: {
+
+                        display:
+                            false
+
+                    },
+
+                    y: {
+
+                        display:
+                            false
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    );
+
+}
+
+
+/* =========================================================
+   GRÁFICO PRINCIPAL
+========================================================= */
+
+function atualizarGrafico() {
+
+
+    const canvas =
+        document.getElementById(
+            "temperatureChart"
+        );
+
+
+    if (!canvas) {
+
+        return;
+
+    }
+
+
+    const ultimos =
+        dadosHistorico.slice(
+            -50
+        );
+
+
+    const labels =
+        ultimos.map(
+            item => {
+
+                return new Date(
+                    item.timestamp
+                ).toLocaleTimeString(
+                    "pt-BR",
+                    {
+                        hour:
+                            "2-digit",
+
+                        minute:
+                            "2-digit"
+                    }
+                );
+
+            }
+        );
+
+
+    const ch1 =
+        ultimos.map(
+            item =>
+            Number(
+                item.ch1
+            )
+        );
+
+
+    const ch2 =
+        ultimos.map(
+            item =>
+            Number(
+                item.ch2
+            )
+        );
+
+
+    if (chart) {
+
+        chart.destroy();
+
+    }
+
+
+    chart =
+        new Chart(
+            canvas,
+            {
+
+                type:
+                    "line",
+
+                data: {
+
+                    labels:
+                        labels,
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Canal Superior",
+
+                            data:
+                                ch1,
+
+                            borderColor:
+                                "#f47b20",
+
+                            backgroundColor:
+                                "rgba(244,123,32,.08)",
+
+                            borderWidth:
+                                2,
+
+                            fill:
+                                true,
+
+                            tension:
+                                .35,
+
+                            pointRadius:
+                                2,
+
+                            pointBackgroundColor:
+                                "#f47b20"
+
+                        },
+
+                        {
+
+                            label:
+                                "Canal Inferior",
+
+                            data:
+                                ch2,
+
+                            borderColor:
+                                "#5ba6d5",
+
+                            backgroundColor:
+                                "transparent",
+
+                            borderWidth:
+                                2,
+
+                            fill:
+                                false,
+
+                            tension:
+                                .35,
+
+                            pointRadius:
+                                2,
+
+                            pointBackgroundColor:
+                                "#5ba6d5"
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+
+                    responsive:
+                        true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    interaction: {
+
+                        intersect:
+                            false,
+
+                        mode:
+                            "index"
+
+                    },
+
+
+                    plugins: {
+
+                        legend: {
+
+                            labels: {
+
+                                color:
+                                    "#c6d5dd",
+
+                                font: {
+
+                                    size:
+                                        10
+
+                                }
+
+                            }
+
+                        }
+
+                    },
+
+
+                    scales: {
+
+                        x: {
+
+                            ticks: {
+
+                                color:
+                                    "#78909c",
+
+                                maxTicksLimit:
+                                    6,
+
+                                font: {
+
+                                    size:
+                                        9
+
+                                }
+
+                            },
+
+                            grid: {
+
+                                color:
+                                    "rgba(255,255,255,.04)"
+
+                            }
+
+                        },
+
+
+                        y: {
+
+                            ticks: {
+
+                                color:
+                                    "#78909c",
+
+                                font: {
+
+                                    size:
+                                        9
+
+                                }
+
+                            },
+
+                            grid: {
+
+                                color:
+                                    "rgba(255,255,255,.04)"
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        );
+
+
+    calcularEstatisticas(
+        ultimos
+    );
+
+}
+
+
+/* =========================================================
+   ESTATÍSTICAS
+========================================================= */
+
+function calcularEstatisticas(
+    dados
+) {
+
+
+    if (
+        !dados ||
+        !dados.length
+    ) {
+
+        return;
+
+    }
+
+
+    const valores =
+        dados.map(
+            d =>
+            Number(
+                d.ch1
+            )
+        );
+
+
+    const max =
+        Math.max(
+            ...valores
+        );
+
+
+    const min =
+        Math.min(
+            ...valores
+        );
+
+
+    const media =
+        valores.reduce(
+            (a,b) =>
+            a + b,
+            0
+        ) /
+        valores.length;
+
+
+    document
+        .getElementById(
+            "maxTemp"
+        )
+        .innerText =
+        Math.round(max) +
+        "°C";
+
+
+    document
+        .getElementById(
+            "minTemp"
+        )
+        .innerText =
+        Math.round(min) +
+        "°C";
+
+
+    document
+        .getElementById(
+            "avgTemp"
+        )
+        .innerText =
+        Math.round(media) +
+        "°C";
+
+
+    document
+        .getElementById(
+            "totalTime"
+        )
+        .innerText =
+        calcularTempo(dados);
+
+}
+
+
+/* =========================================================
+   CALCULAR TEMPO
+========================================================= */
+
+function calcularTempo(
+    dados
+) {
+
+
+    if (
+        dados.length < 2
+    ) {
+
+        return "00:00:00";
+
+    }
+
+
+    const inicio =
+        new Date(
+            dados[0].timestamp
+        );
+
+
+    const fim =
+        new Date(
+            dados[
+                dados.length - 1
+            ].timestamp
+        );
+
+
+    let segundos =
+        Math.floor(
+            (
+                fim -
+                inicio
+            ) / 1000
+        );
+
+
+    if (
+        segundos < 0
+    ) {
+
+        segundos = 0;
+
+    }
+
+
+    const horas =
+        Math.floor(
+            segundos / 3600
+        );
+
+
+    segundos %=
+        3600;
+
+
+    const minutos =
+        Math.floor(
+            segundos / 60
+        );
+
+
+    segundos %=
+        60;
+
+
+    return (
+
+        String(horas)
+            .padStart(2,"0")
+        +
+        ":"
+        +
+        String(minutos)
+            .padStart(2,"0")
+        +
+        ":"
+        +
+        String(segundos)
+            .padStart(2,"0")
+
+    );
+
+}
+
+
+/* =========================================================
+   HISTÓRICO
+========================================================= */
+
+function atualizarHistorico() {
+
+
+    const container =
+        document.getElementById(
+            "historyList"
+        );
+
+
+    if (
+        !dadosHistorico.length
+    ) {
+
+        container.innerHTML = `
+
+            <div class="loading">
+
+                Nenhum dado disponível.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    const dados =
+        dadosHistorico
+            .slice(-20)
+            .reverse();
+
+
+    container.innerHTML = "";
+
+
+    dados.forEach(
+        item => {
+
+
+            const data =
+                new Date(
+                    item.timestamp
+                );
+
+
+            const hora =
+                data.toLocaleTimeString(
+                    "pt-BR"
+                );
+
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "history-card";
+
+
+            card.innerHTML = `
+
+                <div class="history-date">
+
+                    <strong>
+
+                        ${data.toLocaleDateString(
+                            "pt-BR"
+                        )}
+
+                    </strong>
+
+                    <span
+                        class="history-time"
+                    >
+
+                        ${hora}
+
+                    </span>
+
+                </div>
+
+
+                <div class="history-values">
+
+                    <div>
+
+                        <small
+                            style="
+                                color:#8499a6;
+                                font-size:9px;
+                                display:block;
+                            "
+                        >
+
+                            SUPERIOR
+
+                        </small>
+
+                        <span
+                            class="history-value"
+                        >
+
+                            ${item.ch1}°C
+
+                        </span>
+
+                    </div>
+
+
+                    <div>
+
+                        <small
+                            style="
+                                color:#8499a6;
+                                font-size:9px;
+                                display:block;
+                            "
+                        >
+
+                            INFERIOR
+
+                        </small>
+
+                        <span
+                            class="history-value"
+                            style="
+                                color:#5ba6d5;
+                            "
+                        >
+
+                            ${item.ch2}°C
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            `;
+
+
+            container.appendChild(
+                card
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CARREGAR HISTÓRICO
+========================================================= */
+
+async function carregarHistorico() {
+
+    await carregarDados();
+
+}
+
+
+/* =========================================================
+   HISTÓRICO GERAL
+========================================================= */
+
+function abrirHistoricoGeral() {
+
+
+    mostrarTela(
+        "fornos"
+    );
+
+
+    setTimeout(
+        () => {
+
+            abrirForno();
+
+            trocarAba(
+                "historico"
+            );
+
+        },
+        100
+    );
+
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function abrirModalForno() {
+
+    document
+        .getElementById(
+            "ovenModal"
+        )
+        .classList.add(
+            "active"
+        );
+
+}
+
+
+function fecharModalFora(
+    event
+) {
+
+    if (
+        event.target.id ===
+        "ovenModal"
+    ) {
+
+        fecharModal();
+
+    }
+
+}
+
+
+function fecharModal() {
+
+    document
+        .getElementById(
+            "ovenModal"
+        )
+        .classList.remove(
+            "active"
+        );
+
+}
+
+
+/* =========================================================
+   SALVAR FORNO
+========================================================= */
+
+function salvarForno() {
+
+
+    const nome =
+        document
+            .getElementById(
+                "ovenNameInput"
+            )
+            .value
+            .trim();
+
+
+    const meta =
+        Number(
+            document
+                .getElementById(
+                    "ovenTargetInput"
+                )
+                .value
+        );
+
+
+    if (nome) {
+
+        nomeForno =
+            nome;
+
+    }
+
+
+    if (
+        meta > 0
+    ) {
+
+        metaTemperatura =
+            meta;
+
+    }
+
+
+    localStorage.setItem(
+        "nomeForno",
+        nomeForno
+    );
+
+
+    localStorage.setItem(
+        "metaTemperatura",
+        metaTemperatura
+    );
+
+
+    fecharModal();
+
+
+    atualizarListaFornos();
+
+
+    document
+        .getElementById(
+            "pageTitle"
+        )
+        .innerText =
+        "Meus Fornos";
+
+}
+
+
+/* =========================================================
+   CARREGAR CONFIGURAÇÕES LOCAIS
+========================================================= */
+
+function carregarConfiguracoes() {
+
+
+    const nomeSalvo =
+        localStorage.getItem(
+            "nomeForno"
+        );
+
+
+    const metaSalva =
+        localStorage.getItem(
+            "metaTemperatura"
+        );
+
+
+    if (nomeSalvo) {
+
+        nomeForno =
+            nomeSalvo;
+
+    }
+
+
+    if (metaSalva) {
+
+        metaTemperatura =
+            Number(
+                metaSalva
+            );
+
+    }
+
+}
+
+
+/* =========================================================
+   ERRO DE CONEXÃO
+========================================================= */
+
+function mostrarErroConexao() {
+
+
+    const lista =
+        document.getElementById(
+            "listaFornos"
+        );
+
+
+    lista.innerHTML = `
+
+        <div class="oven-card">
+
+            <div class="oven-card-top">
+
+                <div class="oven-name">
+
+                    ${nomeForno}
+
+                </div>
+
+                <div class="oven-status">
+
+                    <span
+                        class="status-dot offline"
+                    ></span>
+
+                    Offline
+
+                </div>
+
+            </div>
+
+
+            <div
+                style="
+                    padding:25px 0;
+                    text-align:center;
+                    color:#8da3b1;
+                    font-size:12px;
+                "
+            >
+
+                Não foi possível obter os dados
+                do equipamento.
+
+                <br><br>
+
+                Verifique a conexão do ESP8266.
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   MENU
+========================================================= */
+
+function mostrarMenu() {
+
+    mostrarTela(
+        "fornos"
+    );
+
+}
+
+
+/* =========================================================
+   ATUALIZAÇÃO AUTOMÁTICA
+========================================================= */
 
 setInterval(
-  carregarDados,
-  5000
+    () => {
+
+        if (
+            aplicativoIniciado
+        ) {
+
+            carregarDados();
+
+        }
+
+    },
+    5000
 );
 
+
+/* =========================================================
+   ATUALIZAR STATUS A CADA SEGUNDO
+========================================================= */
+
+setInterval(
+    () => {
+
+        if (
+            ultimaLeitura
+        ) {
+
+            const agora =
+                new Date();
+
+
+            const segundos =
+                Math.round(
+                    (
+                        agora -
+                        ultimaLeitura
+                    ) / 1000
+                );
+
+
+            const elemento =
+                document.getElementById(
+                    "secondsAgo"
+                );
+
+
+            if (elemento) {
+
+                elemento.innerText =
+                    Math.max(
+                        0,
+                        segundos
+                    );
+
+            }
+
+        }
+
+    },
+    1000
+);
+
+
+/* =========================================================
+   INICIALIZAÇÃO
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        carregarConfiguracoes();
+
+    }
+);
+
+
 </script>
+
 
 </body>
 

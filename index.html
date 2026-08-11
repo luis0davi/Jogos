@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitor de Fornos</title>
+  <meta name="description" content="Protótipo de monitoramento de temperatura para fornos de cerâmica.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">🔥</div>
+        <div><strong>MONITOR</strong><span>DE FORNOS</span></div>
+      </div>
+      <nav>
+        <button class="nav-btn active" data-screen="dashboard">▦ <span>Fornos</span></button>
+        <button class="nav-btn" data-screen="history">◷ <span>Histórico</span></button>
+        <button class="nav-btn" data-screen="alerts">⚠ <span>Alertas</span></button>
+        <button class="nav-btn" data-screen="settings">⚙ <span>Configurações</span></button>
+      </nav>
+      <div class="connection">
+        <span class="dot"></span>
+        <div><b>Modo protótipo</b><small>Dados simulados</small></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">CONTROLE DE TEMPERATURA</p>
+          <h1 id="page-title">Meus Fornos</h1>
+        </div>
+        <div class="top-actions">
+          <span id="last-update">Atualizado agora</span>
+          <button class="icon-btn" id="refresh-btn" title="Atualizar">↻</button>
+          <button class="profile">MF</button>
+        </div>
+      </header>
+
+      <section id="screen-dashboard" class="screen active">
+        <div class="hero-card">
+          <div>
+            <p class="eyebrow">VISÃO GERAL</p>
+            <h2>Seus fornos em tempo real</h2>
+            <p>Acompanhe temperatura, meta, status e evolução dos ciclos em um só lugar.</p>
+          </div>
+          <button class="primary" id="simulate-btn">Simular leitura</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><span>Em operação</span><strong id="stat-running">2</strong></div>
+          <div class="stat"><span>Temperatura média</span><strong id="stat-avg">—</strong></div>
+          <div class="stat"><span>Alertas ativos</span><strong id="stat-alerts">1</strong></div>
+        </div>
+
+        <div class="section-head">
+          <div><h3>Fornos</h3><p>Selecione um forno para abrir o monitor detalhado.</p></div>
+          <button class="secondary" id="add-oven-btn">+ Adicionar forno</button>
+        </div>
+        <div id="oven-grid" class="oven-grid"></div>
+      </section>
+
+      <section id="screen-detail" class="screen">
+        <button class="back-btn" id="back-dashboard">← Voltar para fornos</button>
+        <div id="detail-content"></div>
+      </section>
+
+      <section id="screen-history" class="screen">
+        <div class="section-head"><div><h3>Histórico</h3><p>Ciclos e temperaturas registradas.</p></div></div>
+        <div class="panel">
+          <div class="filters"><select id="history-oven"></select><select><option>Últimos 7 dias</option><option>Últimos 30 dias</option></select></div>
+          <div id="history-table"></div>
+        </div>
+      </section>
+
+      <section id="screen-alerts" class="screen">
+        <div class="section-head"><div><h3>Alertas</h3><p>Eventos que precisam da sua atenção.</p></div></div>
+        <div id="alerts-list" class="alerts-list"></div>
+      </section>
+
+      <section id="screen-settings" class="screen">
+        <div class="section-head"><div><h3>Configurações</h3><p>Conexão, unidades e limites.</p></div></div>
+        <div class="settings-grid">
+          <div class="panel">
+            <h4>Conexão de dados</h4>
+            <label>URL da API / Google Apps Script</label>
+            <input id="api-url" placeholder="https://script.google.com/macros/s/.../exec">
+            <small>Deixe vazio para usar o modo protótipo.</small>
+            <button class="primary full" id="save-api">Salvar conexão</button>
+          </div>
+          <div class="panel">
+            <h4>Preferências</h4>
+            <label>Unidade</label>
+            <select><option>°C — Celsius</option><option>°F — Fahrenheit</option></select>
+            <label class="check"><input type="checkbox" checked> Notificar temperatura alta</label>
+            <label class="check"><input type="checkbox" checked> Notificar perda de conexão</label>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <button class="close" id="close-modal">×</button>
+      <h3>Adicionar forno</h3>
+      <p>Crie um forno para testar a interface antes de conectar o ESP8266.</p>
+      <input id="new-name" placeholder="Ex.: Forno 4">
+      <input id="new-target" type="number" placeholder="Meta °C">
+      <button class="primary full" id="create-oven">Criar forno</button>
+    </div>
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>

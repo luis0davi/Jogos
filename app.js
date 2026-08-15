@@ -5,7 +5,7 @@
 // COLE ABAIXO A SUA CHAVE ANON/PUBLISHABLE.
 // Nunca coloque a service_role key em um site público.
 const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co";
-const SUPABASE_ANON_KEY = "COLE_SUA_CHAVE_ANON_AQUI";
+const SUPABASE_ANON_KEY = "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
 
 const { createClient } = window.supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

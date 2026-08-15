@@ -1,5 +1,5 @@
 // ======================================================
-// THERMOLINK COM AUTENTICAÇÃO, ALARMES, GRÁFICO DUPLO E 3D
+// THERMOLINK COM ALARMES, GRÁFICO DUPLO E FORNO 3D
 // ======================================================
 
 const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co";
@@ -15,15 +15,14 @@ const state = {
     selectedModule: null,
     chart: null,
     miniCharts: [],
-    alarms: {}, // Guarda configs por modulo ex: { 1: { t1Min: 0, t1Max: 800, ... } }
+    alarms: {}, // Guarda configs por modulo: { 1: { t1Min: 100, t1Max: 900, ... } }
     audioCtx: null,
-    alarmInterval: null,
     isMuted: false,
     three: {
         scene: null,
         camera: null,
         renderer: null,
-        ovenMesh: null,
+        ovenGroup: null,
         fireLight: null,
         animId: null
     }
@@ -61,52 +60,6 @@ function ovenName(module) {
 }
 
 // ======================================================
-// LOGIN E AUTENTICAÇÃO (SUPABASE AUTH)
-// ======================================================
-
-async function checkAuth() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-        showApp();
-    } else {
-        showLogin();
-    }
-}
-
-function showLogin() {
-    $("loginView").classList.remove("hidden");
-    $("mainApp").classList.add("hidden");
-}
-
-function showApp() {
-    $("loginView").classList.add("hidden");
-    $("mainApp").classList.remove("hidden");
-    initApp();
-}
-
-$("loginForm").onsubmit = async (e) => {
-    e.preventDefault();
-    $("loginError").classList.add("hidden");
-
-    const email = $("loginEmail").value;
-    const password = $("loginPassword").value;
-
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-
-    if (error) {
-        $("loginError").textContent = "Erro ao entrar: " + error.message;
-        $("loginError").classList.remove("hidden");
-    } else {
-        showApp();
-    }
-};
-
-$("logoutBtn").onclick = async () => {
-    await sb.auth.signOut();
-    showLogin();
-};
-
-// ======================================================
 // SISTEMA DE ALARMES E ÁUDIO
 // ======================================================
 
@@ -131,7 +84,7 @@ function playBeep() {
         osc.start();
         osc.stop(state.audioCtx.currentTime + 0.3);
     } catch (e) {
-        console.warn("Áudio não permitido ainda:", e);
+        console.warn("Áudio requer interação prévia:", e);
     }
 }
 
@@ -185,7 +138,7 @@ $("saveAlarmsBtn").onclick = () => {
     };
 
     alert("Configurações de alarme salvas!");
-    initAudio(); // Ativa contexto de áudio com interação
+    initAudio();
 };
 
 $("muteAlarmBtn").onclick = () => {
@@ -213,27 +166,25 @@ function setup3DOven() {
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    // Luz ambiente
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    // Forno (Estrutura Cilíndrica Cerâmica/Tijolo)
     const ovenGroup = new THREE.Group();
 
-    // Parede Externa (Forno)
+    // Parede de Tijolo/Cerâmica do Forno
     const geometry = new THREE.CylinderGeometry(1.2, 1.4, 2, 16);
-    const material = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.9 }); // Cor tijolo/cerâmica
+    const material = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.9 });
     const ovenMesh = new THREE.Mesh(geometry, material);
     ovenGroup.add(ovenMesh);
 
-    // Abertura do Forno (Porta)
+    // Porta de Entrada do Forno
     const doorGeo = new THREE.BoxGeometry(0.8, 0.9, 0.2);
     const doorMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
     const door = new THREE.Mesh(doorGeo, doorMat);
     door.position.set(0, -0.2, 1.15);
     ovenGroup.add(door);
 
-    // Luz Interna (Simula o Fogo/Calor)
+    // Luz de Fogo/Aquecimento Interno
     const fireLight = new THREE.PointLight(0xff641f, 0, 5);
     fireLight.position.set(0, -0.2, 0.8);
     ovenGroup.add(fireLight);
@@ -244,7 +195,7 @@ function setup3DOven() {
 
     function animate() {
         state.three.animId = requestAnimationFrame(animate);
-        ovenGroup.rotation.y += 0.005; // Rotação lenta
+        ovenGroup.rotation.y += 0.005;
         renderer.render(scene, camera);
     }
     animate();
@@ -254,11 +205,9 @@ function update3DOvenTemp(temp) {
     if (!state.three.fireLight) return;
     const value = numberValue(temp) || 0;
 
-    // Intensidade proporcional à temperatura (ex: até 1000°C)
     const intensity = Math.min(value / 100, 10);
     state.three.fireLight.intensity = intensity;
 
-    // Cor muda de laranja escuro para amarelo/branco de acordo com a alta temperatura
     if (value > 600) {
         state.three.fireLight.color.setHex(0xffa500);
     } else if (value > 900) {
@@ -269,7 +218,7 @@ function update3DOvenTemp(temp) {
 }
 
 // ======================================================
-// LÓGICA DE CARREGAMENTO E HOME
+// LEITURA DE FORNOS E TELA PRINCIPAL
 // ======================================================
 
 async function loadOvens() {
@@ -426,14 +375,14 @@ async function openDetail(module) {
     $("pModulo").textContent = module;
     $("pHora").textContent = time(reading?.created_at);
 
-    // Preenche Inputs de Alarme
+    // Inputs do Alarme
     const cfg = state.alarms[module] || {};
     $("alarmT1Min").value = cfg.t1Min ?? "";
     $("alarmT1Max").value = cfg.t1Max ?? "";
     $("alarmT2Min").value = cfg.t2Min ?? "";
     $("alarmT2Max").value = cfg.t2Max ?? "";
 
-    // Inicializa 3D
+    // Renderiza 3D
     setup3DOven();
     update3DOvenTemp(reading?.canal_1);
 
@@ -456,7 +405,7 @@ async function openDetail(module) {
     if (state.chart) state.chart.destroy();
     if (!rows.length) return;
 
-    // GRÁFICO DUPLO (CANAL 1 E CANAL 2)
+    // GRÁFICO DUPLO
     state.chart = new Chart($("detailChart"), {
         type: "line",
         data: {
@@ -538,7 +487,7 @@ $("homeNav").onclick = closeDetail;
 
 setInterval(loadLatest, 12000);
 
-async function initApp() {
+async function init() {
     try {
         await loadOvens();
         await loadLatest();
@@ -547,5 +496,4 @@ async function initApp() {
     }
 }
 
-// Ponto de entrada: checa se usuário já está logado
-checkAuth();
+init();

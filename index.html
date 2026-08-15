@@ -1,213 +1,62 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel ThermoLink - Monitoramento de Fornos</title>
-    
-    <!-- Biblioteca Oficial do Supabase via CDN -->
-    <script src="https://jsdelivr.net"></script>
-    
-    <style>
-        :root {
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --primary: #e65100; /* Laranja Industrial / Forno */
-            --border-color: #e0e0e0;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 3px solid var(--primary);
-            padding-bottom: 10px;
-        }
-
-        header h1 {
-            margin: 0;
-            color: var(--primary);
-        }
-
-        .status-container {
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        /* Grade onde os cartões dos fornos vão se alinhar sozinhos */
-        .grid-fornos {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* Estilo do Cartão de cada Forno */
-        .card-forno {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            text-align: center;
-            transition: transform 0.2s;
-        }
-
-        .card-forno:hover {
-            transform: translateY(-5px);
-            border-color: var(--primary);
-        }
-
-        .card-forno h3 {
-            margin: 0 0 10px 0;
-            background-color: var(--primary);
-            color: white;
-            padding: 5px;
-            border-radius: 4px;
-        }
-
-        .temperatura-linha {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 10px;
-            font-size: 1.1em;
-        }
-
-        .label {
-            font-weight: 500;
-            color: #666;
-        }
-
-        .valor {
-            font-weight: bold;
-            color: #111;
-        }
-
-        .timestamp {
-            font-size: 0.8em;
-            color: #999;
-            margin-top: 10px;
-            display: block;
-        }
-
-        .erro {
-            color: red;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>Monitor de Fornos</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header class="topbar">
+    <div>
+      <div class="brand">🔥 MONITOR DE FORNOS</div>
+      <div id="companyName" class="company-name">Carregando empresa...</div>
+    </div>
+    <div class="connection">
+      <span id="connectionDot" class="dot offline"></span>
+      <span id="connectionText">Conectando...</span>
+    </div>
+  </header>
 
-    <header>
-        <h1>🔥 Sistema ThermoLink V2</h1>
-        <p>Monitoramento em Tempo Real - Parque de Fornos</p>
-    </header>
+  <main class="container">
+    <section class="summary">
+      <div class="summary-card">
+        <span>Fornos ativos</span>
+        <strong id="totalFornos">0</strong>
+      </div>
+      <div class="summary-card online">
+        <span>Online</span>
+        <strong id="onlineFornos">0</strong>
+      </div>
+      <div class="summary-card offline-card">
+        <span>Offline</span>
+        <strong id="offlineFornos">0</strong>
+      </div>
+      <div class="summary-card">
+        <span>Última atualização</span>
+        <strong id="lastUpdate">--:--:--</strong>
+      </div>
+    </section>
 
-    <div class="status-container" id="status-conexao">
-        🔄 Conectando ao banco de dados Supabase...
+    <div class="toolbar">
+      <div>
+        <h1>Monitoramento</h1>
+        <p>Temperatura atual dos fornos e seus canais.</p>
+      </div>
+      <button id="refreshButton" type="button">↻ Atualizar</button>
     </div>
 
-    <!-- Os cartões dos fornos de 1 a 31 vão aparecer aqui dentro -->
-    <div class="grid-fornos" id="container-fornos"></div>
+    <div id="statusMessage" class="status-message"></div>
+    <section id="ovensGrid" class="ovens-grid"></section>
+  </main>
 
-    <script>
-        // ============================================================
-        // CONFIGURAÇÕES DO SEU SUPABASE (Buscadas do seu código do ESP)
-        // ============================================================
-        const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
+  <footer>
+    Monitor de Fornos • GitHub Pages + Supabase
+  </footer>
 
-        // Inicializa o cliente do Supabase
-        const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // Função que busca os dados da tabela e renderiza na tela
-        async function atualizarPainel() {
-            const statusDiv = document.getElementById('status-conexao');
-            const container = document.getElementById('container-fornos');
-
-            try {
-                // Query RPC ou busca direta filtrando os registros mais recentes.
-                // Como queremos a última leitura de cada forno, ordenamos por ID decrescente criado_em
-                const { data, error } = await supabase
-                    .from('leituras')
-                    .select('forno_id, canal_1, canal_2, created_at')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-
-                // Mapeia os dados para guardar apenas o registro MAIS RECENTE de cada forno
-                const ultimasLeituras = {};
-                data.forEach(leitura => {
-                    const idForno = leitura.forno_id;
-                    if (!ultimasLeituras[idForno]) {
-                        ultimasLeituras[idForno] = leitura;
-                    }
-                });
-
-                // Limpa o container antes de desenhar os cartões atualizados
-                container.innerHTML = "";
-
-                // Gera os cartões do Forno 1 até o 31 na tela de forma ordenada
-                for (let i = 1; i <= 31; i++) {
-                    const dadosForno = ultimasLeituras[i];
-                    
-                    const card = document.createElement('div');
-                    card.className = 'card-forno';
-
-                    if (dadosForno) {
-                        // Se o forno enviou dados recentemente, formata a hora
-                        const dataHora = new Date(dadosForno.created_at).toLocaleTimeString('pt-BR');
-                        
-                        card.innerHTML = `
-                            <h3>Forno ${i}</h3>
-                            <div class="temperatura-linha">
-                                <span class="label">Sup. (C1):</span>
-                                <span class="valor">${dadosForno.canal_1} °C</span>
-                            </div>
-                            <div class="temperatura-linha">
-                                <span class="label">Inf. (C2):</span>
-                                <span class="valor">${dadosForno.canal_2} °C</span>
-                            </div>
-                            <span class="timestamp">Atualizado às ${dataHora}</span>
-                        `;
-                    } else {
-                        // Se o forno nunca mandou nada ou está desligado na rede RS485
-                        card.innerHTML = `
-                            <h3 style="background-color: #777;">Forno ${i}</h3>
-                            <div style="color: #999; margin: 20px 0;">🚫 Desconectado</div>
-                            <span class="timestamp">—</span>
-                        `;
-                    }
-
-                    container.appendChild(card);
-                }
-
-                const agora = new Date().toLocaleTimeString('pt-BR');
-                statusDiv.innerHTML = `🟢 Dados atualizados com sucesso às ${agora}. Próxima atualização em 10s.`;
-                statusDiv.style.color = "green";
-
-            } catch (err) {
-                console.error("Erro ao carregar dados:", err);
-                statusDiv.innerHTML = `🔴 Erro ao conectar com o Supabase: ${err.message}`;
-                statusDiv.style.color = "red";
-            }
-        }
-
-        // Executa a primeira carga assim que abre a página
-        atualizarPainel();
-
-        // Atualiza a tela automaticamente a cada 10 segundos para pegar os envios do ESP8266
-        setInterval(atualizarPainel, 10000);
-    </script>
+  <!-- Biblioteca oficial do cliente JavaScript do Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
 </body>
 </html>

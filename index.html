@@ -1,184 +1,720 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ThermoX - Painel V1</title>
-  
-  <!-- Supabase JS via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #121212; color: #E0E0E0; display: flex; justify-content: center; min-height: 100vh; padding: 20px; }
-    
-    .container { width: 100%; max-width: 900px; }
-    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #2A2A2A; margin-bottom: 20px; }
-    h1 { font-size: 1.5rem; color: #FF5722; }
-    
-    /* Telas */
-    .screen { display: none; }
-    .active { display: block; }
-    
-    /* Formulario de Login */
-    .card-login { background: #1E1E1E; padding: 30px; border-radius: 12px; border: 1px solid #333; max-width: 400px; margin: 50px auto; }
-    .card-login h2 { margin-bottom: 20px; font-size: 1.2rem; }
-    .input-group { margin-bottom: 15px; }
-    .input-group label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: #AAA; }
-    .input-group input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2A2A2A; color: #FFF; }
-    button { width: 100%; padding: 12px; border-radius: 6px; border: none; background: #FF5722; color: #FFF; font-weight: bold; cursor: pointer; }
-    button:hover { background: #E64A19; }
-    .btn-logout { width: auto; padding: 6px 12px; font-size: 0.85rem; background: #333; }
-    
-    /* Grid de Cards */
-    .grid-fornos { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-    .card-forno { background: #1E1E1E; border: 1px solid #333; border-radius: 12px; padding: 20px; position: relative; }
-    .card-forno h3 { font-size: 1.1rem; color: #CCC; }
-    .temp-val { font-size: 2.5rem; font-weight: bold; color: #FF5722; margin: 15px 0 5px 0; }
-    .card-footer { font-size: 0.75rem; color: #777; }
-    .status-dot { height: 10px; width: 10px; background-color: #4CAF50; border-radius: 50%; display: inline-block; position: absolute; top: 20px; right: 20px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#071b2b">
+    <title>Monitor de Fornos IoT</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #071b2b;
+            --bg-secondary: #0d2638;
+            --card: #102f44;
+            --card-light: #163a51;
+            --orange: #f47b20;
+            --orange-light: #ff963d;
+            --blue: #3b82b6;
+            --text: #ffffff;
+            --text-secondary: #a9bdc9;
+            --green: #25c66f;
+            --red: #ef5350;
+            --yellow: #f5a623;
+            --border: rgba(255,255,255,0.08);
+            --shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding-bottom: 80px;
+            overflow-x: hidden;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        .top-header {
+            height: 70px;
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s;
+        }
+
+        .btn-icon:active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .header-action {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--orange);
+            color: white;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(244,123,32,0.3);
+        }
+
+        /* SCREENS */
+        .screen {
+            display: none;
+            padding: 16px;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* SPLASH SCREEN */
+        #splashScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: linear-gradient(145deg, #071b2b, #0d2638);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .logo-icon {
+            width: 110px;
+            height: 110px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            border: 4px solid var(--orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 55px;
+            color: var(--orange);
+            box-shadow: 0 0 30px rgba(244,123,32,0.2);
+        }
+
+        .splash-title {
+            font-size: 28px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .splash-title span { color: var(--orange); display: block; }
+        .splash-subtitle { margin-top: 12px; color: var(--text-secondary); font-size: 14px; }
+        
+        .enter-button {
+            margin-top: 30px;
+            width: 100%;
+            height: 50px;
+            border-radius: 12px;
+            background: var(--orange);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            box-shadow: 0 8px 20px rgba(244,123,32,0.3);
+        }
+
+        /* CARDS FORNO */
+        .oven-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+        }
+
+        .oven-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .oven-name { font-size: 16px; font-weight: 700; }
+        .oven-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #697f8d;
+        }
+        .status-dot.online { background: var(--green); box-shadow: 0 0 8px rgba(37,198,111,0.6); }
+        .status-dot.warning { background: var(--yellow); }
+        .status-dot.offline { background: var(--red); }
+
+        .oven-main {
+            display: grid;
+            grid-template-columns: 1fr 100px;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .oven-temperature {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--orange);
+            line-height: 1;
+        }
+
+        .oven-temperature small { font-size: 16px; color: var(--orange-light); }
+        .oven-label { color: var(--text-secondary); font-size: 11px; margin-top: 4px; }
+
+        .add-oven-button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px dashed rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.02);
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* DETALHES DO FORNO */
+        .oven-detail-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--green);
+            margin-bottom: 10px;
+        }
+
+        .detail-temperature {
+            text-align: center;
+            font-size: 64px;
+            font-weight: 800;
+            color: var(--orange);
+            line-height: 1;
+        }
+
+        .detail-label { text-align: center; color: var(--text-secondary); font-size: 12px; margin-top: 6px; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .stat-title { color: var(--text-secondary); font-size: 10px; margin-bottom: 4px; text-transform: uppercase; }
+        .stat-value { font-size: 16px; font-weight: 700; }
+
+        /* TABS */
+        .tabs {
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: 12px;
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            background: var(--card-light);
+            color: white;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .chart-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 15px;
+        }
+
+        .chart-wrapper { height: 240px; position: relative; }
+
+        /* ALERTAS */
+        .alert-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .alert-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .alert-danger { background: rgba(239,83,80,0.15); color: var(--red); }
+        .alert-warning { background: rgba(245,166,35,0.15); color: var(--yellow); }
+        .alert-info { background: rgba(59,130,182,0.15); color: var(--blue); }
+
+        .alert-title { font-size: 13px; font-weight: 700; }
+        .alert-desc { color: var(--text-secondary); font-size: 11px; margin-top: 2px; }
+
+        /* MODAL */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 5000;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            width: 100%;
+            max-width: 600px;
+            background: var(--bg-secondary);
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            animation: slideUp 0.2s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; color: var(--text-secondary); font-size: 11px; margin-bottom: 6px; }
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card);
+            color: white;
+        }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 600px;
+            height: 65px;
+            background: rgba(7,27,43,0.95);
+            border-top: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            z-index: 3000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+
+        .nav-item i { font-size: 18px; }
+        .nav-item.active { color: var(--orange); }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    
-    <!-- TELA DE LOGIN -->
-    <div id="screen-login" class="screen active">
-      <div class="card-login">
-        <h2>🔥 ThermoX Login</h2>
-        <form id="login-form">
-          <div class="input-group">
-            <label>E-mail</label>
-            <input type="email" id="email" required placeholder="seu@email.com">
-          </div>
-          <div class="input-group">
-            <label>Senha</label>
-            <input type="password" id="senha" required placeholder="******">
-          </div>
-          <button type="submit">Entrar</button>
-        </form>
-      </div>
+    <!-- SPLASH SCREEN -->
+    <div id="splashScreen">
+        <div class="splash-content">
+            <div class="logo-icon">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+            </div>
+            <div class="splash-title">
+                Monitor <span>de Fornos</span>
+            </div>
+            <div class="splash-subtitle">Acompanhamento térmico IoT em tempo real.</div>
+            <button class="enter-button" onclick="entrarAplicativo()">Entrar no Sistema</button>
+        </div>
     </div>
 
-    <!-- TELA DO DASHBOARD -->
-    <div id="screen-dashboard" class="screen">
-      <header>
-        <h1>🔥 ThermoX - Monitoramento</h1>
-        <button class="btn-logout" onclick="logout()">Sair</button>
-      </header>
+    <!-- APP CONTAINER -->
+    <div class="app">
 
-      <div class="grid-fornos" id="grid-fornos">
-        <!-- Cards dos fornos inseridos dinamicamente aqui -->
-      </div>
+        <!-- HEADER -->
+        <header class="top-header">
+            <div class="header-left">
+                <button id="backButton" class="btn-icon" onclick="voltarLista()" style="display:none;">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div id="pageTitle" class="page-title">Meus Fornos</div>
+            </div>
+            <button id="headerAction" class="header-action" onclick="abrirModalForno()">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </header>
+
+        <!-- TELA 1: LISTA DE FORNOS -->
+        <main id="screenFornos" class="screen active">
+            <div id="listaFornos"></div>
+            <button class="add-oven-button" onclick="abrirModalForno()">
+                <i class="fa-solid fa-plus"></i> Adicionar Forno
+            </button>
+        </main>
+
+        <!-- TELA 2: DETALHES DO FORNO -->
+        <main id="screenForno" class="screen">
+            <div class="oven-detail-status">
+                <span id="detailStatusDot" class="status-dot online"></span>
+                <span id="detailStatus">Em operação</span>
+            </div>
+
+            <div id="detailTemperature" class="detail-temperature">--°C</div>
+            <div class="detail-label">Temperatura Atual</div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Média (24h)</div>
+                    <div id="statAvg" class="stat-value">--°C</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Máxima Atingida</div>
+                    <div id="statMax" class="stat-value">--°C</div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="alternarAba('grafico', this)">Gráfico</button>
+                <button class="tab" onclick="alternarAba('alertas', this)">Alertas</button>
+            </div>
+
+            <div id="tabGrafico" class="tab-content active">
+                <div class="chart-card">
+                    <div class="chart-wrapper">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tabAlertas" class="tab-content">
+                <div id="listaAlertas">
+                    <div class="alert-card">
+                        <div class="alert-icon alert-warning">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <div class="alert-title">Variação Elevada</div>
+                            <div class="alert-desc">Temperatura subiu 12°C nos últimos 10 min.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- TELA 3: CONFIGURAÇÕES -->
+        <main id="screenConfig" class="screen">
+            <div class="stat-card" style="margin-bottom: 12px;">
+                <div class="stat-title">Unidade de Medida</div>
+                <div class="stat-value">Celsius (°C)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Frequência de Atualização</div>
+                <div class="stat-value">A cada 3 segundos</div>
+            </div>
+        </main>
+
+        <!-- MENU INFERIOR -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="navegar('fornos', this)">
+                <i class="fa-solid fa-fire"></i>
+                <span>Fornos</span>
+            </button>
+            <button class="nav-item" onclick="navegar('alertas_geral', this)">
+                <i class="fa-solid fa-bell"></i>
+                <span>Alertas</span>
+            </button>
+            <button class="nav-item" onclick="navegar('config', this)">
+                <i class="fa-solid fa-gear"></i>
+                <span>Ajustes</span>
+            </button>
+        </nav>
     </div>
 
-  </div>
+    <!-- MODAL ADICIONAR FORNO -->
+    <div id="modalForno" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px;">Novo Forno</h3>
+            <div class="form-group">
+                <label class="form-label">Nome do Forno</label>
+                <input type="text" id="inputNome" class="form-input" placeholder="Ex: Forno Industrial 01">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Temperatura Alvo (°C)</label>
+                <input type="number" id="inputTemp" class="form-input" placeholder="Ex: 220">
+            </div>
+            <button class="enter-button" style="margin-top: 10px;" onclick="salvarForno()">Salvar</button>
+            <button class="add-oven-button" style="border:none;" onclick="fecharModalForno()">Cancelar</button>
+        </div>
+    </div>
 
-  <script>
-    // 1. CHAVES DO SUPABASE (Substitua pelos dados do seu projeto)
-    const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
+    <script>
+        // ESTADO DA APLICAÇÃO
+        let fornos = [
+            { id: 1, nome: 'Forno Principal 01', temp: 185, alvo: 200, status: 'online' },
+            { id: 2, nome: 'Forno Secundário 02', temp: 210, alvo: 210, status: 'online' },
+            { id: 3, nome: 'Forno Esteira 03', temp: 45, alvo: 150, status: 'warning' }
+        ];
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let fornoSelecionado = null;
+        let chartInstance = null;
 
-    // Dicionario de referencia para fornos renderizados
-    let listaFornos = {};
+        // INICIALIZAÇÃO E NAVEGAÇÃO
+        function entrarAplicativo() {
+            document.getElementById('splashScreen').style.display = 'none';
+            renderizarLista();
+        }
 
-    // Elementos da DOM
-    const screenLogin = document.getElementById('screen-login');
-    const screenDashboard = document.getElementById('screen-dashboard');
-    const loginForm = document.getElementById('login-form');
-    const gridFornos = document.getElementById('grid-fornos');
+        function navegar(tela, el) {
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            if(el) el.classList.add('active');
 
-    // 2. VERIFICA SE JÁ EXISTE SESSÃO ATIVA
-    window.addEventListener('DOMContentLoaded', async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        exibirDashboard();
-      }
-    });
-
-    // 3. EVENTO DE LOGIN
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const senha = document.getElementById('senha').value;
-
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
-
-      if (error) {
-        alert('Erro no login: ' + error.message);
-      } else {
-        exibirDashboard();
-      }
-    });
-
-    // 4. LOGOUT
-    async function logout() {
-      await supabase.auth.signOut();
-      screenDashboard.classList.remove('active');
-      screenLogin.classList.add('active');
-    }
-
-    // 5. CARREGA E RENDERIZA O DASHBOARD
-    async function exibirDashboard() {
-      screenLogin.classList.remove('active');
-      screenDashboard.classList.add('active');
-
-      // Busca os fornos cadastrados
-      const { data: fornos, error } = await supabase.from('fornos').select('*');
-
-      if (error) {
-        console.error("Erro ao buscar fornos:", error);
-        return;
-      }
-
-      gridFornos.innerHTML = '';
-      
-      fornos.forEach(forno => {
-        listaFornos[forno.id] = forno;
-
-        const card = document.createElement('div');
-        card.className = 'card-forno';
-        card.id = `forno-card-${forno.id}`;
-        card.innerHTML = `
-          <span class="status-dot"></span>
-          <h3>${forno.nome}</h3>
-          <div class="temp-val" id="temp-forno-${forno.id}">-- °C</div>
-          <div class="card-footer" id="time-forno-${forno.id}">Aguardando dados...</div>
-        `;
-        gridFornos.appendChild(card);
-      });
-
-      // Ativa escuta Realtime para novas leituras da API/ESP
-      inscreverRealtime();
-    }
-
-    // 6. ASSINATURA EM TEMPO REAL (REALTIME)
-    function inscreverRealtime() {
-      supabase
-        .channel('schema-db-changes')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'leituras' },
-          (payload) => {
-            const leitura = payload.new;
-            
-            // Atualiza apenas se o forno estiver renderizado na tela
-            const elTemp = document.getElementById(`temp-forno-${leitura.forno_id}`);
-            const elTime = document.getElementById(`time-forno-${leitura.forno_id}`);
-
-            if (elTemp && elTime) {
-              elTemp.innerText = `${leitura.canal_1} °C`;
-              
-              const horaFormatada = new Date(leitura.data_hora).toLocaleTimeString();
-              elTime.innerText = `Atualizado às ${horaFormatada}`;
+            if(tela === 'fornos') {
+                voltarLista();
+            } else if(tela === 'config') {
+                mostrarTela('screenConfig', 'Configurações');
+            } else if(tela === 'alertas_geral') {
+                mostrarTela('screenConfig', 'Alertas Gerais');
             }
-          }
-        )
-        .subscribe();
-    }
-  </script>
+        }
+
+        function mostrarTela(idTela, titulo) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(idTela).classList.add('active');
+            document.getElementById('pageTitle').innerText = titulo;
+        }
+
+        function abrirDetalhes(id) {
+            fornoSelecionado = fornos.find(f => f.id === id);
+            document.getElementById('backButton').style.display = 'flex';
+            document.getElementById('headerAction').style.display = 'none';
+            
+            mostrarTela('screenForno', fornoSelecionado.nome);
+            atualizarTelaDetalhes();
+            inicializarGrafico();
+        }
+
+        function voltarLista() {
+            fornoSelecionado = null;
+            document.getElementById('backButton').style.display = 'none';
+            document.getElementById('headerAction').style.display = 'flex';
+            mostrarTela('screenFornos', 'Meus Fornos');
+            renderizarLista();
+        }
+
+        // RENDERIZAÇÃO
+        function renderizarLista() {
+            const container = document.getElementById('listaFornos');
+            container.innerHTML = '';
+
+            fornos.forEach(forno => {
+                const card = document.createElement('div');
+                card.className = 'oven-card';
+                card.onclick = () => abrirDetalhes(forno.id);
+                card.innerHTML = `
+                    <div class="oven-card-top">
+                        <span class="oven-name">${forno.nome}</span>
+                        <div class="oven-status">
+                            <span class="status-dot ${forno.status}"></span>
+                            ${forno.status.toUpperCase()}
+                        </div>
+                    </div>
+                    <div class="oven-main">
+                        <div>
+                            <div class="oven-temperature">${forno.temp}<small>°C</small></div>
+                            <div class="oven-label">Alvo: ${forno.alvo}°C</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); text-align: right;"></i>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function atualizarTelaDetalhes() {
+            if(!fornoSelecionado) return;
+            document.getElementById('detailTemperature').innerText = `${fornoSelecionado.temp}°C`;
+            document.getElementById('statAvg').innerText = `${fornoSelecionado.temp - 5}°C`;
+            document.getElementById('statMax').innerText = `${fornoSelecionado.temp + 12}°C`;
+        }
+
+        // TABS
+        function alternarAba(aba, el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            el.classList.add('active');
+            if(aba === 'grafico') document.getElementById('tabGrafico').classList.add('active');
+            if(aba === 'alertas') document.getElementById('tabAlertas').classList.add('active');
+        }
+
+        // MODAL
+        function abrirModalForno() { document.getElementById('modalForno').classList.add('active'); }
+        function fecharModalForno() { document.getElementById('modalForno').classList.remove('active'); }
+
+        function salvarForno() {
+            const nome = document.getElementById('inputNome').value;
+            const temp = document.getElementById('inputTemp').value;
+
+            if(nome && temp) {
+                fornos.push({
+                    id: Date.now(),
+                    nome: nome,
+                    temp: parseInt(temp),
+                    alvo: parseInt(temp),
+                    status: 'online'
+                });
+                fecharModalForno();
+                renderizarLista();
+                document.getElementById('inputNome').value = '';
+                document.getElementById('inputTemp').value = '';
+            }
+        }
+
+        // GRÁFICO (Chart.js)
+        function inicializarGrafico() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            if(chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25'],
+                    datasets: [{
+                        label: 'Temperatura (°C)',
+                        data: [
+                            fornoSelecionado.temp - 8,
+                            fornoSelecionado.temp - 3,
+                            fornoSelecionado.temp - 5,
+                            fornoSelecionado.temp + 2,
+                            fornoSelecionado.temp - 1,
+                            fornoSelecionado.temp
+                        ],
+                        borderColor: '#f47b20',
+                        backgroundColor: 'rgba(244, 123, 32, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a9bdc9' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a9bdc9' } }
+                    }
+                }
+            });
+        }
+
+        // SIMULAÇÃO DE DADOS EM TEMPO REAL
+        setInterval(() => {
+            fornos.forEach(forno => {
+                // Flutuação aleatória de temperatura (-2°C a +2°C)
+                const variacao = Math.floor(Math.random() * 5) - 2;
+                forno.temp = Math.max(20, forno.temp + variacao);
+            });
+
+            if(!fornoSelecionado) {
+                renderizarLista();
+            } else {
+                atualizarTelaDetalhes();
+            }
+        }, 3000);
+    </script>
 </body>
 </html>

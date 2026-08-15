@@ -1,259 +1,1382 @@
-// ============================================================
-// THERMOLINK V2 - CONTROLE CENTRAL DE TELEMETRIA (FORNOS 1 A 31)
-// ============================================================
-const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co"; // URL RESTAURADA
-const SUPABASE_ANON_KEY = "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
-const { createClient } = window.supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ======================================================
+// THERMOLINK
+// Interface simples para monitoramento dos fornos
+//
+// BASEADO NO app.js QUE JÁ ESTAVA FUNCIONANDO
+// ======================================================
+
+
+// ======================================================
+// SUPABASE
+// ======================================================
+
+const SUPABASE_URL =
+    "https://zawnluboujbovpgrgdcx.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
+
+
+const {
+    createClient
+} = window.supabase;
+
+
+const sb =
+    createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+
+// ======================================================
+// ESTADO DO APP
+// ======================================================
 
 const state = {
-  ovens: [],
-  readings: new Map(),
-  filtered: [],
-  selectedModule: null,
-  charts: { history: null, modal: null },
-  realtime: null
+
+    ovens: [],
+
+    readings: new Map(),
+
+    selectedModule: null,
+
+    chart: null,
+
+    miniCharts: []
+
 };
 
-const $ = id => document.getElementById(id);
-const num = v => Number.isFinite(Number(v)) ? Number(v) : null;
-const temp = v => { const n = num(v); return n === null ? "--" : `${n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} °C` };
-const time = v => { if (!v) return "--"; const d = new Date(v); return Number.isNaN(d.getTime()) ? "--" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }) };
-const age = v => { const d = new Date(v); return Number.isNaN(d.getTime()) ? Infinity : Date.now() - d.getTime() };
-const online = r => r && age(r.created_at) <= 3 * 60 * 1000;
-const escapeHtml = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "'" }[c]));
 
-function ovenName(modulo) {
-  const o = state.ovens.find(x => Number(x.numero) === Number(modulo));
-  return o?.nome || `Forno ${String(modulo).padStart(2, "0")}`;
+// ======================================================
+// FUNÇÕES AUXILIARES
+// ======================================================
+
+const $ = id =>
+    document.getElementById(id);
+
+
+function numberValue(value) {
+
+    return Number.isFinite(
+        Number(value)
+    )
+        ? Number(value)
+        : null;
+
 }
 
-function setConnection(status, text) {
-  if ($("connectionText")) $("connectionText").textContent = text;
-  const dot = document.querySelector(".connection .dot");
-  if (dot) dot.className = "dot " + (status === true ? "ok" : status === false ? "bad" : "");
-}
 
-async function loadCompany() {
-  try {
-    const { data, error } = await sb.from("empresas").select("id,nome,ativo").eq("ativo", true).order("id").limit(1);
-    if (error) throw error;
-    if (data?.[0]) {
-      if ($("companyName")) $("companyName").textContent = data[0].nome;
-      if ($("companyNameTop")) $("companyNameTop").textContent = data[0].nome;
+function temperature(value) {
+
+    const number =
+        numberValue(value);
+
+
+    if (number === null) {
+
+        return "-- °C";
+
     }
-  } catch (err) {
-    console.error("[Erro loadCompany]:", err.message || err);
-  }
+
+
+    return `${number.toLocaleString(
+        "pt-BR",
+        {
+            maximumFractionDigits: 1
+        }
+    )} °C`;
+
 }
+
+
+function time(value) {
+
+    if (!value) {
+
+        return "--";
+
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return "--";
+
+    }
+
+
+    return date.toLocaleTimeString(
+        "pt-BR",
+        {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        }
+    );
+
+}
+
+
+// ======================================================
+// QUANDO CONSIDERAR UM FORNO ONLINE
+//
+// Se não receber leitura durante 3 minutos,
+// ele desaparece da tela inicial.
+// ======================================================
+
+function isOnline(reading) {
+
+    if (
+        !reading ||
+        !reading.created_at
+    ) {
+
+        return false;
+
+    }
+
+
+    const date =
+        new Date(
+            reading.created_at
+        );
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return false;
+
+    }
+
+
+    const difference =
+        Date.now() -
+        date.getTime();
+
+
+    return difference <=
+        3 * 60 * 1000;
+
+}
+
+
+// ======================================================
+// NOME DO FORNO
+// ======================================================
+
+function ovenName(module) {
+
+    const oven =
+        state.ovens.find(
+            item =>
+                Number(item.numero) ===
+                Number(module)
+        );
+
+
+    if (
+        oven &&
+        oven.nome
+    ) {
+
+        return oven.nome;
+
+    }
+
+
+    return `Forno ${
+        String(module).padStart(2, "0")
+    }`;
+
+}
+
+
+// ======================================================
+// CARREGAR FORNOS
+// ======================================================
 
 async function loadOvens() {
-  try {
-    const { data, error } = await sb.from("fornos").select("id,dispositivo_id,numero,nome,ativo").eq("ativo", true).order("numero", { ascending: true });
-    if (error) throw error;
-    if (!data || !data.length) throw new Error("Tabela 'fornos' retornou vazia.");
-    state.ovens = data;
-  } catch (err) {
-    console.warn("[Aviso loadOvens]: Iniciando modo de contingência (Fornos 1 a 31). Motivo:", err.message || err);
-    state.ovens = [];
-    for (let i = 1; i <= 31; i++) {
-      state.ovens.push({ id: i, numero: i, nome: `Forno ${String(i).padStart(2, "0")}`, ativo: true });
+
+    const {
+        data,
+        error
+    } = await sb
+
+        .from("fornos")
+
+        .select(
+            `
+            id,
+            dispositivo_id,
+            numero,
+            nome,
+            ativo
+            `
+        )
+
+        .eq(
+            "ativo",
+            true
+        )
+
+        .order(
+            "numero",
+            {
+                ascending: true
+            }
+        );
+
+
+    if (
+        error ||
+        !data ||
+        !data.length
+    ) {
+
+        console.warn(
+            "[ThermoLink] Não foi possível carregar a tabela fornos."
+        );
+
+
+        /*
+         * Fallback:
+         * módulos 1 até 31.
+         *
+         * As temperaturas continuam
+         * vindo da tabela leituras.
+         */
+
+        state.ovens =
+            Array.from(
+                {
+                    length: 31
+                },
+                (_, index) => ({
+
+                    id: index + 1,
+
+                    numero: index + 1,
+
+                    nome:
+                        `Forno ${
+                            String(index + 1)
+                                .padStart(2, "0")
+                        }`,
+
+                    ativo: true
+
+                })
+            );
+
+
+        return;
+
     }
-  }
+
+
+    state.ovens =
+        data;
+
 }
+
+
+// ======================================================
+// PEGAR ÚLTIMA LEITURA DE CADA FORNO
+// ======================================================
 
 async function loadLatest() {
-  try {
-    const { data, error } = await sb.from("leituras").select("id,dispositivo_id,forno_id,modulo_alutal,canal_1,canal_2,created_at").order("created_at", { ascending: false }).limit(1000);
-    if (error) throw error;
-    
-    setConnection(true, "ThermoLink Conectado");
-    const readingsMap = new Map();
-    for (const r of data || []) {
-      const mod = Number(r.modulo_alutal);
-      if (Number.isFinite(mod) && !readingsMap.has(mod)) readingsMap.set(mod, r);
+
+    const {
+        data,
+        error
+    } = await sb
+
+        .from("leituras")
+
+        .select(
+            `
+            id,
+            dispositivo_id,
+            forno_id,
+            modulo_alutal,
+            canal_1,
+            canal_2,
+            created_at
+            `
+        )
+
+        .order(
+            "created_at",
+            {
+                ascending: false
+            }
+        )
+
+        .limit(1000);
+
+
+    if (error) {
+
+        console.error(
+            "[ThermoLink] Erro ao carregar leituras:",
+            error
+        );
+
+        return;
+
     }
-    state.readings = readingsMap;
-    render();
-  } catch (err) {
-    console.error("[Erro loadLatest]:", err.message || err);
-    setConnection(false, "Erro na telemetria");
-  }
+
+
+    const latest =
+        new Map();
+
+
+    /*
+     * Como as leituras vêm
+     * da mais nova para a mais antiga,
+     * a primeira de cada módulo
+     * é a mais recente.
+     */
+
+    for (
+        const reading
+        of data || []
+    ) {
+
+        const module =
+            Number(
+                reading.modulo_alutal
+            );
+
+
+        if (
+            Number.isFinite(module) &&
+            !latest.has(module)
+        ) {
+
+            latest.set(
+                module,
+                reading
+            );
+
+        }
+
+    }
+
+
+    state.readings =
+        latest;
+
+
+    renderHome();
+
+
+    /*
+     * Se o usuário estiver
+     * dentro de um forno,
+     * atualiza os dados.
+     */
+
+    if (
+        state.selectedModule !== null
+    ) {
+
+        updateDetail(
+            state.selectedModule
+        );
+
+    }
+
 }
 
-function render() {
-  const searchIn = $("searchInput");
-  const q = searchIn ? searchIn.value.trim().toLowerCase() : "";
-  state.filtered = state.ovens.filter(o => !q || (o.nome || "").toLowerCase().includes(q) || String(o.numero).includes(q));
-  
-  if ($("totalFornos")) $("totalFornos").textContent = state.ovens.length;
-  let activeCount = 0;
-  state.ovens.forEach(o => { if (online(state.readings.get(Number(o.numero)))) activeCount++ });
-  if ($("activeFornos")) $("activeFornos").textContent = activeCount;
-  if ($("offlineFornos")) $("offlineFornos").textContent = Math.max(0, state.ovens.length - activeCount);
-  
-  renderGrid();
-  renderTable();
-  renderSelect();
-  
-  const newest = [...state.readings.values()].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-  if ($("lastUpdate")) $("lastUpdate").textContent = newest ? `Atualizado ${time(newest.created_at)}` : "Aguardando dados...";
+
+// ======================================================
+// TELA INICIAL
+//
+// SOMENTE FORNOS ONLINE
+// ======================================================
+
+function renderHome() {
+
+    /*
+     * Limpa gráficos antigos
+     */
+
+    state.miniCharts
+        .forEach(
+            chart =>
+                chart.destroy()
+        );
+
+
+    state.miniCharts = [];
+
+
+    /*
+     * Filtra somente os fornos online.
+     */
+
+    const onlineOvens =
+        state.ovens.filter(
+            oven =>
+                isOnline(
+                    state.readings.get(
+                        Number(
+                            oven.numero
+                        )
+                    )
+                )
+        );
+
+
+    /*
+     * Atualiza contador
+     */
+
+    $("onlineCount")
+        .textContent =
+        `${onlineOvens.length} online`;
+
+
+    const grid =
+        $("ovenGrid");
+
+
+    /*
+     * Nenhum forno online
+     */
+
+    if (
+        !onlineOvens.length
+    ) {
+
+        grid.innerHTML = `
+            <div class="empty">
+                Nenhum forno online no momento.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    /*
+     * Cria os cards
+     */
+
+    grid.innerHTML =
+        onlineOvens
+            .map(
+                oven => {
+
+                    const module =
+                        Number(
+                            oven.numero
+                        );
+
+
+                    const reading =
+                        state.readings.get(
+                            module
+                        );
+
+
+                    const temp1 =
+                        numberValue(
+                            reading?.canal_1
+                        );
+
+
+                    const temp1Text =
+                        temp1 === null
+                            ? "--"
+                            : temp1.toLocaleString(
+                                "pt-BR",
+                                {
+                                    maximumFractionDigits: 1
+                                }
+                            );
+
+
+                    return `
+
+                    <article
+                        class="oven-card"
+                        data-module="${module}"
+                    >
+
+                        <div class="oven-top">
+
+                            <div class="oven-name">
+
+                                ${
+                                    oven.nome ||
+                                    ovenName(module)
+                                }
+
+                            </div>
+
+
+                            <span class="status">
+
+                                ● Online
+
+                            </span>
+
+                        </div>
+
+
+                        <div class="temp-row">
+
+                            <div class="temp">
+
+                                ${temp1Text}
+
+                                <small>
+                                    °C
+                                </small>
+
+                            </div>
+
+
+                            <div class="trend">
+
+                                <canvas
+                                    id="mini-${module}"
+                                ></canvas>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="oven-bottom">
+
+                            <div class="mini">
+
+                                <span>
+                                    Temperatura 2
+                                </span>
+
+                                <strong>
+                                    ${
+                                        temperature(
+                                            reading?.canal_2
+                                        )
+                                    }
+                                </strong>
+
+                            </div>
+
+
+                            <div
+                                class="mini"
+                                style="text-align:right"
+                            >
+
+                                <span>
+                                    Atualizado
+                                </span>
+
+                                <strong>
+                                    ${
+                                        time(
+                                            reading?.created_at
+                                        )
+                                    }
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    /*
+     * Clique no forno
+     */
+
+    grid
+        .querySelectorAll(
+            ".oven-card"
+        )
+        .forEach(
+            card => {
+
+                card.addEventListener(
+                    "click",
+                    () => {
+
+                        openDetail(
+                            Number(
+                                card.dataset.module
+                            )
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+    /*
+     * Gráficos pequenos
+     */
+
+    onlineOvens.forEach(
+        oven => {
+
+            drawMiniChart(
+                Number(
+                    oven.numero
+                )
+            );
+
+        }
+    );
+
 }
 
-function renderGrid() {
-  const g = $("ovenGrid");
-  if (!g) return;
-  if (!state.filtered.length) {
-    g.innerHTML = '<div class="loading-card"><p>Nenhum forno encontrado.</p></div>';
-    return;
-  }
-  g.innerHTML = state.filtered.map(o => {
-    const mod = Number(o.numero), r = state.readings.get(mod), ok = online(r);
-    return `<article class="oven-card" data-module="${mod}"><div class="oven-head"><div class="oven-name">${escapeHtml(o.nome || ovenName(mod))}</div><span class="status ${ok ? "online" : "offline"}">${ok ? "● Online" : "● Offline"}</span></div><div class="oven-main"><div><div class="temperature">${temp(r?.canal_1)}</div><div class="temp-caption">Canal 1 • Módulo ${mod}</div></div><div class="mini-chart"><canvas id="mini-${mod}"></canvas></div></div><div class="oven-footer"><div class="mini-metric"><span>Canal 2</span><strong>${r?.canal_2 !== undefined && r?.canal_2 !== null ? r.canal_2 + " °C" : "--"}</strong></div><div class="mini-metric" style="text-align:right"><span>Última leitura</span><strong>${time(r?.created_at)}</strong></div></div></article>`
-  }).join("");
-  
-  g.querySelectorAll(".oven-card").forEach(c => c.onclick = () => openOven(Number(c.dataset.module)));
-  state.filtered.forEach(o => drawMini(Number(o.numero)));
+
+// ======================================================
+// HISTÓRICO DO FORNO
+// ======================================================
+
+async function getHistory(
+    module,
+    limit = 120
+) {
+
+    const {
+        data,
+        error
+    } = await sb
+
+        .from("leituras")
+
+        .select(
+            `
+            canal_1,
+            canal_2,
+            modulo_alutal,
+            created_at
+            `
+        )
+
+        .eq(
+            "modulo_alutal",
+            module
+        )
+
+        .order(
+            "created_at",
+            {
+                ascending: false
+            }
+        )
+
+        .limit(
+            limit
+        );
+
+
+    if (error) {
+
+        console.error(
+            "[ThermoLink] Erro no histórico:",
+            error
+        );
+
+        return [];
+
+    }
+
+
+    /*
+     * O banco retorna
+     * mais novo -> antigo.
+     *
+     * Aqui deixamos
+     * antigo -> novo.
+     */
+
+    return (
+        data || []
+    ).reverse();
+
 }
 
-async function drawMini(modulo) {
-  const canvas = $(`mini-${modulo}`);
-  if (!canvas) return;
-  const rows = await getHistory(modulo, 35);
-  const vals = rows.map(r => num(r.canal_1)).filter(v => v !== null);
-  if (!vals.length) return;
-  
-  new Chart(canvas, {
-    type: "line",
-    data: { labels: vals.map(() => ""), datasets: [{ data: vals, borderColor: "#f97316", borderWidth: 2, tension: .35, pointRadius: 0, fill: false }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } } }
-  });
+
+// ======================================================
+// MINI GRÁFICO DOS CARDS
+// ======================================================
+
+async function drawMiniChart(
+    module
+) {
+
+    const canvas =
+        $(`mini-${module}`);
+
+
+    if (!canvas) {
+
+        return;
+
+    }
+
+
+    const rows =
+        await getHistory(
+            module,
+            30
+        );
+
+
+    const values =
+        rows
+
+            .map(
+                row =>
+                    numberValue(
+                        row.canal_1
+                    )
+            )
+
+            .filter(
+                value =>
+                    value !== null
+            );
+
+
+    if (!values.length) {
+
+        return;
+
+    }
+
+
+    const chart =
+        new Chart(
+            canvas,
+            {
+
+                type: "line",
+
+                data: {
+
+                    labels:
+                        values.map(
+                            () => ""
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            data: values,
+
+                            borderColor:
+                                "#ff641f",
+
+                            borderWidth: 2,
+
+                            tension: .35,
+
+                            pointRadius: 0,
+
+                            fill: false
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    plugins: {
+
+                        legend: {
+                            display: false
+                        },
+
+                        tooltip: {
+                            enabled: false
+                        }
+
+                    },
+
+
+                    scales: {
+
+                        x: {
+                            display: false
+                        },
+
+                        y: {
+                            display: false
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+
+    state.miniCharts.push(
+        chart
+    );
+
 }
 
-function renderTable() {
-  const wrap = $("ovensTableWrap");
-  if (!wrap) return;
-  wrap.innerHTML = `<table><thead><tr><th>Forno</th><th>Módulo</th><th>Canal 1</th><th>Canal 2</th><th>Status</th><th>Última leitura</th></tr></thead><tbody>${state.ovens.map(o => {
-    const r = state.readings.get(Number(o.numero)), ok = online(r);
-    return `<tr><td><b>${escapeHtml(o.nome || ovenName(o.numero))}</b></td><td>${o.numero}</td><td>${temp(r?.canal_1)}</td><td>${r?.canal_2 ?? "--"}</td><td><span class="status ${ok ? "online" : "offline"}">${ok ? "● Online" : "● Offline"}</span></td><td>${time(r?.created_at)}</td></tr>`
-  }).join("")}</tbody></table>`;
+
+// ======================================================
+// ABRIR FORNO
+// ======================================================
+
+async function openDetail(
+    module
+) {
+
+    state.selectedModule =
+        module;
+
+
+    $("homeView")
+        .classList
+        .add("hidden");
+
+
+    $("detailView")
+        .classList
+        .remove("hidden");
+
+
+    window.scrollTo(
+        {
+            top: 0,
+            behavior: "smooth"
+        }
+    );
+
+
+    /*
+     * Nome
+     */
+
+    $("detailName")
+        .textContent =
+        ovenName(
+            module
+        );
+
+
+    /*
+     * Última leitura
+     */
+
+    const reading =
+        state.readings.get(
+            module
+        );
+
+
+    $("detailTemp")
+        .textContent =
+        temperature(
+            reading?.canal_1
+        );
+
+
+    $("pCanal1")
+        .textContent =
+        temperature(
+            reading?.canal_1
+        );
+
+
+    $("pCanal2")
+        .textContent =
+        temperature(
+            reading?.canal_2
+        );
+
+
+    $("pModulo")
+        .textContent =
+        module;
+
+
+    $("pHora")
+        .textContent =
+        time(
+            reading?.created_at
+        );
+
+
+    /*
+     * Histórico
+     */
+
+    const rows =
+        await getHistory(
+            module,
+            120
+        );
+
+
+    $("readingCount")
+        .textContent =
+        `${rows.length} registros`;
+
+
+    /*
+     * Lista de últimas leituras
+     */
+
+    if (!rows.length) {
+
+        $("historyList")
+            .innerHTML = `
+                <div class="empty">
+                    Nenhuma leitura histórica.
+                </div>
+            `;
+
+    } else {
+
+        $("historyList")
+            .innerHTML =
+
+            rows
+                .slice(-15)
+                .reverse()
+                .map(
+                    row => `
+
+                    <div class="history-row">
+
+                        <span>
+                            ${
+                                time(
+                                    row.created_at
+                                )
+                            }
+                        </span>
+
+                        <strong>
+                            ${
+                                temperature(
+                                    row.canal_1
+                                )
+                            }
+                        </strong>
+
+                        <span>
+                            ${
+                                temperature(
+                                    row.canal_2
+                                )
+                            }
+                        </span>
+
+                    </div>
+
+                    `
+                )
+                .join("");
+
+    }
+
+
+    /*
+     * Destrói gráfico anterior
+     */
+
+    if (
+        state.chart
+    ) {
+
+        state.chart.destroy();
+
+        state.chart =
+            null;
+
+    }
+
+
+    /*
+     * Sem histórico
+     */
+
+    if (!rows.length) {
+
+        return;
+
+    }
+
+
+    /*
+     * Gráfico principal
+     */
+
+    state.chart =
+
+        new Chart(
+            $("detailChart"),
+            {
+
+                type: "line",
+
+                data: {
+
+                    labels:
+
+                        rows.map(
+                            row =>
+
+                                new Date(
+                                    row.created_at
+                                )
+                                    .toLocaleTimeString(
+                                        "pt-BR",
+                                        {
+                                            hour: "2-digit",
+                                            minute: "2-digit"
+                                        }
+                                    )
+                        ),
+
+
+                    datasets: [
+
+                        {
+
+                            data:
+
+                                rows.map(
+                                    row =>
+                                        numberValue(
+                                            row.canal_1
+                                        )
+                                ),
+
+                            borderColor:
+                                "#ff641f",
+
+                            backgroundColor:
+                                "rgba(255,100,31,.08)",
+
+                            borderWidth: 2,
+
+                            tension: .3,
+
+                            pointRadius: 0,
+
+                            fill: true
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    interaction: {
+
+                        mode: "index",
+
+                        intersect: false
+
+                    },
+
+
+                    plugins: {
+
+                        legend: {
+                            display: false
+                        }
+
+                    },
+
+
+                    scales: {
+
+                        x: {
+
+                            grid: {
+                                display: false
+                            },
+
+                            ticks: {
+
+                                maxTicksLimit: 6,
+
+                                font: {
+                                    size: 8
+                                }
+
+                            }
+
+                        },
+
+
+                        y: {
+
+                            grid: {
+
+                                color:
+                                    "#eeeeee"
+
+                            },
+
+                            ticks: {
+
+                                font: {
+                                    size: 8
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+
+    /*
+     * IMPORTANTE:
+     *
+     * O seu app.js original não possui
+     * uma coluna de início/fim/duração
+     * da queima.
+     *
+     * Por isso não inventamos um valor.
+     */
+
+    $("burnTime")
+        .textContent =
+        "--";
+
 }
 
-function renderSelect() {
-  const s = $("historySelect");
-  if (!s) return;
-  const old = s.value;
-  s.innerHTML = state.ovens.map(o => `<option value="${o.numero}">${escapeHtml(o.nome || ovenName(o.numero))}</option>`).join("");
-  if (old) s.value = old;
+
+// ======================================================
+// ATUALIZAR FORNO ABERTO
+// ======================================================
+
+function updateDetail(
+    module
+) {
+
+    const reading =
+        state.readings.get(
+            module
+        );
+
+
+    /*
+     * Se ficou offline,
+     * volta para a Home.
+     */
+
+    if (
+        !isOnline(
+            reading
+        )
+    ) {
+
+        closeDetail();
+
+        return;
+
+    }
+
+
+    $("detailTemp")
+        .textContent =
+        temperature(
+            reading.canal_1
+        );
+
+
+    $("pCanal1")
+        .textContent =
+        temperature(
+            reading.canal_1
+        );
+
+
+    $("pCanal2")
+        .textContent =
+        temperature(
+            reading.canal_2
+        );
+
+
+    $("pHora")
+        .textContent =
+        time(
+            reading.created_at
+        );
+
 }
 
-async function getHistory(modulo, limit = 120) {
-  try {
-    const { data, error } = await sb.from("leituras").select("canal_1,canal_2,modulo_alutal,created_at").eq("modulo_alutal", modulo).order("created_at", { ascending: false }).limit(limit);
-    if (error) throw error;
-    return (data || []).reverse();
-  } catch (err) {
-    console.error(`[Erro getHistory Módulo ${modulo}]:`, err.message || err);
-    return [];
-  }
+
+// ======================================================
+// VOLTAR PARA INÍCIO
+// ======================================================
+
+function closeDetail() {
+
+    state.selectedModule =
+        null;
+
+
+    if (
+        state.chart
+    ) {
+
+        state.chart.destroy();
+
+        state.chart =
+            null;
+
+    }
+
+
+    $("detailView")
+        .classList
+        .add("hidden");
+
+
+    $("homeView")
+        .classList
+        .remove("hidden");
+
+
+    window.scrollTo(
+        {
+            top: 0,
+            behavior: "smooth"
+        }
+    );
+
+
+    renderHome();
+
 }
 
-function chartOptions() {
-  return { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 7, font: { size: 9 } } }, y: { grid: { color: "#edf0f4" }, ticks: { font: { size: 9 } } } } };
+
+// ======================================================
+// BOTÕES
+// ======================================================
+
+$("backBtn")
+    .onclick =
+    closeDetail;
+
+
+$("homeNav")
+    .onclick =
+    closeDetail;
+
+
+// ======================================================
+// ATUALIZAÇÃO AUTOMÁTICA
+//
+// A cada 12 segundos consulta o Supabase.
+// ======================================================
+
+setInterval(
+    loadLatest,
+    12000
+);
+
+
+// ======================================================
+// INICIAR
+// ======================================================
+
+async function init() {
+
+    try {
+
+        await loadOvens();
+
+        await loadLatest();
+
+
+        console.log(
+            "[ThermoLink] Interface carregada."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "[ThermoLink] Erro:",
+            error
+        );
+
+
+        $("ovenGrid")
+            .innerHTML = `
+
+                <div class="empty">
+
+                    Não foi possível
+                    carregar os fornos.
+
+                </div>
+
+            `;
+
+    }
+
 }
 
-async function drawHistory(modulo) {
-  const rows = await getHistory(modulo);
-  if ($("historyCurrent")) $("historyCurrent").textContent = temp(rows.at(-1)?.canal_1);
-  if ($("historyRange")) $("historyRange").textContent = rows.length ? `${time(rows[0].created_at)} → ${time(rows.at(-1).created_at)}` : "Sem dados";
-  
-  if (state.charts.history) state.charts.history.destroy();
-  state.charts.history = new Chart($("historyChart"), {
-    type: "line",
-    data: { labels: rows.map(r => new Date(r.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })), datasets: [{ data: rows.map(r => num(r.canal_1)), borderColor: "#f97316", backgroundColor: "rgba(249,115,22,.08)", borderWidth: 2, tension: .3, pointRadius: 0, fill: true }] },
-    options: chartOptions()
-  });
-}
 
-async function openOven(modulo) {
-  state.selectedModule = modulo;
-  const r = state.readings.get(modulo), ok = online(r);
-  
-  if ($("modalOvenName")) $("modalOvenName").textContent = ovenName(modulo);
-  if ($("modalTemperature")) $("modalTemperature").textContent = temp(r?.canal_1);
-  if ($("liveTemp")) $("liveTemp").textContent = temp(r?.canal_1);
-  if ($("modalCanal1")) $("modalCanal1").textContent = r?.canal_1 ?? "--";
-  if ($("modalCanal2")) $("modalCanal2").textContent = r?.canal_2 ?? "--";
-  if ($("modalModule")) $("modalModule").textContent = modulo;
-  if ($("modalTime")) $("modalTime").textContent = time(r?.created_at);
-  if ($("modalStatus")) {
-    $("modalStatus").className = `status ${ok ? "online" : "offline"}`;
-    $("modalStatus").textContent = ok ? "● Online" : "● Offline";
-  }
-  if ($("modalStatusText")) $("modalStatusText").textContent = ok ? "Online" : "Offline";
-  if ($("ovenModal")) $("ovenModal").classList.remove("hidden");
-  
-  activateTab("tempo");
-  const rows = await getHistory(modulo);
-  
-  if (state.charts.modal) state.charts.modal.destroy();
-
-
-  // Criação do gráfico principal do Modal
-  state.charts.modal = new Chart($("modalChart"), {
-    type: "line",
-    data: { 
-      labels: rows.map(r => new Date(r.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })), 
-      datasets: [{ 
-        data: rows.map(r => num(r.canal_1)), 
-        borderColor: "#f97316", 
-        borderWidth: 2, 
-        tension: .3, 
-        pointRadius: 0, 
-        fill: true, 
-        backgroundColor: "rgba(249,115,22,.08)" 
-      }] 
-    },
-    options: chartOptions()
-  });
-
-  // CORREÇÃO: Adicionadas as crases corretas na estrutura do HTML do histórico
-  if ($("detailHistoryList")) {
-    $("detailHistoryList").innerHTML = rows.slice(-12).reverse().map(r => `
-      <div class="history-row">
-        <span>${time(r.created_at)}</span>
-        <strong>${temp(r.canal_1)}</strong>
-      </div>
-    `).join("");
-  }
-} // Fechamento correto da função openOven
-
-function closeModal() {
-  if ($("ovenModal")) $("ovenModal").classList.add("hidden");
-  if (state.charts.modal) { 
-    state.charts.modal.destroy(); 
-    state.charts.modal = null; 
-  }
-}
-
-function activateTab(name) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
-  document.querySelectorAll(".detail-panel").forEach(p => p.classList.remove("active"));
-  
-  // CORREÇÃO: Adicionadas crases para a interpolação do ID do painel funcionar
-  const panel = $(`panel${name.toUpperCase() + name.slice(1)}`);
-  if (panel) panel.classList.add("active");
-}
-
-document.addEventListener("DOMContentLoaded", async () => {
-  setConnection(null, "Conectando ao ThermoLink...");
-  await loadCompany();
-  await loadOvens();
-  await loadLatest();
-  
-  // Executa a atualização de dados a cada 12 segundos
-  setInterval(loadLatest, 12000);
-});
-
-
-
+init();

@@ -1,13 +1,19 @@
-# ThermoLink Dashboard v2
+# Monitor Fornos — teste
 
-Interface mobile-first para monitoramento dos fornos.
+1. Abra `js/supabase.js`.
+2. Coloque a URL e a chave pública do Supabase.
+3. No Supabase Authentication > Users, crie um usuário com e-mail e senha.
+4. No usuário, configure `app_metadata` com:
+   {"empresa_id": 1}
+   (troque 1 pelo ID da empresa).
+5. Publique esta pasta no GitHub Pages.
+6. Abra `login.html`, entre e o painel buscará somente a empresa indicada.
 
-Mantida a conexão com o Supabase:
-- `empresas`
-- `fornos`
-- `leituras`
-- `módulo_atual` identifica o forno
-- `canal_1` é a temperatura principal
-- Realtime para novas leituras
+Estrutura usada conforme suas fotos:
+empresas -> Órfãos (dispositivos) -> fornos -> leituras.
 
-Importante: use somente a chave pública anon/publishable no `app.js`.
+ONLINE: leitura recebida nos últimos 60 segundos.
+ALARME DE TESTE: canal 1 ou canal 2 >= 900 °C.
+
+IMPORTANTE: nunca coloque service_role key no GitHub.
+Para produção, mantenha RLS ativo e ajuste as políticas conforme sua estrutura.

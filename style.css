@@ -1,861 +1,289 @@
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
-
 
 :root {
-
-    --bg: #f7f7f8;
-
-    --card: #ffffff;
-
-    --text: #17181b;
-
-    --muted: #8b8e94;
-
-    --line: #e8e8ea;
-
-    --orange: #ff641f;
-
-    --green: #20b965;
-
-    --shadow:
-        0 4px 18px rgba(20,20,25,.055);
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --text: #172033;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #0f172a;
+  --accent: #f97316;
+  --online: #16a34a;
+  --offline: #dc2626;
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
 }
-
-
-html,
-body {
-
-    margin: 0;
-
-    min-height: 100%;
-
-    background: var(--bg);
-
-    color: var(--text);
-
-    font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Inter",
-        "Segoe UI",
-        sans-serif;
-}
-
 
 body {
-
-    min-height: 100vh;
-
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
 }
-
-
-button {
-
-    font: inherit;
-
-    border: 0;
-
-    background: none;
-
-    cursor: pointer;
-
-}
-
-
-.hidden {
-
-    display: none !important;
-
-}
-
-
-/* APP */
-
-.app {
-
-    max-width: 680px;
-
-    margin: auto;
-
-    min-height: 100vh;
-
-    padding-bottom: 82px;
-
-}
-
-
-/* TOPO */
 
 .topbar {
-
-    height: 72px;
-
-    padding:
-        15px
-        17px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    position: sticky;
-
-    top: 0;
-
-    z-index: 10;
-
-    background:
-        rgba(247,247,248,.94);
-
-    backdrop-filter:
-        blur(12px);
-
+  min-height: 78px;
+  padding: 16px 5%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
 }
 
-
-.logo {
-
-    font-size: 18px;
-
-    font-weight: 800;
-
-    letter-spacing: -.4px;
-
+.brand {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: .4px;
 }
 
-
-.subtitle {
-
-    font-size: 10px;
-
-    color: var(--muted);
-
-    margin-top: 3px;
-
+.company-name {
+  margin-top: 5px;
+  color: #cbd5e1;
+  font-size: 14px;
 }
 
-
-.online-pill {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 5px;
-
-    padding:
-        7px
-        9px;
-
-    border-radius: 20px;
-
-    background: #eaf9ef;
-
-    color: #17884d;
-
-    font-size: 9px;
-
-    font-weight: 800;
-
+.connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
 }
 
-
-.online-pill span {
-
-    width: 6px;
-
-    height: 6px;
-
-    border-radius: 50%;
-
-    background: var(--green);
-
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
-
-/* CONTEÚDO */
-
-main {
-
-    padding:
-        8px
-        15px
-        25px;
-
+.dot.online {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, .15);
 }
 
-
-/* TÍTULO */
-
-.page-title {
-
-    display: flex;
-
-    align-items: end;
-
-    justify-content: space-between;
-
-    margin:
-        12px
-        2px
-        14px;
-
+.dot.offline {
+  background: #ef4444;
 }
 
-
-.page-title h1 {
-
-    font-size: 27px;
-
-    letter-spacing: -.8px;
-
-    margin: 0;
-
+.container {
+  width: min(1200px, 92%);
+  margin: 28px auto;
 }
 
-
-.page-title span {
-
-    font-size: 10px;
-
-    color: var(--muted);
-
-    padding-bottom: 3px;
-
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
 }
 
-
-/* FORNOS */
-
-.oven-grid {
-
-    display: grid;
-
-    gap: 10px;
-
+.summary-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--shadow);
 }
 
+.summary-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.summary-card strong {
+  font-size: 28px;
+}
+
+.summary-card.online strong {
+  color: var(--online);
+}
+
+.summary-card.offline-card strong {
+  color: var(--offline);
+}
+
+.toolbar {
+  margin: 30px 0 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+}
+
+.toolbar h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.toolbar p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 17px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  opacity: .9;
+}
+
+.status-message {
+  margin-bottom: 15px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.ovens-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
 
 .oven-card {
-
-    background: var(--card);
-
-    border:
-        1px solid
-        var(--line);
-
-    border-radius: 15px;
-
-    padding: 16px;
-
-    box-shadow: var(--shadow);
-
-    cursor: pointer;
-
-    transition:
-        transform .12s;
-
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
 }
 
-
-.oven-card:active {
-
-    transform:
-        scale(.985);
-
+.oven-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 18px;
 }
-
-
-.oven-top {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-}
-
 
 .oven-name {
-
-    font-size: 14px;
-
-    font-weight: 750;
-
+  margin: 0;
+  font-size: 21px;
 }
 
-
-.status {
-
-    display: inline-flex;
-
-    align-items: center;
-
-    background: #eaf9ef;
-
-    color: #16874b;
-
-    border-radius: 20px;
-
-    padding:
-        5px
-        8px;
-
-    font-size: 8px;
-
-    font-weight: 800;
-
+.oven-info {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
-
-.temp-row {
-
-    display: flex;
-
-    align-items: end;
-
-    justify-content: space-between;
-
-    margin-top: 18px;
-
+.status-badge {
+  white-space: nowrap;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-
-.temp {
-
-    font-size: 40px;
-
-    line-height: .95;
-
-    font-weight: 800;
-
-    letter-spacing: -1.8px;
-
+.status-badge.online {
+  color: #166534;
+  background: #dcfce7;
 }
 
-
-.temp small {
-
-    font-size: 15px;
-
-    font-weight: 600;
-
-    color: var(--orange);
-
+.status-badge.offline {
+  color: #991b1b;
+  background: #fee2e2;
 }
 
-
-.trend {
-
-    width: 110px;
-
-    height: 45px;
-
+.channels {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
-
-.oven-bottom {
-
-    border-top:
-        1px solid
-        #f0f0f1;
-
-    margin-top: 15px;
-
-    padding-top: 11px;
-
-    display: flex;
-
-    justify-content: space-between;
-
+.channel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 15px;
+  background: #fafafa;
 }
 
-
-.mini span {
-
-    display: block;
-
-    font-size: 8px;
-
-    color: var(--muted);
-
-    text-transform: uppercase;
-
+.channel-label {
+  color: var(--muted);
+  font-size: 13px;
 }
 
-
-.mini strong {
-
-    display: block;
-
-    font-size: 11px;
-
-    margin-top: 3px;
-
+.temperature {
+  margin-top: 6px;
+  font-size: 31px;
+  font-weight: 800;
 }
 
+.temperature small {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
 
-/* VAZIO */
+.channel.inactive {
+  opacity: .55;
+}
+
+.oven-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
 
 .empty {
-
-    min-height: 170px;
-
-    background: #fff;
-
-    border:
-        1px solid
-        var(--line);
-
-    border-radius: 15px;
-
-    display: grid;
-
-    place-items: center;
-
-    color: var(--muted);
-
-    font-size: 11px;
-
-    text-align: center;
-
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
 }
 
-
-/* BOTÃO VOLTAR */
-
-.back {
-
-    color: #666b73;
-
-    font-size: 12px;
-
-    padding:
-        7px
-        0
-        16px;
-
+.error {
+  color: #991b1b;
 }
 
-
-/* CABEÇALHO DO FORNO */
-
-.detail-header {
-
-    display: flex;
-
-    align-items: end;
-
-    justify-content: space-between;
-
-    margin-bottom: 18px;
-
+footer {
+  text-align: center;
+  padding: 30px 15px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
+@media (max-width: 850px) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
-.eyebrow {
-
-    font-size: 8px;
-
-    color: #a0a3a9;
-
-    letter-spacing: .12em;
-
-    font-weight: 800;
-
+  .ovens-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-
-.detail-header h1 {
-
-    font-size: 26px;
-
-    margin:
-        4px
-        0
-        7px;
-
-    letter-spacing: -.7px;
-
-}
-
-
-.main-temp {
-
-    font-size: 43px;
-
-    line-height: 1;
-
-    font-weight: 850;
-
-    letter-spacing: -2px;
-
-    color: var(--orange);
-
-}
-
-
-/* PARÂMETROS */
-
-.parameters {
-
-    display: grid;
-
-    grid-template-columns:
-        1fr
-        1fr;
-
-    gap: 9px;
-
-}
-
-
-.parameter {
-
-    background: #fff;
-
-    border:
-        1px solid
-        var(--line);
-
-    border-radius: 13px;
-
-    padding: 13px;
-
-}
-
-
-.parameter span {
-
-    display: block;
-
-    font-size: 8px;
-
-    color: var(--muted);
-
-    text-transform: uppercase;
-
-}
-
-
-.parameter strong {
-
-    display: block;
-
-    font-size: 14px;
-
-    margin-top: 5px;
-
-}
-
-
-/* PAINÉIS */
-
-.panel {
-
-    background: #fff;
-
-    border:
-        1px solid
-        var(--line);
-
-    border-radius: 15px;
-
-    padding: 15px;
-
-    margin-top: 12px;
-
-    box-shadow: var(--shadow);
-
-}
-
-
-.panel-title {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    margin-bottom: 11px;
-
-}
-
-
-.panel-title h2 {
-
-    font-size: 13px;
-
-    margin: 0;
-
-}
-
-
-.panel-title span {
-
-    font-size: 9px;
-
-    color: var(--muted);
-
-}
-
-
-/* GRÁFICO */
-
-.chart-box {
-
-    height: 235px;
-
-}
-
-
-.chart-box canvas {
-
-    width: 100% !important;
-
-    height: 100% !important;
-
-}
-
-
-/* QUEIMA */
-
-.burn-box {
-
-    background: #fafafa;
-
-    border-radius: 11px;
-
-    padding: 15px;
-
-}
-
-
-.burn-box strong {
-
-    display: block;
-
-    font-size: 23px;
-
-    color: var(--orange);
-
-}
-
-
-.burn-box p {
-
-    font-size: 9px;
-
-    line-height: 1.4;
-
-    color: var(--muted);
-
-    margin:
-        6px
-        0
-        0;
-
-}
-
-
-/* HISTÓRICO */
-
-.history-list {
-
-    display: grid;
-
-    gap: 6px;
-
-}
-
-
-.history-row {
-
-    display: grid;
-
-    grid-template-columns:
-        1fr
-        auto
-        auto;
-
-    gap: 12px;
-
-    align-items: center;
-
-    padding:
-        10px
-        11px;
-
-    background: #fafafa;
-
-    border-radius: 9px;
-
-    font-size: 9px;
-
-}
-
-
-.history-row strong {
-
-    font-size: 11px;
-
-    color: var(--orange);
-
-}
-
-
-/* MENU */
-
-.bottom-nav {
-
-    position: fixed;
-
-    z-index: 20;
-
-    bottom: 0;
-
-    left: 50%;
-
-    transform:
-        translateX(-50%);
-
-    width:
-        min(680px,100%);
-
-    height: 65px;
-
-    padding-bottom:
-        env(safe-area-inset-bottom);
-
-    background:
-        rgba(255,255,255,.96);
-
-    backdrop-filter:
-        blur(14px);
-
-    border-top:
-        1px solid
-        var(--line);
-
-    display: flex;
-
-    justify-content: center;
-
-}
-
-
-.bottom-nav button {
-
-    width: 90px;
-
-    color: var(--orange);
-
-    display: flex;
-
+@media (max-width: 520px) {
+  .topbar {
+    align-items: flex-start;
     flex-direction: column;
+  }
 
-    align-items: center;
+  .summary {
+    grid-template-columns: 1fr 1fr;
+  }
 
-    justify-content: center;
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
 
-    gap: 3px;
-
-}
-
-
-.bottom-nav b {
-
-    font-size: 20px;
-
-}
-
-
-.bottom-nav span {
-
-    font-size: 9px;
-
-    font-weight: 700;
-
-}
-
-
-/* DESKTOP */
-
-@media(min-width:681px) {
-
-    body {
-
-        padding:
-            18px
-            0;
-
-    }
-
-    .app {
-
-        background: var(--bg);
-
-    }
-
-    .topbar {
-
-        border-radius:
-            16px
-            16px
-            0
-            0;
-
-    }
-
-    .oven-grid {
-
-        grid-template-columns:
-            1fr
-            1fr;
-
-    }
-
-    .bottom-nav {
-
-        bottom: 18px;
-
-        border:
-            1px solid
-            var(--line);
-
-        border-radius: 15px;
-
-    }
-
-}
-
-
-/* CELULAR PEQUENO */
-
-@media(max-width:380px) {
-
-    .main-temp {
-
-        font-size: 34px;
-
-    }
-
-    .temp {
-
-        font-size: 34px;
-
-    }
-
-    .parameter {
-
-        padding: 11px;
-
-    }
-
+  .channels {
+    grid-template-columns: 1fr;
+  }
 }

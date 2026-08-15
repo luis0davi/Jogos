@@ -10,6 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
@@ -90,11 +92,6 @@
             align-items: center;
             justify-content: center;
             font-size: 18px;
-            transition: background 0.2s;
-        }
-
-        .btn-icon:active {
-            background: rgba(255,255,255,0.1);
         }
 
         .page-title {
@@ -179,7 +176,7 @@
             box-shadow: 0 8px 20px rgba(244,123,32,0.3);
         }
 
-        /* CARDS FORNO (LAYOUT ORIGINAL) */
+        /* CARDS FORNO */
         .oven-card {
             background: var(--card);
             border: 1px solid var(--border);
@@ -207,7 +204,6 @@
             background: #697f8d;
         }
         .status-dot.online { background: var(--green); box-shadow: 0 0 8px rgba(37,198,111,0.6); }
-        .status-dot.warning { background: var(--yellow); }
         .status-dot.offline { background: var(--red); }
 
         .oven-main {
@@ -294,11 +290,7 @@
             font-weight: 600;
         }
 
-        .tab.active {
-            background: var(--card-light);
-            color: white;
-        }
-
+        .tab.active { background: var(--card-light); color: white; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
@@ -310,34 +302,6 @@
         }
 
         .chart-wrapper { height: 240px; position: relative; }
-
-        /* ALERTAS */
-        .alert-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            gap: 12px;
-        }
-
-        .alert-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .alert-danger { background: rgba(239,83,80,0.15); color: var(--red); }
-        .alert-warning { background: rgba(245,166,35,0.15); color: var(--yellow); }
-        .alert-info { background: rgba(59,130,182,0.15); color: var(--blue); }
-
-        .alert-title { font-size: 13px; font-weight: 700; }
-        .alert-desc { color: var(--text-secondary); font-size: 11px; margin-top: 2px; }
 
         /* MODAL */
         .modal {
@@ -442,7 +406,7 @@
             <div class="splash-title">
                 Monitor <span>de Fornos</span>
             </div>
-            <div class="splash-subtitle" id="splashEmpresaSub">Buscando dados da empresa...</div>
+            <div class="splash-subtitle" id="splashEmpresaSub">Conectando ao Supabase...</div>
             <button class="enter-button" onclick="entrarAplicativo()">Entrar no Sistema</button>
         </div>
     </div>
@@ -463,7 +427,7 @@
             </button>
         </header>
 
-        <!-- TELA 1: LISTA DE FORNOS (ESTILO DO CODIGO 1) -->
+        <!-- TELA 1: LISTA DE FORNOS -->
         <main id="screenFornos" class="screen active">
             <div id="listaFornos"></div>
             <button class="add-oven-button" onclick="abrirModalForno()">
@@ -475,11 +439,11 @@
         <main id="screenForno" class="screen">
             <div class="oven-detail-status">
                 <span id="detailStatusDot" class="status-dot online"></span>
-                <span id="detailStatus">Em operação</span>
+                <span id="detailStatus">Buscando...</span>
             </div>
 
             <div id="detailTemperature" class="detail-temperature">--°C</div>
-            <div class="detail-label" id="detailSubtext">Temperatura Canal 1</div>
+            <div class="detail-label" id="detailSubtext">Leitura em tempo real</div>
 
             <div class="stats-grid">
                 <div class="stat-card">
@@ -507,28 +471,25 @@
 
             <div id="tabAlertas" class="tab-content">
                 <div id="listaAlertas">
-                    <div class="alert-card">
-                        <div class="alert-icon alert-info">
-                            <i class="fa-solid fa-circle-info"></i>
-                        </div>
-                        <div>
-                            <div class="alert-title">Sincronização Ativa</div>
-                            <div class="alert-desc">Dados atualizados com o banco de dados.</div>
+                    <div class="stat-card">
+                        <div class="stat-title">Sincronização Supabase</div>
+                        <div class="stat-value" style="font-size:12px; font-weight:normal; margin-top:5px;">
+                            Conexão ativa com o banco PostgreSQL.
                         </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- TELA 3: USUÁRIO / CONFIGURAÇÕES -->
+        <!-- TELA 3: PERFIL DO USUÁRIO -->
         <main id="screenConfig" class="screen">
             <div class="user-profile-header">
                 <div class="user-avatar">
                     <i class="fa-solid fa-building"></i>
                 </div>
                 <div>
-                    <h3 id="usrEmpresaNome" style="font-size: 18px;">--</h3>
-                    <p style="font-size: 12px; color: var(--text-secondary);">Usuário Corporativo</p>
+                    <h3 id="usrEmpresaNome" style="font-size: 18px;">Carregando...</h3>
+                    <p style="font-size: 12px; color: var(--text-secondary);">Empresa Cadastrada</p>
                 </div>
             </div>
 
@@ -556,10 +517,6 @@
                 <i class="fa-solid fa-fire"></i>
                 <span>Fornos</span>
             </button>
-            <button class="nav-item" onclick="navegar('alertas_geral', this)">
-                <i class="fa-solid fa-bell"></i>
-                <span>Alertas</span>
-            </button>
             <button class="nav-item" onclick="navegar('config', this)">
                 <i class="fa-solid fa-user"></i>
                 <span>Perfil</span>
@@ -577,49 +534,95 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Módulo Alutal</label>
-                <input type="number" id="inputModulo" class="form-input" placeholder="Ex: 5">
+                <input type="number" id="inputModulo" class="form-input" placeholder="Ex: 1">
             </div>
-            <button class="enter-button" style="margin-top: 10px;" onclick="salvarForno()">Salvar</button>
+            <button class="enter-button" style="margin-top: 10px;" onclick="salvarFornoSupabase()">Salvar no Banco</button>
             <button class="add-oven-button" style="border:none;" onclick="fecharModalForno()">Cancelar</button>
         </div>
     </div>
 
     <script>
-        // BANCO DE DADOS INICIAL
-        let db_leituras = [{"idx":95,"id":2080,"dispositivo_id":1,"forno_id":3,"modulo_alutal":1,"canal_1":"35","canal_2":"35","data_hora":"2026-08-15 02:51:35.374503+00","created_at":"2026-08-15 02:51:35.374503+00","numero_serie":"THX-00001"},{"idx":96,"id":2081,"dispositivo_id":1,"forno_id":3,"modulo_alutal":8,"canal_1":"924","canal_2":"38","data_hora":"2026-08-15 02:51:36.730463+00","created_at":"2026-08-15 02:51:36.730463+00","numero_serie":"THX-00001"},{"idx":97,"id":2082,"dispositivo_id":1,"forno_id":3,"modulo_alutal":1,"canal_1":"35","canal_2":"35","data_hora":"2026-08-15 02:52:13.453755+00","created_at":"2026-08-15 02:52:13.453755+00","numero_serie":"THX-00001"},{"idx":98,"id":2083,"dispositivo_id":1,"forno_id":3,"modulo_alutal":8,"canal_1":"928","canal_2":"38","data_hora":"2026-08-15 02:52:14.833909+00","created_at":"2026-08-15 02:52:14.833909+00","numero_serie":"THX-00001"},{"idx":99,"id":2084,"dispositivo_id":1,"forno_id":3,"modulo_alutal":1,"canal_1":"36","canal_2":"35","data_hora":"2026-08-15 02:52:51.553495+00","created_at":"2026-08-15 02:52:51.553495+00","numero_serie":"THX-00001"}];
-        let db_dispositivo = [{"idx":0,"id":1,"empresa_id":1,"numero_serie":"THX-00001","nome":"ThermoX Ceramica 1","modelo":"THERMO X","firmware":"1.1.0","ip":null,"wifi_rssi":null,"status":"offline","ultimo_contato":null,"created_at":"2026-08-14 12:45:31.033675+00"}][0];
-        let db_empresa = [{"idx":0,"id":1,"nome":"CERAMICA FULANO","ativo":true,"created_at":"2026-08-14 12:44:10.859774+00"}][0];
-        let db_fornos = [{"idx":0,"id":1,"dispositivo_id":1,"numero":1,"nome":"Forno 01","modulo_alutal":1,"ativo":true,"created_at":"2026-08-14 12:46:43.039768+00"},{"idx":1,"id":2,"dispositivo_id":1,"numero":2,"nome":"Forno 02","modulo_alutal":2,"ativo":true,"created_at":"2026-08-14 12:47:34.666382+00"},{"idx":2,"id":3,"dispositivo_id":1,"numero":3,"nome":"Forno 03","modulo_alutal":3,"ativo":true,"created_at":"2026-08-14 12:47:45.741817+00"},{"idx":3,"id":9,"dispositivo_id":1,"numero":4,"nome":"Forno 04","modulo_alutal":4,"ativo":true,"created_at":"2026-08-14 17:05:25.675925+00"},{"idx":4,"id":10,"dispositivo_id":1,"numero":5,"nome":"Forno 05","modulo_alutal":5,"ativo":true,"created_at":"2026-08-14 17:05:25.675925+00"}];
+        // CONFIGURAÇÃO SUPABASE
+        const SUPABASE_URL = "https://SEU-PROJETO.supabase.co";
+        const SUPABASE_KEY = "SUA-CHAVE-ANON-PUBLIC-KEY";
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // ESTADO GLOBAL
+        let fornos = [];
+        let leituras = [];
+        let dispositivo = null;
+        let empresa = null;
         let fornoSelecionado = null;
         let chartInstance = null;
 
-        window.onload = () => {
-            // Preenche dados do Perfil
-            document.getElementById('splashEmpresaSub').innerText = db_empresa.nome;
-            document.getElementById('usrEmpresaNome').innerText = db_empresa.nome;
-            document.getElementById('usrEmpresaId').innerText = `ID #${db_empresa.id} - ${db_empresa.nome}`;
-            document.getElementById('usrDispositivo').innerText = db_dispositivo.nome;
-            document.getElementById('usrSerie').innerText = db_dispositivo.numero_serie;
-            document.getElementById('usrFirmware').innerText = db_dispositivo.firmware;
+        window.onload = async () => {
+            await inicializarDados();
+            ativarRealtime();
         };
 
-        // NAVEGAÇÃO
+        // CARREGA TODOS OS DADOS INICIAIS DO SUPABASE
+        async function inicializarDados() {
+            try {
+                // 1. Empresa
+                const { data: empData } = await db.from('empresa').select('*').single();
+                if (empData) {
+                    empresa = empData;
+                    document.getElementById('splashEmpresaSub').innerText = empresa.nome;
+                    document.getElementById('usrEmpresaNome').innerText = empresa.nome;
+                    document.getElementById('usrEmpresaId').innerText = `ID #${empresa.id} - ${empresa.nome}`;
+                }
+
+                // 2. Dispositivo
+                const { data: dispData } = await db.from('dispositivo').select('*').single();
+                if (dispData) {
+                    dispositivo = dispData;
+                    document.getElementById('usrDispositivo').innerText = dispositivo.nome;
+                    document.getElementById('usrSerie').innerText = dispositivo.numero_serie;
+                    document.getElementById('usrFirmware').innerText = dispositivo.firmware || '1.0.0';
+                }
+
+                // 3. Fornos
+                const { data: fornosData } = await db.from('forno').select('*').order('id', { ascending: true });
+                if (fornosData) fornos = fornosData;
+
+                // 4. Leituras
+                const { data: leiturasData } = await db.from('leituras').select('*').order('data_hora', { ascending: true });
+                if (leiturasData) leituras = leiturasData;
+
+                renderizarLista();
+            } catch (err) {
+                console.error("Erro ao carregar banco:", err);
+            }
+        }
+
+        // INSCRIÇÃO REALTIME SUPABASE
+        function ativarRealtime() {
+            db.channel('mudancas-leituras')
+              .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leituras' }, payload => {
+                  leituras.push(payload.new);
+                  
+                  if (fornoSelecionado && fornoSelecionado.id === payload.new.forno_id) {
+                      atualizarTelaDetalhes();
+                  } else {
+                      renderizarLista();
+                  }
+              })
+              .subscribe();
+        }
+
+        // INTERFACE E NAVEGAÇÃO
         function entrarAplicativo() {
             document.getElementById('splashScreen').style.display = 'none';
-            renderizarLista();
         }
 
         function navegar(tela, el) {
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
-            if(el) el.classList.add('active');
+            if (el) el.classList.add('active');
 
-            if(tela === 'fornos') {
+            if (tela === 'fornos') {
                 voltarLista();
-            } else if(tela === 'config') {
+            } else if (tela === 'config') {
                 mostrarTela('screenConfig', 'Perfil do Usuário');
-            } else if(tela === 'alertas_geral') {
-                mostrarTela('screenConfig', 'Alertas do Sistema');
             }
         }
 
@@ -630,10 +633,9 @@
         }
 
         function abrirDetalhes(id) {
-            fornoSelecionado = db_fornos.find(f => f.id === id);
+            fornoSelecionado = fornos.find(f => f.id === id);
             document.getElementById('backButton').style.display = 'flex';
             document.getElementById('headerAction').style.display = 'none';
-            
             mostrarTela('screenForno', fornoSelecionado.nome);
             atualizarTelaDetalhes();
         }
@@ -646,21 +648,21 @@
             renderizarLista();
         }
 
-        // MONTAGEM DA INTERFACE DADOS DO BANCO
+        // CARDS E RENDER
         function obterUltimaLeitura(fornoId) {
-            const leituras = db_leituras.filter(l => l.forno_id === fornoId);
-            return leituras.length ? leituras[leituras.length - 1] : null;
+            const doForno = leituras.filter(l => l.forno_id === fornoId);
+            return doForno.length ? doForno[doForno.length - 1] : null;
         }
 
         function renderizarLista() {
             const container = document.getElementById('listaFornos');
             container.innerHTML = '';
 
-            db_fornos.forEach(forno => {
+            fornos.forEach(forno => {
                 const ultima = obterUltimaLeitura(forno.id);
                 const temp = ultima ? ultima.canal_1 : '--';
                 const statusClass = ultima ? 'online' : 'offline';
-                const statusTexto = ultima ? 'ONLINE' : 'DESCONECTADO';
+                const statusTexto = ultima ? 'CONECTADO' : 'SEM DADOS';
 
                 const card = document.createElement('div');
                 card.className = 'oven-card';
@@ -686,41 +688,66 @@
         }
 
         function atualizarTelaDetalhes() {
-            if(!fornoSelecionado) return;
+            if (!fornoSelecionado) return;
 
-            const leituras = db_leituras.filter(l => l.forno_id === fornoSelecionado.id);
-            const ultima = leituras[leituras.length - 1];
+            const doForno = leituras.filter(l => l.forno_id === fornoSelecionado.id);
+            const ultima = doForno[doForno.length - 1];
 
             if (ultima) {
                 document.getElementById('detailTemperature').innerText = `${ultima.canal_1}°C`;
                 document.getElementById('detailSubtext').innerText = `Canal 1: ${ultima.canal_1}°C | Canal 2: ${ultima.canal_2}°C`;
                 
-                // Cálculo estatístico real dos dados
-                const canal1Valores = leituras.map(l => parseFloat(l.canal_1));
-                const media = (canal1Valores.reduce((a, b) => a + b, 0) / canal1Valores.length).toFixed(1);
-                const maximo = Math.max(...canal1Valores);
+                const c1Valores = doForno.map(l => parseFloat(l.canal_1) || 0);
+                const media = (c1Valores.reduce((a, b) => a + b, 0) / c1Valores.length).toFixed(1);
+                const maximo = Math.max(...c1Valores);
 
                 document.getElementById('statAvg').innerText = `${media}°C`;
                 document.getElementById('statMax').innerText = `${maximo}°C`;
                 document.getElementById('detailStatusDot').className = 'status-dot online';
-                document.getElementById('detailStatus').innerText = 'Recebendo Dados';
+                document.getElementById('detailStatus').innerText = 'Transmitindo';
             } else {
                 document.getElementById('detailTemperature').innerText = `--°C`;
-                document.getElementById('detailSubtext').innerText = `Sem dados para o Módulo ${fornoSelecionado.modulo_alutal}`;
+                document.getElementById('detailSubtext').innerText = `Sem registros recentes no Supabase`;
                 document.getElementById('statAvg').innerText = `--°C`;
                 document.getElementById('statMax').innerText = `--°C`;
                 document.getElementById('detailStatusDot').className = 'status-dot offline';
-                document.getElementById('detailStatus').innerText = 'Sem Sinal';
+                document.getElementById('detailStatus').innerText = 'Desconectado';
             }
 
-            renderizarGrafico(leituras);
+            renderizarGrafico(doForno);
         }
 
-        // TABS E MODAL
+        // SALVAR NOVO FORNO NO SUPABASE
+        async function salvarFornoSupabase() {
+            const nome = document.getElementById('inputNome').value;
+            const modulo = document.getElementById('inputModulo').value;
+
+            if (nome && modulo && dispositivo) {
+                const { data, error } = await db.from('forno').insert([
+                    {
+                        dispositivo_id: dispositivo.id,
+                        numero: fornos.length + 1,
+                        nome: nome,
+                        modulo_alutal: parseInt(modulo),
+                        ativo: true
+                    }
+                ]).select();
+
+                if (!error && data) {
+                    fornos.push(data[0]);
+                    fecharModalForno();
+                    renderizarLista();
+                    document.getElementById('inputNome').value = '';
+                    document.getElementById('inputModulo').value = '';
+                } else {
+                    alert('Erro ao salvar no banco!');
+                }
+            }
+        }
+
         function alternarAba(aba, el) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
             el.classList.add('active');
             if(aba === 'grafico') document.getElementById('tabGrafico').classList.add('active');
             if(aba === 'alertas') document.getElementById('tabAlertas').classList.add('active');
@@ -729,44 +756,23 @@
         function abrirModalForno() { document.getElementById('modalForno').classList.add('active'); }
         function fecharModalForno() { document.getElementById('modalForno').classList.remove('active'); }
 
-        function salvarForno() {
-            const nome = document.getElementById('inputNome').value;
-            const modulo = document.getElementById('inputModulo').value;
-
-            if(nome && modulo) {
-                db_fornos.push({
-                    id: Date.now(),
-                    dispositivo_id: db_dispositivo.id,
-                    numero: db_fornos.length + 1,
-                    nome: nome,
-                    modulo_alutal: parseInt(modulo),
-                    ativo: true
-                });
-                fecharModalForno();
-                renderizarLista();
-                document.getElementById('inputNome').value = '';
-                document.getElementById('inputModulo').value = '';
-            }
-        }
-
-        // GRÁFICO DO BANCO
-        function renderizarGrafico(leituras) {
+        // GRÁFICO DADOS REALTIME
+        function renderizarGrafico(dados) {
             const ctx = document.getElementById('mainChart').getContext('2d');
-            
-            if(chartInstance) chartInstance.destroy();
+            if (chartInstance) chartInstance.destroy();
 
-            const labels = leituras.map(l => new Date(l.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-            const dataCanal1 = leituras.map(l => parseFloat(l.canal_1));
-            const dataCanal2 = leituras.map(l => parseFloat(l.canal_2));
+            const labels = dados.map(l => new Date(l.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+            const c1 = dados.map(l => parseFloat(l.canal_1) || 0);
+            const c2 = dados.map(l => parseFloat(l.canal_2) || 0);
 
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels.length ? labels : ['Sem Registros'],
+                    labels: labels.length ? labels : ['Aguardando'],
                     datasets: [
                         {
                             label: 'Canal 1 (°C)',
-                            data: dataCanal1.length ? dataCanal1 : [0],
+                            data: c1.length ? c1 : [0],
                             borderColor: '#f47b20',
                             backgroundColor: 'rgba(244, 123, 32, 0.15)',
                             fill: true,
@@ -774,7 +780,7 @@
                         },
                         {
                             label: 'Canal 2 (°C)',
-                            data: dataCanal2.length ? dataCanal2 : [0],
+                            data: c2.length ? c2 : [0],
                             borderColor: '#3b82b6',
                             backgroundColor: 'rgba(59, 130, 182, 0.05)',
                             fill: false,
@@ -793,29 +799,6 @@
                 }
             });
         }
-
-        // SIMULADOR DE INSERÇÃO EM TEMPO REAL NO BANCO
-        setInterval(() => {
-            // Insere uma leitura simulada no banco a cada 4 segundos no Forno 3 para ver a atualização viva
-            const ultima = db_leituras[db_leituras.length - 1];
-            if (ultima) {
-                const novaLeitura = {
-                    ...ultima,
-                    id: ultima.id + 1,
-                    canal_1: (parseFloat(ultima.canal_1) + (Math.random() * 4 - 2)).toFixed(0),
-                    canal_2: (parseFloat(ultima.canal_2) + (Math.random() * 2 - 1)).toFixed(0),
-                    data_hora: new Date().toISOString()
-                };
-                db_leituras.push(novaLeitura);
-
-                // Atualiza tela corrente
-                if(fornoSelecionado) {
-                    atualizarTelaDetalhes();
-                } else {
-                    renderizarLista();
-                }
-            }
-        }, 4000);
     </script>
 </body>
 </html>

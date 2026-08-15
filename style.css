@@ -15,6 +15,10 @@
   --shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
@@ -27,16 +31,18 @@ body {
   padding: 16px 5%;
   background: var(--primary);
   color: white;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   gap: 20px;
 }
 
 .brand {
   font-size: 20px;
   font-weight: 800;
-  letter-spacing: .4px;
+  letter-spacing: 0.4px;
 }
 
 .company-name {
@@ -49,19 +55,24 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+
   font-size: 14px;
 }
 
 .dot {
   width: 10px;
   height: 10px;
+
   border-radius: 50%;
+
   display: inline-block;
 }
 
 .dot.online {
   background: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, .15);
+
+  box-shadow:
+    0 0 0 4px rgba(34, 197, 94, 0.15);
 }
 
 .dot.offline {
@@ -70,27 +81,40 @@ body {
 
 .container {
   width: min(1200px, 92%);
+
   margin: 28px auto;
 }
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
   gap: 14px;
 }
 
 .summary-card {
   background: var(--card);
-  border: 1px solid var(--border);
+
+  border:
+    1px solid
+    var(--border);
+
   border-radius: 14px;
+
   padding: 18px;
+
   box-shadow: var(--shadow);
 }
 
 .summary-card span {
   display: block;
+
   color: var(--muted);
+
   font-size: 13px;
+
   margin-bottom: 8px;
 }
 
@@ -108,182 +132,354 @@ body {
 
 .toolbar {
   margin: 30px 0 18px;
+
   display: flex;
+
   justify-content: space-between;
   align-items: end;
+
   gap: 20px;
 }
 
 .toolbar h1 {
   margin: 0;
+
   font-size: 28px;
 }
 
 .toolbar p {
   margin: 6px 0 0;
+
   color: var(--muted);
 }
 
 button {
   border: 0;
+
   border-radius: 10px;
+
   padding: 11px 17px;
+
   background: var(--primary);
+
   color: white;
+
   cursor: pointer;
+
   font-weight: 700;
 }
 
 button:hover {
-  opacity: .9;
+  opacity: 0.9;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
 }
 
 .status-message {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+
   color: var(--muted);
+
   font-size: 14px;
+}
+
+.status-message.error {
+  color: #991b1b;
+}
+
+.diagnostic {
+  display: none;
+
+  margin-bottom: 18px;
+
+  padding: 14px 16px;
+
+  background: #111827;
+
+  color: #e5e7eb;
+
+  border-radius: 12px;
+
+  font-family:
+    Consolas,
+    Monaco,
+    monospace;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+
+  overflow-x: auto;
+}
+
+.diagnostic.show {
+  display: block;
+}
+
+.diagnostic .ok {
+  color: #86efac;
+}
+
+.diagnostic .bad {
+  color: #fca5a5;
 }
 
 .ovens-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
   gap: 18px;
 }
 
 .oven-card {
   background: var(--card);
-  border: 1px solid var(--border);
+
+  border:
+    1px solid
+    var(--border);
+
   border-radius: 16px;
+
   padding: 20px;
+
   box-shadow: var(--shadow);
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.oven-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 12px 30px
+    rgba(15, 23, 42, 0.1);
 }
 
 .oven-header {
   display: flex;
+
   justify-content: space-between;
   align-items: start;
+
   gap: 12px;
+
   margin-bottom: 18px;
 }
 
 .oven-name {
   margin: 0;
+
   font-size: 21px;
 }
 
 .oven-info {
-  margin-top: 5px;
+  margin-top: 7px;
+
   color: var(--muted);
+
   font-size: 13px;
+
+  line-height: 1.6;
 }
 
 .status-badge {
   white-space: nowrap;
+
   padding: 6px 9px;
+
   border-radius: 999px;
+
   font-size: 12px;
+
   font-weight: 800;
 }
 
 .status-badge.online {
   color: #166534;
+
   background: #dcfce7;
 }
 
 .status-badge.offline {
   color: #991b1b;
+
   background: #fee2e2;
 }
 
 .channels {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
   gap: 12px;
 }
 
 .channel {
-  border: 1px solid var(--border);
+  border:
+    1px solid
+    var(--border);
+
   border-radius: 12px;
+
   padding: 15px;
+
   background: #fafafa;
 }
 
 .channel-label {
   color: var(--muted);
+
   font-size: 13px;
 }
 
 .temperature {
   margin-top: 6px;
+
   font-size: 31px;
+
   font-weight: 800;
 }
 
 .temperature small {
   font-size: 15px;
+
   font-weight: 600;
+
   color: var(--muted);
 }
 
 .channel.inactive {
-  opacity: .55;
+  opacity: 0.55;
 }
 
 .oven-footer {
   margin-top: 16px;
+
   padding-top: 12px;
-  border-top: 1px solid var(--border);
+
+  border-top:
+    1px solid
+    var(--border);
+
   color: var(--muted);
+
   font-size: 12px;
+
+  line-height: 1.7;
+}
+
+.match-type {
+  display: inline-block;
+
+  margin-top: 5px;
+
+  padding: 3px 7px;
+
+  border-radius: 6px;
+
+  background: #eef2ff;
+
+  color: #4338ca;
+
+  font-size: 11px;
+
+  font-weight: 700;
 }
 
 .empty {
   grid-column: 1 / -1;
+
   text-align: center;
+
   padding: 50px 20px;
+
   color: var(--muted);
+
   background: var(--card);
-  border: 1px dashed var(--border);
+
+  border:
+    1px dashed
+    var(--border);
+
   border-radius: 16px;
 }
 
-.error {
+.empty h2 {
+  color: var(--text);
+}
+
+.error-box {
+  grid-column: 1 / -1;
+
+  padding: 25px;
+
+  background: #fff;
+
+  border:
+    1px solid
+    #fecaca;
+
   color: #991b1b;
+
+  border-radius: 16px;
 }
 
 footer {
   text-align: center;
+
   padding: 30px 15px;
+
   color: var(--muted);
+
   font-size: 12px;
 }
 
 @media (max-width: 850px) {
+
   .summary {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns:
+      repeat(2, 1fr);
   }
 
   .ovens-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 @media (max-width: 520px) {
+
   .topbar {
     align-items: flex-start;
+
     flex-direction: column;
   }
 
   .summary {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+      1fr 1fr;
   }
 
   .toolbar {
     align-items: stretch;
+
     flex-direction: column;
   }
 
   .channels {
     grid-template-columns: 1fr;
   }
+
+  .oven-header {
+    flex-direction: column;
+  }
+
 }

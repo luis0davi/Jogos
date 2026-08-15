@@ -1,182 +1,315 @@
 /*
-  MONITOR DE FORNOS
-  Supabase + GitHub Pages
+===========================================================
+ MONITOR DE FORNOS
+ Supabase + GitHub Pages
 
-  IMPORTANTE:
-  1. Cole abaixo a URL do seu projeto Supabase.
-  2. Cole abaixo a chave pública (anon/publishable key).
-  3. NUNCA coloque a service_role key neste arquivo.
+ VERSÃO 2
+
+ REGRA PRINCIPAL:
+
+ Os dados chegam pela tabela "leituras".
+
+ A leitura possui:
+
+ - forno_id
+ - dispositivo_id
+ - modulo_atual
+ - canal_1
+ - canal_2
+ - data_hora
+
+ O sistema tenta relacionar a leitura ao forno nesta ordem:
+
+ 1. forno_id
+ 2. dispositivo_id + módulo
+ 3. módulo atual do forno
+ 4. número do forno = módulo
+
+ Se uma leitura não encontrar um forno cadastrado,
+ o sistema pode criar um cartão virtual usando o módulo.
+
+ Exemplo:
+
+ módulo 2
+   ↓
+ Forno 02
+   ↓
+ Canal 1
+ Canal 2
+
+ NUNCA coloque a service_role key aqui.
+ Use somente a chave pública/anon/publishable.
+===========================================================
 */
 
-const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
+
+// ========================================================
+// CONFIGURAÇÃO DO SUPABASE
+// ========================================================
+
+const SUPABASE_URL =
+  "SUA_URL_AQUI";
 
 
- // =====================================================
-// MONITOR DE FORNOS
-// SUPABASE + GITHUB PAGES
-// =====================================================
-
-// COLOQUE OS DADOS DO SEU SUPABASE AQUI
+const SUPABASE_ANON_KEY =
+  "SUA_CHAVE_PUBLICA_AQUI";
 
 
-
-// =====================================================
-// CONFIGURAÇÕES
-// =====================================================
+// ========================================================
+// CONFIGURAÇÕES DO PAINEL
+// ========================================================
 
 const CONFIG = {
 
-  // Tempo máximo sem receber leitura para considerar ONLINE
+  // Depois de quantos segundos sem leitura
+  // o módulo/forno fica OFFLINE.
+
   onlineTimeoutSeconds: 60,
 
-  // Atualização automática
-  refreshIntervalMs: 5000
+
+  // Frequência de atualização.
+
+  refreshIntervalMs: 5000,
+
+
+  // Quantas horas de histórico recente
+  // vamos consultar.
+
+  leituraJanelaHoras: 24,
+
+
+  // Mostrar no painel o diagnóstico.
+
+  mostrarDiagnostico: true,
+
+
+  // Nome provisório da empresa.
+
+  companyName: "CERÂMICA 1"
 
 };
 
 
-// =====================================================
+// ========================================================
 // VARIÁVEIS
-// =====================================================
+// ========================================================
 
 let supabaseClient = null;
 
+let carregando = false;
 
-// =====================================================
+
+// ========================================================
 // INICIALIZAÇÃO
-// =====================================================
+// ========================================================
 
-document.addEventListener("DOMContentLoaded", iniciar);
+document.addEventListener(
+  "DOMContentLoaded",
+  iniciar
+);
 
 
 async function iniciar() {
 
-  console.log("=================================");
-  console.log("MONITOR DE FORNOS");
-  console.log("Iniciando...");
-  console.log("=================================");
+  console.log(
+    "======================================"
+  );
+
+  console.log(
+    "🔥 MONITOR DE FORNOS - V2"
+  );
+
+  console.log(
+    "======================================"
+  );
 
 
-  // Verifica configuração
+  const botao =
+    document.getElementById(
+      "refreshButton"
+    );
+
+
+  botao.addEventListener(
+    "click",
+    carregarPainel
+  );
+
+
+  // Verificação das chaves
 
   if (
     !SUPABASE_URL ||
     !SUPABASE_ANON_KEY ||
-    SUPABASE_URL.includes("SUA_URL") ||
-    SUPABASE_ANON_KEY.includes("SUA_CHAVE")
+    SUPABASE_URL.includes(
+      "SUA_URL_AQUI"
+    ) ||
+    SUPABASE_ANON_KEY.includes(
+      "SUA_CHAVE_PUBLICA_AQUI"
+    )
   ) {
 
     mostrarErro(
-      "ERRO: URL ou chave do Supabase não configurada."
+      "Configure SUPABASE_URL e SUPABASE_ANON_KEY no app.js."
     );
 
     return;
   }
 
 
-  // Cria conexão
+  // Criar cliente
 
-  supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
+  supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+
+
+  console.log(
+    "✓ Cliente Supabase criado."
   );
 
 
-  console.log("Supabase inicializado.");
+  document.getElementById(
+    "companyName"
+  ).textContent =
+    CONFIG.companyName;
 
-  mostrarStatus("Conectando ao Supabase...");
 
-
-  // Primeira leitura
-
-  await carregarDados();
+  await carregarPainel();
 
 
   // Atualização automática
 
   setInterval(
-    carregarDados,
+    carregarPainel,
     CONFIG.refreshIntervalMs
   );
 
 }
 
 
+// ========================================================
+// CARREGAR PAINEL
+// ========================================================
 
-// =====================================================
-// CARREGAR DADOS
-// =====================================================
+async function carregarPainel() {
 
-async function carregarDados() {
+  if (carregando) {
+    return;
+  }
+
+
+  carregando = true;
+
+
+  const botao =
+    document.getElementById(
+      "refreshButton"
+    );
+
+
+  botao.disabled = true;
+
+
+  setConnection(
+    "connecting"
+  );
+
 
   try {
 
-    mostrarStatus("Consultando banco de dados...");
+    limparDiagnostico();
 
 
-    // =================================================
-    // 1 - BUSCAR FORNOS
-    // =================================================
+    // ================================================
+    // 1. BUSCAR FORNOS CADASTRADOS
+    // ================================================
 
-    console.log("Consultando tabela: fornos");
+    const resultadoFornos =
+      await supabaseClient
+
+        .from("fornos")
+
+        .select(
+          "id, dispositivo_id, numero, nome, modulo_atual, ativo, criado_em"
+        )
+
+        .eq(
+          "ativo",
+          true
+        )
+
+        .order(
+          "numero",
+          {
+            ascending: true
+          }
+        );
 
 
-    const resultadoFornos = await supabaseClient
-      .from("fornos")
-      .select("*")
-      .eq("ativo", true)
-      .order("numero", {
-        ascending: true
-      });
-
-
-    console.log("Resultado FORNOS:", resultadoFornos);
+    console.log(
+      "FORNOS:",
+      resultadoFornos
+    );
 
 
     if (resultadoFornos.error) {
 
       throw new Error(
-        "Erro na tabela FORNOS: " +
+        "Erro na tabela fornos: " +
         resultadoFornos.error.message
       );
 
     }
 
 
-    const fornos = resultadoFornos.data || [];
+    const fornos =
+      resultadoFornos.data || [];
+
+
+    // ================================================
+    // 2. BUSCAR LEITURAS
+    // ================================================
+
+    const limite =
+      new Date(
+
+        Date.now() -
+
+        CONFIG.leituraJanelaHoras *
+        60 *
+        60 *
+        1000
+
+      ).toISOString();
+
+
+    const resultadoLeituras =
+      await supabaseClient
+
+        .from("leituras")
+
+        .select(
+          "id, dispositivo_id, forno_id, modulo_atual, canal_1, canal_2, data_hora"
+        )
+
+        .gte(
+          "data_hora",
+          limite
+        )
+
+        .order(
+          "data_hora",
+          {
+            ascending: false
+          }
+        );
 
 
     console.log(
-      "Quantidade de fornos:",
-      fornos.length
-    );
-
-
-    // =================================================
-    // 2 - BUSCAR LEITURAS
-    // =================================================
-
-    console.log("Consultando tabela: leituras");
-
-
-    const dataLimite = new Date(
-      Date.now() -
-      24 * 60 * 60 * 1000
-    ).toISOString();
-
-
-    const resultadoLeituras = await supabaseClient
-      .from("leituras")
-      .select("*")
-      .gte("data_hora", dataLimite)
-      .order("data_hora", {
-        ascending: false
-      });
-
-
-    console.log(
-      "Resultado LEITURAS:",
+      "LEITURAS:",
       resultadoLeituras
     );
 
@@ -184,7 +317,7 @@ async function carregarDados() {
     if (resultadoLeituras.error) {
 
       throw new Error(
-        "Erro na tabela LEITURAS: " +
+        "Erro na tabela leituras: " +
         resultadoLeituras.error.message
       );
 
@@ -195,32 +328,155 @@ async function carregarDados() {
       resultadoLeituras.data || [];
 
 
-    console.log(
-      "Quantidade de leituras:",
+    // ================================================
+    // DIAGNÓSTICO
+    // ================================================
+
+    mostrarDiagnostico(
+
+      fornos.length,
+
       leituras.length
+
     );
 
 
-    // =================================================
-    // 3 - PEGAR ÚLTIMA LEITURA DE CADA FORNO
-    // =================================================
+    // ================================================
+    // 3. INDEXAR LEITURAS
+    // ================================================
 
-    const ultimasLeituras =
-      new Map();
+    const indices =
+      criarIndicesLeituras(
+        leituras
+      );
 
 
-    for (const leitura of leituras) {
+    // ================================================
+    // 4. RELACIONAR FORNOS COM LEITURAS
+    // ================================================
 
-      const fornoID =
-        String(leitura.forno_id);
+    const resultado =
+      relacionarFornos(
+        fornos,
+        leituras,
+        indices
+      );
+
+
+    // ================================================
+    // 5. DESENHAR
+    // ================================================
+
+    renderizarFornos(
+      resultado
+    );
+
+
+    // ================================================
+    // STATUS
+    // ================================================
+
+    const online =
+      resultado.filter(
+        item => item.online
+      ).length;
+
+
+    const offline =
+      resultado.length -
+      online;
+
+
+    mostrarStatus(
+
+      `✓ Banco conectado • ` +
+      `${resultado.length} forno(s) • ` +
+      `${online} online • ` +
+      `${offline} offline • ` +
+      `Atualizado às ${formatarHora(new Date())}`
+
+    );
+
+
+    setConnection(
+      "online"
+    );
+
+
+  } catch (erro) {
+
+    console.error(
+      "ERRO:",
+      erro
+    );
+
+
+    setConnection(
+      "offline"
+    );
+
+
+    mostrarErro(
+      erro.message
+    );
+
+
+  } finally {
+
+    carregando = false;
+
+    botao.disabled = false;
+
+  }
+
+}
+
+
+// ========================================================
+// CRIAR ÍNDICES DAS LEITURAS
+// ========================================================
+
+function criarIndicesLeituras(
+  leituras
+) {
+
+  const porForno =
+    new Map();
+
+
+  const porDispositivoModulo =
+    new Map();
+
+
+  const porModulo =
+    new Map();
+
+
+  for (
+    const leitura of leituras
+  ) {
+
+    // -----------------------------------------------
+    // ÍNDICE POR FORNO_ID
+    // -----------------------------------------------
+
+    if (
+      leitura.forno_id !== null &&
+      leitura.forno_id !== undefined
+    ) {
+
+      const chave =
+        String(
+          leitura.forno_id
+        );
 
 
       if (
-        !ultimasLeituras.has(fornoID)
+        !porForno.has(chave)
       ) {
 
-        ultimasLeituras.set(
-          fornoID,
+        porForno.set(
+          chave,
           leitura
         );
 
@@ -229,135 +485,505 @@ async function carregarDados() {
     }
 
 
-    // =================================================
-    // 4 - MONTAR DADOS
-    // =================================================
+    // -----------------------------------------------
+    // ÍNDICE POR DISPOSITIVO + MÓDULO
+    // -----------------------------------------------
 
-    const dadosFornos =
-      fornos.map(forno => {
+    if (
+      leitura.dispositivo_id !== null &&
+      leitura.dispositivo_id !== undefined &&
+      leitura.modulo_atual !== null &&
+      leitura.modulo_atual !== undefined
+    ) {
 
-        const leitura =
-          ultimasLeituras.get(
-            String(forno.id)
-          );
+      const chave =
 
+        String(
+          leitura.dispositivo_id
+        ) +
 
-        let online = false;
+        "|" +
 
-
-        if (leitura?.data_hora) {
-
-          const dataLeitura =
-            new Date(
-              leitura.data_hora
-            );
-
-
-          const segundos =
-            (
-              Date.now() -
-              dataLeitura.getTime()
-            ) / 1000;
+        String(
+          leitura.modulo_atual
+        );
 
 
-          online =
-            segundos <=
-            CONFIG.onlineTimeoutSeconds;
+      if (
+        !porDispositivoModulo.has(
+          chave
+        )
+      ) {
 
-        }
+        porDispositivoModulo.set(
+          chave,
+          leitura
+        );
 
+      }
 
-        return {
-
-          forno,
-          leitura,
-          online
-
-        };
-
-      });
+    }
 
 
-    // =================================================
-    // 5 - MOSTRAR
-    // =================================================
+    // -----------------------------------------------
+    // ÍNDICE POR MÓDULO
+    // -----------------------------------------------
 
-    mostrarFornos(
-      dadosFornos
-    );
+    if (
+      leitura.modulo_atual !== null &&
+      leitura.modulo_atual !== undefined
+    ) {
 
-
-    mostrarStatus(
-      "✓ Supabase conectado | " +
-      fornos.length +
-      " forno(s) | " +
-      leituras.length +
-      " leitura(s)"
-    );
+      const chave =
+        String(
+          leitura.modulo_atual
+        );
 
 
-  } catch (erro) {
+      if (
+        !porModulo.has(chave)
+      ) {
 
-    console.error(
-      "ERRO COMPLETO:",
-      erro
-    );
+        porModulo.set(
+          chave,
+          leitura
+        );
 
+      }
 
-    mostrarErro(
-      erro.message
-    );
+    }
 
   }
+
+
+  return {
+
+    porForno,
+
+    porDispositivoModulo,
+
+    porModulo
+
+  };
 
 }
 
 
+// ========================================================
+// RELACIONAR FORNOS
+// ========================================================
 
-// =====================================================
-// MOSTRAR FORNOS
-// =====================================================
+function relacionarFornos(
+  fornos,
+  leituras,
+  indices
+) {
 
-function mostrarFornos(lista) {
+  const resultado = [];
 
-  const container =
+
+  const idsDeLeiturasUsadas =
+    new Set();
+
+
+  // =====================================================
+  // PRIMEIRO: FORNOS CADASTRADOS
+  // =====================================================
+
+  for (
+    const forno of fornos
+  ) {
+
+    let leitura = null;
+
+    let tipoRelacionamento =
+      "Sem leitura";
+
+
+    // -----------------------------------------------
+    // REGRA 1
+    // forno_id
+    // -----------------------------------------------
+
+    if (
+      forno.id !== null &&
+      forno.id !== undefined
+    ) {
+
+      leitura =
+        indices.porForno.get(
+          String(
+            forno.id
+          )
+        );
+
+
+      if (leitura) {
+
+        tipoRelacionamento =
+          "forno_id";
+
+      }
+
+    }
+
+
+    // -----------------------------------------------
+    // REGRA 2
+    // dispositivo + módulo
+    // -----------------------------------------------
+
+    if (
+      !leitura &&
+      forno.dispositivo_id !== null &&
+      forno.dispositivo_id !== undefined &&
+      forno.modulo_atual !== null &&
+      forno.modulo_atual !== undefined
+    ) {
+
+      const chave =
+
+        String(
+          forno.dispositivo_id
+        ) +
+
+        "|" +
+
+        String(
+          forno.modulo_atual
+        );
+
+
+      leitura =
+        indices
+          .porDispositivoModulo
+          .get(chave);
+
+
+      if (leitura) {
+
+        tipoRelacionamento =
+          "dispositivo + módulo";
+
+      }
+
+    }
+
+
+    // -----------------------------------------------
+    // REGRA 3
+    // módulo atual
+    // -----------------------------------------------
+
+    if (
+      !leitura &&
+      forno.modulo_atual !== null &&
+      forno.modulo_atual !== undefined
+    ) {
+
+      leitura =
+        indices.porModulo.get(
+          String(
+            forno.modulo_atual
+          )
+        );
+
+
+      if (leitura) {
+
+        tipoRelacionamento =
+          "módulo";
+
+      }
+
+    }
+
+
+    // -----------------------------------------------
+    // REGRA 4
+    // número do forno = módulo
+    // -----------------------------------------------
+
+    if (
+      !leitura &&
+      forno.numero !== null &&
+      forno.numero !== undefined
+    ) {
+
+      leitura =
+        indices.porModulo.get(
+          String(
+            forno.numero
+          )
+        );
+
+
+      if (leitura) {
+
+        tipoRelacionamento =
+          "número do forno = módulo";
+
+      }
+
+    }
+
+
+    if (leitura) {
+
+      idsDeLeiturasUsadas.add(
+        leitura.id
+      );
+
+    }
+
+
+    const online =
+      verificarOnline(
+        leitura
+      );
+
+
+    resultado.push({
+
+      forno,
+
+      leitura,
+
+      online,
+
+      tipoRelacionamento,
+
+      virtual: false
+
+    });
+
+  }
+
+
+  // =====================================================
+  // SEGUNDO:
+  // LEITURAS DE MÓDULOS SEM FORNO CADASTRADO
+  // =====================================================
+
+  for (
+    const leitura of leituras
+  ) {
+
+    if (
+      idsDeLeiturasUsadas.has(
+        leitura.id
+      )
+    ) {
+
+      continue;
+
+    }
+
+
+    if (
+      leitura.modulo_atual === null ||
+      leitura.modulo_atual === undefined
+    ) {
+
+      continue;
+
+    }
+
+
+    const modulo =
+      String(
+        leitura.modulo_atual
+      );
+
+
+    // Cria um forno virtual.
+
+    const fornoVirtual = {
+
+      id:
+        `virtual-${modulo}`,
+
+      dispositivo_id:
+        leitura.dispositivo_id,
+
+      numero:
+        modulo,
+
+      nome:
+        `Forno ${formatarNumeroForno(modulo)}`,
+
+      modulo_atual:
+        leitura.modulo_atual,
+
+      ativo:
+        true
+
+    };
+
+
+    resultado.push({
+
+      forno:
+        fornoVirtual,
+
+      leitura,
+
+      online:
+        verificarOnline(
+          leitura
+        ),
+
+      tipoRelacionamento:
+        "módulo detectado",
+
+      virtual:
+        true
+
+    });
+
+
+    idsDeLeiturasUsadas.add(
+      leitura.id
+    );
+
+  }
+
+
+  // =====================================================
+  // ORDENAR POR NÚMERO DO FORNO
+  // =====================================================
+
+  resultado.sort(
+    (a, b) => {
+
+      const numeroA =
+        Number(
+          a.forno.numero
+        );
+
+
+      const numeroB =
+        Number(
+          b.forno.numero
+        );
+
+
+      if (
+        Number.isNaN(numeroA)
+      ) {
+
+        return 1;
+
+      }
+
+
+      if (
+        Number.isNaN(numeroB)
+      ) {
+
+        return -1;
+
+      }
+
+
+      return (
+        numeroA -
+        numeroB
+      );
+
+    }
+  );
+
+
+  return resultado;
+
+}
+
+
+// ========================================================
+// ONLINE / OFFLINE
+// ========================================================
+
+function verificarOnline(
+  leitura
+) {
+
+  if (
+    !leitura ||
+    !leitura.data_hora
+  ) {
+
+    return false;
+
+  }
+
+
+  const data =
+    new Date(
+      leitura.data_hora
+    );
+
+
+  if (
+    Number.isNaN(
+      data.getTime()
+    )
+  ) {
+
+    return false;
+
+  }
+
+
+  const idadeSegundos =
+    (
+      Date.now() -
+      data.getTime()
+    ) / 1000;
+
+
+  return (
+    idadeSegundos >= 0 &&
+    idadeSegundos <=
+      CONFIG.onlineTimeoutSeconds
+  );
+
+}
+
+
+// ========================================================
+// DESENHAR FORNOS
+// ========================================================
+
+function renderizarFornos(
+  lista
+) {
+
+  const grid =
     document.getElementById(
       "ovensGrid"
     );
 
 
-  if (!container) {
+  if (
+    !lista.length
+  ) {
 
-    console.error(
-      "Elemento ovensGrid não encontrado."
-    );
-
-    return;
-
-  }
-
-
-  if (lista.length === 0) {
-
-    container.innerHTML = `
+    grid.innerHTML = `
 
       <div class="empty">
 
         <h2>Nenhum forno encontrado</h2>
 
         <p>
-          A consulta ao Supabase funcionou,
-          mas nenhum forno ativo foi retornado.
-        </p>
-
-        <p>
-          Verifique a coluna <b>ativo</b>
-          da tabela <b>fornos</b>.
+          Nenhum forno ativo ou módulo foi encontrado
+          nas consultas ao Supabase.
         </p>
 
       </div>
 
     `;
+
 
     atualizarResumo(
       0,
@@ -365,35 +991,29 @@ function mostrarFornos(lista) {
       0
     );
 
+
     return;
 
   }
 
 
-  let html = "";
+  grid.innerHTML =
+    lista
+      .map(
+        criarCardForno
+      )
+      .join("");
 
 
-  let online = 0;
+  const online =
+    lista.filter(
+      item => item.online
+    ).length;
 
 
-  lista.forEach(item => {
-
-    if (item.online) {
-
-      online++;
-
-    }
-
-
-    html += criarCard(
-      item
-    );
-
-  });
-
-
-  container.innerHTML =
-    html;
+  const offline =
+    lista.length -
+    online;
 
 
   atualizarResumo(
@@ -402,19 +1022,20 @@ function mostrarFornos(lista) {
 
     online,
 
-    lista.length - online
+    offline
 
   );
 
 }
 
 
+// ========================================================
+// CARD
+// ========================================================
 
-// =====================================================
-// CARD DO FORNO
-// =====================================================
-
-function criarCard(item) {
+function criarCardForno(
+  item
+) {
 
   const forno =
     item.forno;
@@ -429,12 +1050,10 @@ function criarCard(item) {
     `Forno ${forno.numero || forno.id}`;
 
 
-  const canal1 =
-    leitura?.canal_1;
-
-
-  const canal2 =
-    leitura?.canal_2;
+  const numero =
+    forno.numero ??
+    forno.id ??
+    "--";
 
 
   const modulo =
@@ -444,6 +1063,7 @@ function criarCard(item) {
 
 
   const dispositivo =
+    leitura?.dispositivo_id ??
     forno.dispositivo_id ??
     "--";
 
@@ -454,10 +1074,18 @@ function criarCard(item) {
       : "OFFLINE";
 
 
-  const classe =
+  const classeStatus =
     item.online
       ? "online"
       : "offline";
+
+
+  const canal1 =
+    leitura?.canal_1;
+
+
+  const canal2 =
+    leitura?.canal_2;
 
 
   const ultimaLeitura =
@@ -466,6 +1094,11 @@ function criarCard(item) {
           leitura.data_hora
         )
       : "Nenhuma leitura";
+
+
+  const tipo =
+    item.tipoRelacionamento ||
+    "Sem relacionamento";
 
 
   return `
@@ -478,7 +1111,7 @@ function criarCard(item) {
 
           <h2 class="oven-name">
 
-            🔥 ${escapar(nome)}
+            🔥 ${escaparHTML(nome)}
 
           </h2>
 
@@ -486,22 +1119,36 @@ function criarCard(item) {
           <div class="oven-info">
 
             Forno nº
-            ${escapar(
-              forno.numero ?? "--"
-            )}
+            <strong>
+              ${escaparHTML(
+                String(numero)
+              )}
+            </strong>
 
-            • Módulo
-            ${escapar(modulo)}
+            <br>
+
+            Módulo
+            <strong>
+              ${escaparHTML(
+                String(modulo)
+              )}
+            </strong>
 
             • Dispositivo
-            ${escapar(dispositivo)}
+            <strong>
+              ${escaparHTML(
+                String(dispositivo)
+              )}
+            </strong>
 
           </div>
 
         </div>
 
 
-        <span class="status-badge ${classe}">
+        <span
+          class="status-badge ${classeStatus}"
+        >
 
           ● ${status}
 
@@ -517,7 +1164,6 @@ function criarCard(item) {
           canal1
         )}
 
-
         ${criarCanal(
           "Canal 2",
           canal2
@@ -529,8 +1175,22 @@ function criarCard(item) {
       <div class="oven-footer">
 
         Última leitura:
+        <strong>
+          ${escaparHTML(
+            ultimaLeitura
+          )}
+        </strong>
 
-        ${ultimaLeitura}
+        <br>
+
+        <span class="match-type">
+
+          Relação:
+          ${escaparHTML(
+            tipo
+          )}
+
+        </span>
 
       </div>
 
@@ -541,10 +1201,9 @@ function criarCard(item) {
 }
 
 
-
-// =====================================================
+// ========================================================
 // CANAL
-// =====================================================
+// ========================================================
 
 function criarCanal(
   nome,
@@ -580,8 +1239,37 @@ function criarCanal(
   }
 
 
-  const temperatura =
-    Number(valor);
+  const numero =
+    Number(
+      valor
+    );
+
+
+  if (
+    Number.isNaN(numero)
+  ) {
+
+    return `
+
+      <div class="channel inactive">
+
+        <div class="channel-label">
+
+          ${nome}
+
+        </div>
+
+        <div class="temperature">
+
+          -- <small>°C</small>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
 
 
   return `
@@ -597,8 +1285,11 @@ function criarCanal(
 
       <div class="temperature">
 
-        ${temperatura.toLocaleString(
-          "pt-BR"
+        ${numero.toLocaleString(
+          "pt-BR",
+          {
+            maximumFractionDigits: 1
+          }
         )}
 
         <small>°C</small>
@@ -612,10 +1303,9 @@ function criarCanal(
 }
 
 
-
-// =====================================================
+// ========================================================
 // RESUMO
-// =====================================================
+// ========================================================
 
 function atualizarResumo(
   total,
@@ -625,33 +1315,109 @@ function atualizarResumo(
 
   document.getElementById(
     "totalFornos"
-  ).textContent = total;
+  ).textContent =
+    total;
 
 
   document.getElementById(
     "onlineFornos"
-  ).textContent = online;
+  ).textContent =
+    online;
 
 
   document.getElementById(
     "offlineFornos"
-  ).textContent = offline;
+  ).textContent =
+    offline;
 
 
   document.getElementById(
     "lastUpdate"
   ).textContent =
-    new Date().toLocaleTimeString(
-      "pt-BR"
+    formatarHora(
+      new Date()
     );
 
 }
 
 
+// ========================================================
+// DIAGNÓSTICO
+// ========================================================
 
-// =====================================================
+function mostrarDiagnostico(
+  quantidadeFornos,
+  quantidadeLeituras
+) {
+
+  if (
+    !CONFIG.mostrarDiagnostico
+  ) {
+
+    return;
+
+  }
+
+
+  const elemento =
+    document.getElementById(
+      "diagnostic"
+    );
+
+
+  elemento.classList.add(
+    "show"
+  );
+
+
+  elemento.innerHTML = `
+
+    <div class="ok">
+      ✓ Conexão com Supabase funcionando
+    </div>
+
+    <div>
+      Tabela <b>fornos</b>:
+      ${quantidadeFornos} registro(s)
+    </div>
+
+    <div>
+      Tabela <b>leituras</b>:
+      ${quantidadeLeituras} registro(s) nas últimas
+      ${CONFIG.leituraJanelaHoras} horas
+    </div>
+
+  `;
+
+}
+
+
+// ========================================================
+// LIMPAR DIAGNÓSTICO
+// ========================================================
+
+function limparDiagnostico() {
+
+  const elemento =
+    document.getElementById(
+      "diagnostic"
+    );
+
+
+  elemento.classList.remove(
+    "show"
+  );
+
+
+  elemento.innerHTML =
+    "";
+
+}
+
+
+// ========================================================
 // STATUS
-// =====================================================
+// ========================================================
 
 function mostrarStatus(
   mensagem
@@ -661,9 +1427,6 @@ function mostrarStatus(
     document.getElementById(
       "statusMessage"
     );
-
-
-  if (!elemento) return;
 
 
   elemento.className =
@@ -676,10 +1439,9 @@ function mostrarStatus(
 }
 
 
-
-// =====================================================
+// ========================================================
 // ERRO
-// =====================================================
+// ========================================================
 
 function mostrarErro(
   mensagem
@@ -691,59 +1453,226 @@ function mostrarErro(
     );
 
 
-  if (!elemento) return;
-
-
   elemento.className =
     "status-message error";
 
 
   elemento.innerHTML = `
 
-    <strong>❌ ERRO</strong>
+    <strong>❌ Erro</strong>
 
-    <br><br>
+    <br>
 
-    ${escapar(mensagem)}
+    ${escaparHTML(
+      mensagem
+    )}
 
     <br><br>
 
     Abra o console do navegador
-    com <b>F12</b> para ver detalhes.
+    com F12 para ver os detalhes.
+
+  `;
+
+
+  const grid =
+    document.getElementById(
+      "ovensGrid"
+    );
+
+
+  grid.innerHTML = `
+
+    <div class="error-box">
+
+      <strong>
+        Não foi possível carregar os dados.
+      </strong>
+
+      <p>
+        Verifique a conexão com o Supabase
+        e as políticas RLS.
+      </p>
+
+      <p>
+        Erro:
+        ${escaparHTML(
+          mensagem
+        )}
+      </p>
+
+    </div>
 
   `;
 
 }
 
 
+// ========================================================
+// CONEXÃO
+// ========================================================
 
-// =====================================================
-// DATA
-// =====================================================
+function setConnection(
+  estado
+) {
+
+  const dot =
+    document.getElementById(
+      "connectionDot"
+    );
+
+
+  const texto =
+    document.getElementById(
+      "connectionText"
+    );
+
+
+  dot.classList.remove(
+    "online",
+    "offline"
+  );
+
+
+  if (
+    estado === "online"
+  ) {
+
+    dot.classList.add(
+      "online"
+    );
+
+
+    texto.textContent =
+      "Supabase conectado";
+
+
+  } else if (
+    estado === "connecting"
+  ) {
+
+    dot.classList.add(
+      "offline"
+    );
+
+
+    texto.textContent =
+      "Consultando...";
+
+
+  } else {
+
+    dot.classList.add(
+      "offline"
+    );
+
+
+    texto.textContent =
+      "Erro de conexão";
+
+  }
+
+}
+
+
+// ========================================================
+// FORMATAÇÕES
+// ========================================================
+
+function formatarHora(
+  data
+) {
+
+  return data.toLocaleTimeString(
+    "pt-BR",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    }
+  );
+
+}
+
 
 function formatarDataHora(
   valor
 ) {
 
   const data =
-    new Date(valor);
+    new Date(
+      valor
+    );
+
+
+  if (
+    Number.isNaN(
+      data.getTime()
+    )
+  ) {
+
+    return "Data inválida";
+
+  }
 
 
   return data.toLocaleString(
-    "pt-BR"
+    "pt-BR",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    }
   );
 
 }
 
 
+function formatarNumeroForno(
+  numero
+) {
 
-// =====================================================
-// SEGURANÇA
-// =====================================================
+  const n =
+    Number(
+      numero
+    );
 
-function escapar(valor) {
 
-  return String(valor)
+  if (
+    Number.isNaN(n)
+  ) {
+
+    return String(
+      numero
+    );
+
+  }
+
+
+  return String(
+    n
+  ).padStart(
+    2,
+    "0"
+  );
+
+}
+
+
+// ========================================================
+// ESCAPE HTML
+// ========================================================
+
+function escaparHTML(
+  valor
+) {
+
+  return String(
+    valor
+  )
 
     .replaceAll(
       "&",

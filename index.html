@@ -4,59 +4,127 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
+
   <title>Monitor de Fornos</title>
+
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+
   <header class="topbar">
+
     <div>
-      <div class="brand">🔥 MONITOR DE FORNOS</div>
-      <div id="companyName" class="company-name">Carregando empresa...</div>
+      <div class="brand">
+        🔥 MONITOR DE FORNOS
+      </div>
+
+      <div id="companyName" class="company-name">
+        Monitoramento
+      </div>
     </div>
+
     <div class="connection">
       <span id="connectionDot" class="dot offline"></span>
-      <span id="connectionText">Conectando...</span>
+      <span id="connectionText">
+        Conectando...
+      </span>
     </div>
+
   </header>
 
+
   <main class="container">
+
+    <!-- RESUMO -->
+
     <section class="summary">
+
       <div class="summary-card">
-        <span>Fornos ativos</span>
+        <span>Fornos detectados</span>
         <strong id="totalFornos">0</strong>
       </div>
+
       <div class="summary-card online">
         <span>Online</span>
         <strong id="onlineFornos">0</strong>
       </div>
+
       <div class="summary-card offline-card">
         <span>Offline</span>
         <strong id="offlineFornos">0</strong>
       </div>
+
       <div class="summary-card">
         <span>Última atualização</span>
         <strong id="lastUpdate">--:--:--</strong>
       </div>
+
     </section>
 
+
+    <!-- CABEÇALHO -->
+
     <div class="toolbar">
+
       <div>
         <h1>Monitoramento</h1>
-        <p>Temperatura atual dos fornos e seus canais.</p>
+
+        <p>
+          Os fornos são relacionados aos dados enviados pelos módulos.
+        </p>
       </div>
-      <button id="refreshButton" type="button">↻ Atualizar</button>
+
+      <button
+        id="refreshButton"
+        type="button"
+      >
+        ↻ Atualizar
+      </button>
+
     </div>
 
-    <div id="statusMessage" class="status-message"></div>
-    <section id="ovensGrid" class="ovens-grid"></section>
+
+    <!-- STATUS -->
+
+    <div
+      id="statusMessage"
+      class="status-message"
+    >
+      Aguardando conexão...
+    </div>
+
+
+    <!-- DIAGNÓSTICO -->
+
+    <div
+      id="diagnostic"
+      class="diagnostic"
+    ></div>
+
+
+    <!-- FORNOS -->
+
+    <section
+      id="ovensGrid"
+      class="ovens-grid"
+    ></section>
+
   </main>
 
+
   <footer>
-    Monitor de Fornos • GitHub Pages + Supabase
+    Monitor de Fornos • Supabase + GitHub Pages
   </footer>
 
-  <!-- Biblioteca oficial do cliente JavaScript do Supabase -->
+
+  <!-- SUPABASE JS -->
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- NOSSO CÓDIGO -->
+
   <script src="app.js"></script>
+
 </body>
 </html>

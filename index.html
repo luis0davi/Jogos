@@ -1,134 +1,307 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1220">
-<title>ThermoLink</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="app-shell">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-mark">T</div>
-      <div><strong>ThermoLink</strong><span>Industrial Monitoring</span></div>
-    </div>
-    <nav class="side-nav">
-      <button class="nav-item active" data-view="dashboard"><span>⌂</span> Início</button>
-      <button class="nav-item" data-view="fornos"><span>🔥</span> Fornos</button>
-      <button class="nav-item" data-view="historico"><span>◷</span> Histórico</button>
-    </nav>
-    <div class="sidebar-bottom">
-      <div class="connection"><i class="dot"></i><div><b>Supabase</b><small id="connectionText">Conectando...</small></div></div>
-      <small>ThermoLink v2.0</small>
-    </div>
-  </aside>
 
-  <main class="main">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    >
+
+    <meta name="theme-color" content="#f7f7f8">
+
+    <title>ThermoLink</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- CABEÇALHO -->
     <header class="topbar">
-      <div class="top-title">
-        <span class="eyebrow">MONITORAMENTO</span>
-        <h1>Olá 👋</h1>
-        <p id="companyNameTop">CERÂMICA 1</p>
-      </div>
-      <div class="top-actions">
-        <div class="system-status"><i class="pulse"></i><span id="lastUpdate">Aguardando dados...</span></div>
-        <button class="icon-btn" id="refreshBtn" aria-label="Atualizar">↻</button>
-      </div>
+
+        <div>
+            <div class="logo">
+                ThermoLink
+            </div>
+
+            <div class="subtitle">
+                Monitoramento de fornos
+            </div>
+        </div>
+
+        <div class="online-pill">
+            <span></span>
+            ONLINE
+        </div>
+
     </header>
 
-    <section class="content" id="dashboardView">
-      <div class="hero-card">
-        <div>
-          <span>VISÃO GERAL</span>
-          <h2 id="companyName">CERÂMICA 1</h2>
-          <p>Telemetria dos fornos em tempo real</p>
-        </div>
-        <div class="hero-stats">
-          <div><strong id="totalFornos">0</strong><small>Fornos</small></div>
-          <div class="good"><strong id="activeFornos">0</strong><small>Online</small></div>
-          <div class="bad"><strong id="offlineFornos">0</strong><small>Offline</small></div>
-        </div>
-      </div>
 
-      <div class="section-title">
-        <div><h2>Seus fornos</h2><p>Toque em um forno para ver detalhes.</p></div>
-        <div class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Buscar"></div>
-      </div>
+    <main>
 
-      <div id="ovenGrid" class="oven-grid">
-        <div class="loading-card"><div class="loader"></div><p>Carregando telemetria...</p></div>
-      </div>
-    </section>
+        <!-- ========================= -->
+        <!-- TELA INICIAL -->
+        <!-- ========================= -->
 
-    <section class="content hidden" id="ovensView">
-      <div class="section-title"><div><h2>Todos os fornos</h2><p>Lista dos módulos cadastrados.</p></div></div>
-      <div id="ovensTableWrap" class="table-card"></div>
-    </section>
+        <section id="homeView">
 
-    <section class="content hidden" id="historyView">
-      <div class="section-title">
-        <div><h2>Histórico</h2><p>Temperatura do forno selecionado.</p></div>
-        <select id="historySelect" class="select"></select>
-      </div>
-      <div class="chart-card">
-        <div class="chart-head"><div><span class="label">CANAL 1</span><strong id="historyCurrent">-- °C</strong></div><span id="historyRange" class="muted">--</span></div>
-        <div class="chart-wrap"><canvas id="historyChart"></canvas></div>
-      </div>
-    </section>
-  </main>
+            <div class="page-title">
 
-  <nav class="bottom-nav">
-    <button class="nav-bottom active" data-view="dashboard"><span>⌂</span><small>Início</small></button>
-    <button class="nav-bottom" data-view="fornos"><span>🔥</span><small>Fornos</small></button>
-    <button class="nav-bottom" data-view="historico"><span>📈</span><small>Histórico</small></button>
-  </nav>
+                <h1>Fornos</h1>
+
+                <span id="onlineCount">
+                    0 online
+                </span>
+
+            </div>
+
+
+            <div id="ovenGrid" class="oven-grid">
+
+                <div class="empty">
+                    Carregando fornos...
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- TELA DO FORNO -->
+        <!-- ========================= -->
+
+        <section id="detailView" class="hidden">
+
+            <button
+                id="backBtn"
+                class="back"
+            >
+                ← Voltar
+            </button>
+
+
+            <!-- CABEÇALHO DO FORNO -->
+
+            <div class="detail-header">
+
+                <div>
+
+                    <span class="eyebrow">
+                        FORNO ONLINE
+                    </span>
+
+                    <h1 id="detailName">
+                        Forno
+                    </h1>
+
+                    <span class="status">
+                        ● Online
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="detailTemp"
+                    class="main-temp"
+                >
+                    -- °C
+                </div>
+
+            </div>
+
+
+            <!-- PARÂMETROS -->
+
+            <div class="parameters">
+
+                <div class="parameter">
+
+                    <span>
+                        Temperatura 1
+                    </span>
+
+                    <strong id="pCanal1">
+                        -- °C
+                    </strong>
+
+                </div>
+
+
+                <div class="parameter">
+
+                    <span>
+                        Temperatura 2
+                    </span>
+
+                    <strong id="pCanal2">
+                        -- °C
+                    </strong>
+
+                </div>
+
+
+                <div class="parameter">
+
+                    <span>
+                        Módulo
+                    </span>
+
+                    <strong id="pModulo">
+                        --
+                    </strong>
+
+                </div>
+
+
+                <div class="parameter">
+
+                    <span>
+                        Última leitura
+                    </span>
+
+                    <strong id="pHora">
+                        --
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- GRÁFICO -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+
+                    <h2>
+                        Temperatura
+                    </h2>
+
+                    <span>
+                        Histórico
+                    </span>
+
+                </div>
+
+
+                <div class="chart-box">
+
+                    <canvas id="detailChart"></canvas>
+
+                </div>
+
+            </div>
+
+
+            <!-- TEMPO DE QUEIMA -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+
+                    <h2>
+                        Tempo de queima
+                    </h2>
+
+                    <span>
+                        Processo
+                    </span>
+
+                </div>
+
+
+                <div class="burn-box">
+
+                    <strong id="burnTime">
+                        --
+                    </strong>
+
+                    <p>
+                        O tempo de queima será mostrado
+                        quando houver no banco os dados
+                        necessários para calcular o início
+                        e o fim da queima.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- HISTÓRICO -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+
+                    <h2>
+                        Últimas leituras
+                    </h2>
+
+                    <span id="readingCount">
+                        0 registros
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="historyList"
+                    class="history-list"
+                ></div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- MENU INFERIOR -->
+
+    <nav class="bottom-nav">
+
+        <button
+            id="homeNav"
+            class="active"
+        >
+
+            <b>
+                ⌂
+            </b>
+
+            <span>
+                Início
+            </span>
+
+        </button>
+
+    </nav>
+
 </div>
 
-<div class="modal hidden" id="ovenModal">
-  <div class="modal-backdrop" id="modalBackdrop"></div>
-  <div class="detail-sheet">
-    <button class="sheet-close" id="modalClose">×</button>
-    <div class="sheet-handle"></div>
-    <div class="detail-header">
-      <div><span class="label">FORNO</span><h2 id="modalOvenName">Forno --</h2><span id="modalStatus" class="status online">● Online</span></div>
-      <div class="detail-temp" id="modalTemperature">-- °C</div>
-    </div>
 
-    <div class="detail-sub">Última leitura: <b id="modalTime">--</b></div>
-
-    <div class="metric-grid">
-      <div><span>Canal 1</span><strong id="modalCanal1">--</strong></div>
-      <div><span>Canal 2</span><strong id="modalCanal2">--</strong></div>
-      <div><span>Módulo</span><strong id="modalModule">--</strong></div>
-      <div><span>Status</span><strong id="modalStatusText">Online</strong></div>
-    </div>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="tempo">Tempo real</button>
-      <button class="tab" data-tab="grafico">Gráfico</button>
-      <button class="tab" data-tab="historico">Histórico</button>
-    </div>
-
-    <div class="detail-panel active" id="panelTempo">
-      <div class="live-box"><i class="live-dot"></i><div><b>Temperatura atual</b><small>Atualizada automaticamente pelo ThermoLink</small></div><strong id="liveTemp">-- °C</strong></div>
-    </div>
-    <div class="detail-panel" id="panelGrafico">
-      <div class="chart-wrap detail-chart"><canvas id="modalChart"></canvas></div>
-    </div>
-    <div class="detail-panel" id="panelHistorico">
-      <div class="history-info">As últimas leituras deste forno são carregadas diretamente do Supabase.</div>
-      <div id="detailHistoryList" class="history-list"></div>
-    </div>
-  </div>
-</div>
+<!-- SUPABASE -->
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+<!-- GRÁFICOS -->
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+
+
+<!-- SEU JAVASCRIPT -->
+
 <script src="app.js"></script>
+
 </body>
+
 </html>

@@ -1,393 +1,213 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0d2638">
-    <title>Monitor de Fornos</title>
-
-    <!-- CHART.JS -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- SUPABASE CLIENT -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- ÍCONES -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel ThermoLink - Monitoramento de Fornos</title>
+    
+    <!-- Biblioteca Oficial do Supabase via CDN -->
+    <script src="https://jsdelivr.net"></script>
+    
     <style>
         :root {
-            --bg: #071b2b;
-            --bg-secondary: #0d2638;
-            --card: #102f44;
-            --card-light: #163a51;
-            --orange: #f47b20;
-            --orange-light: #ff963d;
-            --orange-dark: #d85d0c;
-            --blue: #3b82b6;
-            --text: #ffffff;
-            --text-secondary: #a9bdc9;
-            --green: #25c66f;
-            --red: #ef5350;
-            --yellow: #f5a623;
-            --border: rgba(255,255,255,0.07);
-            --shadow: 0 10px 30px rgba(0,0,0,0.22);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        html, body {
-            width: 100%;
-            min-height: 100%;
-            background: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary: #e65100; /* Laranja Industrial / Forno */
+            --border-color: #e0e0e0;
         }
 
         body {
-            overflow-x: hidden;
-            padding-bottom: 85px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
         }
 
-        button {
-            font-family: inherit;
-            border: none;
-            cursor: pointer;
-        }
-
-        .app {
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            min-height: 100vh;
-        }
-
-        .top-header {
-            height: 72px;
-            padding: 18px 18px 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .page-title {
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .header-action {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: var(--orange);
-            color: white;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 5px 15px rgba(244,123,32,.25);
-        }
-
-        .screen {
-            display: none;
-            padding: 0 16px;
-            animation: fadeIn .25s ease;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        #splashScreen {
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            background: linear-gradient(145deg, #082238, #0d2c42);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        header {
             text-align: center;
-            padding: 30px;
+            margin-bottom: 30px;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 10px;
         }
 
-        .logo-icon {
-            width: 125px;
-            height: 125px;
-            margin: 0 auto 25px;
-            border-radius: 50%;
-            border: 5px solid var(--orange);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 65px;
-            color: var(--orange);
+        header h1 {
+            margin: 0;
+            color: var(--primary);
         }
 
-        .splash-title {
-            font-size: 31px;
-            font-weight: 800;
-            text-transform: uppercase;
+        .status-container {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
         }
 
-        .splash-title span {
-            display: block;
-            color: var(--orange);
-        }
-
-        .enter-button {
-            margin-top: 35px;
-            width: 100%;
-            height: 52px;
-            border-radius: 12px;
-            background: var(--orange);
-            color: white;
-            font-size: 15px;
-            font-weight: 700;
-        }
-
-        .oven-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 17px;
-            margin-bottom: 13px;
-            box-shadow: var(--shadow);
-        }
-
-        .oven-card-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .oven-name {
-            font-size: 16px;
-            font-weight: 700;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            background: #697f8d;
-            margin-right: 4px;
-        }
-
-        .status-dot.online {
-            background: var(--green);
-            box-shadow: 0 0 9px rgba(37,198,111,.7);
-        }
-
-        .oven-channels {
+        /* Grade onde os cartões dos fornos vão se alinhar sozinhos */
+        .grid-fornos {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            background: var(--bg-secondary);
-            padding: 10px;
-            border-radius: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
-        .channel-box {
+        /* Estilo do Cartão de cada Forno */
+        .card-forno {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             text-align: center;
+            transition: transform 0.2s;
         }
 
-        .channel-label {
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            margin-bottom: 4px;
+        .card-forno:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
         }
 
-        .oven-temperature {
-            font-size: 26px;
-            font-weight: 800;
-            color: var(--orange);
+        .card-forno h3 {
+            margin: 0 0 10px 0;
+            background-color: var(--primary);
+            color: white;
+            padding: 5px;
+            border-radius: 4px;
         }
 
-        .oven-footer {
-            margin-top: 10px;
-            font-size: 11px;
-            color: var(--text-secondary);
+        .temperatura-linha {
             display: flex;
             justify-content: space-between;
+            padding: 5px 10px;
+            font-size: 1.1em;
         }
 
-        .loading {
+        .label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .valor {
+            font-weight: bold;
+            color: #111;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 10px;
+            display: block;
+        }
+
+        .erro {
+            color: red;
             text-align: center;
-            color: var(--text-secondary);
-            padding: 30px 10px;
-            font-size: 13px;
-        }
-
-        .spinner {
-            width: 24px;
-            height: 24px;
-            border: 2px solid rgba(255,255,255,.15);
-            border-top-color: var(--orange);
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-            margin: 0 auto 10px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-
 <body>
 
-<!-- SPLASH SCREEN -->
-<div id="splashScreen">
-    <div class="splash-content">
-        <div class="logo-icon">
-            <i class="fa-solid fa-fire-flame-curved"></i>
-        </div>
-        <div class="splash-title">
-            Monitor <span>de Fornos</span>
-        </div>
-        <button class="enter-button" onclick="entrarAplicativo()">Entrar</button>
-    </div>
-</div>
-
-<!-- APLICATIVO -->
-<div class="app">
-    <header class="top-header">
-        <div class="header-left">
-            <div id="pageTitle" class="page-title">Meus Fornos</div>
-        </div>
-        <button id="headerAction" class="header-action" onclick="carregarFornos()">
-            <i class="fa-solid fa-rotate-right"></i>
-        </button>
+    <header>
+        <h1>🔥 Sistema ThermoLink V2</h1>
+        <p>Monitoramento em Tempo Real - Parque de Fornos</p>
     </header>
 
-    <main id="screenFornos" class="screen active">
-        <div id="listaFornos">
-            <div class="loading">
-                <div class="spinner"></div>
-                Carregando fornos...
-            </div>
-        </div>
-    </main>
-</div>
+    <div class="status-container" id="status-conexao">
+        🔄 Conectando ao banco de dados Supabase...
+    </div>
 
-<script>
-    // Configurações do Supabase
-    const SUPABASE_CONFIG = {
-        url: "https://zawnluboujbovpgrgdcx.supabase.co",
-        key: "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak"
-    };
+    <!-- Os cartões dos fornos de 1 a 31 vão aparecer aqui dentro -->
+    <div class="grid-fornos" id="container-fornos"></div>
 
-    // Inicializa o cliente do Supabase
-    const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+    <script>
+        // ============================================================
+        // CONFIGURAÇÕES DO SEU SUPABASE (Buscadas do seu código do ESP)
+        // ============================================================
+        const SUPABASE_URL = "https://supabase.co";
+        const SUPABASE_KEY = "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
 
-    function entrarAplicativo() {
-        document.getElementById('splashScreen').style.display = 'none';
-        carregarFornos();
-    }
+        // Inicializa o cliente do Supabase
+        const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_KEY);
 
-    async function carregarFornos() {
-        const container = document.getElementById('listaFornos');
-        container.innerHTML = `
-            <div class="loading">
-                <div class="spinner"></div>
-                Atualizando dados...
-            </div>`;
+        // Função que busca os dados da tabela e renderiza na tela
+        async function atualizarPainel() {
+            const statusDiv = document.getElementById('status-conexao');
+            const container = document.getElementById('container-fornos');
 
-        try {
-            // 1. Busca os fornos ativos
-            const { data: fornos, error: errFornos } = await _supabase
-                .from('fornos')
-                .select('*')
-                .eq('ativo', true)
-                .order('numero', { ascending: true });
-
-            if (errFornos) throw errFornos;
-
-            if (!fornos || fornos.length === 0) {
-                container.innerHTML = '<div class="loading">Nenhum forno ativo cadastrado.</div>';
-                return;
-            }
-
-            // Renderiza os fornos e busca a última leitura de cada um
-            let htmlContent = '';
-
-            for (const forno of fornos) {
-                // Busca a leitura mais recente deste forno específico
-                const { data: leituras } = await _supabase
+            try {
+                // Query RPC ou busca direta filtrando os registros mais recentes.
+                // Como queremos a última leitura de cada forno, ordenamos por ID decrescente criado_em
+                const { data, error } = await supabase
                     .from('leituras')
-                    .select('canal_1, canal_2, data_hora')
-                    .eq('forno_id', forno.id)
-                    .order('data_hora', { ascending: false })
-                    .limit(1);
+                    .select('forno_id, canal_1, canal_2, created_at')
+                    .order('created_at', { ascending: false });
 
-                const ultimaLeitura = leituras && leituras.length > 0 ? leituras[0] : null;
+                if (error) throw error;
 
-                const temp1 = ultimaLeitura?.canal_1 != null ? Number(ultimaLeitura.canal_1).toFixed(1) : '--';
-                const temp2 = ultimaLeitura?.canal_2 != null ? Number(ultimaLeitura.canal_2).toFixed(1) : '--';
-                
-                // Formatação da última data/hora
-                let horaFormatada = 'Sem registros';
-                if (ultimaLeitura?.data_hora) {
-                    const dataObj = new Date(ultimaLeitura.data_hora);
-                    horaFormatada = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                // Mapeia os dados para guardar apenas o registro MAIS RECENTE de cada forno
+                const ultimasLeituras = {};
+                data.forEach(leitura => {
+                    const idForno = leitura.forno_id;
+                    if (!ultimasLeituras[idForno]) {
+                        ultimasLeituras[idForno] = leitura;
+                    }
+                });
+
+                // Limpa o container antes de desenhar os cartões atualizados
+                container.innerHTML = "";
+
+                // Gera os cartões do Forno 1 até o 31 na tela de forma ordenada
+                for (let i = 1; i <= 31; i++) {
+                    const dadosForno = ultimasLeituras[i];
+                    
+                    const card = document.createElement('div');
+                    card.className = 'card-forno';
+
+                    if (dadosForno) {
+                        // Se o forno enviou dados recentemente, formata a hora
+                        const dataHora = new Date(dadosForno.created_at).toLocaleTimeString('pt-BR');
+                        
+                        card.innerHTML = `
+                            <h3>Forno ${i}</h3>
+                            <div class="temperatura-linha">
+                                <span class="label">Sup. (C1):</span>
+                                <span class="valor">${dadosForno.canal_1} °C</span>
+                            </div>
+                            <div class="temperatura-linha">
+                                <span class="label">Inf. (C2):</span>
+                                <span class="valor">${dadosForno.canal_2} °C</span>
+                            </div>
+                            <span class="timestamp">Atualizado às ${dataHora}</span>
+                        `;
+                    } else {
+                        // Se o forno nunca mandou nada ou está desligado na rede RS485
+                        card.innerHTML = `
+                            <h3 style="background-color: #777;">Forno ${i}</h3>
+                            <div style="color: #999; margin: 20px 0;">🚫 Desconectado</div>
+                            <span class="timestamp">—</span>
+                        `;
+                    }
+
+                    container.appendChild(card);
                 }
 
-                htmlContent += `
-                    <div class="oven-card">
-                        <div class="oven-card-top">
-                            <span class="oven-name">${forno.nome || `Forno ${forno.numero}`}</span>
-                            <div style="font-size: 12px; color: var(--text-secondary);">
-                                Módulo: ${forno.modulo_alutal}
-                            </div>
-                        </div>
+                const agora = new Date().toLocaleTimeString('pt-BR');
+                statusDiv.innerHTML = `🟢 Dados atualizados com sucesso às ${agora}. Próxima atualização em 10s.`;
+                statusDiv.style.color = "green";
 
-                        <div class="oven-channels">
-                            <div class="channel-box">
-                                <div class="channel-label">Canal 1</div>
-                                <div class="oven-temperature">${temp1}<small style="font-size: 14px;"> °C</small></div>
-                            </div>
-                            <div class="channel-box">
-                                <div class="channel-label">Canal 2</div>
-                                <div class="oven-temperature">${temp2}<small style="font-size: 14px;"> °C</small></div>
-                            </div>
-                        </div>
-
-                        <div class="oven-footer">
-                            <span>Última atualização:</span>
-                            <span>${horaFormatada}</span>
-                        </div>
-                    </div>
-                `;
+            } catch (err) {
+                console.error("Erro ao carregar dados:", err);
+                statusDiv.innerHTML = `🔴 Erro ao conectar com o Supabase: ${err.message}`;
+                statusDiv.style.color = "red";
             }
-
-            container.innerHTML = htmlContent;
-
-        } catch (err) {
-            console.error('Erro ao conectar ao Supabase:', err);
-            container.innerHTML = '<div class="loading" style="color: var(--red);">Erro ao carregar dados do Supabase. Verifique suas chaves de API.</div>';
         }
-    }
-</script>
 
+        // Executa a primeira carga assim que abre a página
+        atualizarPainel();
+
+        // Atualiza a tela automaticamente a cada 10 segundos para pegar os envios do ESP8266
+        setInterval(atualizarPainel, 10000);
+    </script>
 </body>
 </html>

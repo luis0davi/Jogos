@@ -48,11 +48,11 @@
 // ========================================================
 
 const SUPABASE_URL =
-  "SUA_URL_AQUI";
+  "https://zawnluboujbovpgrgdcx.supabase.co";
 
 
 const SUPABASE_ANON_KEY =
-  "SUA_CHAVE_PUBLICA_AQUI";
+  "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
 
 
 // ========================================================

@@ -3,128 +3,159 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f172a">
-
-  <title>Monitor de Fornos</title>
-
+  <meta name="theme-color" content="#0b1220">
+  <title>ThermoLink | Monitoramento de Fornos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-  <header class="topbar">
-
-    <div>
+  <div class="app-shell">
+    <aside class="sidebar">
       <div class="brand">
-        🔥 MONITOR DE FORNOS
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>ThermoLink</strong>
+          <span>Industrial Monitoring</span>
+        </div>
       </div>
 
-      <div id="companyName" class="company-name">
-        Monitoramento
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard">
+          <span>⌂</span> Dashboard
+        </button>
+        <button class="nav-item" data-view="fornos">
+          <span>🔥</span> Fornos
+        </button>
+        <button class="nav-item" data-view="historico">
+          <span>◷</span> Histórico
+        </button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="connection">
+          <span class="dot"></span>
+          <div>
+            <strong>Supabase</strong>
+            <small id="connectionText">Conectando...</small>
+          </div>
+        </div>
+        <small class="version">ThermoLink v1.0</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">MONITORAMENTO EM TEMPO REAL</p>
+          <h1 id="pageTitle">Painel de Fornos</h1>
+        </div>
+        <div class="top-actions">
+          <div class="last-update">
+            <span class="pulse"></span>
+            <span id="lastUpdate">Aguardando dados...</span>
+          </div>
+          <button class="refresh-btn" id="refreshBtn" title="Atualizar agora">↻</button>
+        </div>
+      </header>
+
+      <section class="content" id="dashboardView">
+        <div class="company-bar">
+          <div>
+            <span class="label">EMPRESA</span>
+            <strong id="companyName">CERÂMICA 1</strong>
+          </div>
+          <div class="stats">
+            <div><span>Total</span><strong id="totalFornos">0</strong></div>
+            <div><span>Operando</span><strong id="activeFornos">0</strong></div>
+            <div><span>Offline</span><strong id="offlineFornos">0</strong></div>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <div>
+            <h2>Fornos</h2>
+            <p>Última telemetria recebida de cada módulo.</p>
+          </div>
+          <div class="search-wrap">
+            <span>⌕</span>
+            <input id="searchInput" type="search" placeholder="Buscar forno...">
+          </div>
+        </div>
+
+        <div id="ovenGrid" class="oven-grid">
+          <div class="loading-card">
+            <div class="loader"></div>
+            <p>Carregando telemetria...</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="content hidden" id="ovensView">
+        <div class="section-head">
+          <div>
+            <h2>Todos os fornos</h2>
+            <p>Visão geral dos módulos cadastrados.</p>
+          </div>
+        </div>
+        <div id="ovensTableWrap" class="table-card"></div>
+      </section>
+
+      <section class="content hidden" id="historyView">
+        <div class="section-head">
+          <div>
+            <h2>Histórico de telemetria</h2>
+            <p>Selecione um forno para visualizar as últimas leituras.</p>
+          </div>
+          <select id="historySelect" class="select"></select>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <span class="label">TEMPERATURA — CANAL 1</span>
+              <strong id="historyCurrent">-- °C</strong>
+            </div>
+            <div id="historyRange" class="muted">--</div>
+          </div>
+          <canvas id="historyChart"></canvas>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal hidden" id="ovenModal">
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-card">
+      <button class="modal-close" id="modalClose">×</button>
+      <div class="modal-top">
+        <div>
+          <span class="label">FORNO</span>
+          <h2 id="modalOvenName">Forno --</h2>
+          <span id="modalStatus" class="status online">● Online</span>
+        </div>
+        <div class="big-temperature" id="modalTemperature">-- °C</div>
+      </div>
+      <div class="metric-row">
+        <div><span>Canal 1</span><strong id="modalCanal1">--</strong></div>
+        <div><span>Canal 2</span><strong id="modalCanal2">--</strong></div>
+        <div><span>Módulo</span><strong id="modalModule">--</strong></div>
+        <div><span>Última leitura</span><strong id="modalTime">--</strong></div>
+      </div>
+      <div class="chart-card modal-chart">
+        <div class="chart-header">
+          <div>
+            <span class="label">EVOLUÇÃO</span>
+            <strong>Últimas leituras</strong>
+          </div>
+        </div>
+        <canvas id="modalChart"></canvas>
       </div>
     </div>
-
-    <div class="connection">
-      <span id="connectionDot" class="dot offline"></span>
-      <span id="connectionText">
-        Conectando...
-      </span>
-    </div>
-
-  </header>
-
-
-  <main class="container">
-
-    <!-- RESUMO -->
-
-    <section class="summary">
-
-      <div class="summary-card">
-        <span>Fornos detectados</span>
-        <strong id="totalFornos">0</strong>
-      </div>
-
-      <div class="summary-card online">
-        <span>Online</span>
-        <strong id="onlineFornos">0</strong>
-      </div>
-
-      <div class="summary-card offline-card">
-        <span>Offline</span>
-        <strong id="offlineFornos">0</strong>
-      </div>
-
-      <div class="summary-card">
-        <span>Última atualização</span>
-        <strong id="lastUpdate">--:--:--</strong>
-      </div>
-
-    </section>
-
-
-    <!-- CABEÇALHO -->
-
-    <div class="toolbar">
-
-      <div>
-        <h1>Monitoramento</h1>
-
-        <p>
-          Os fornos são relacionados aos dados enviados pelos módulos.
-        </p>
-      </div>
-
-      <button
-        id="refreshButton"
-        type="button"
-      >
-        ↻ Atualizar
-      </button>
-
-    </div>
-
-
-    <!-- STATUS -->
-
-    <div
-      id="statusMessage"
-      class="status-message"
-    >
-      Aguardando conexão...
-    </div>
-
-
-    <!-- DIAGNÓSTICO -->
-
-    <div
-      id="diagnostic"
-      class="diagnostic"
-    ></div>
-
-
-    <!-- FORNOS -->
-
-    <section
-      id="ovensGrid"
-      class="ovens-grid"
-    ></section>
-
-  </main>
-
-
-  <footer>
-    Monitor de Fornos • Supabase + GitHub Pages
-  </footer>
-
-
-  <!-- SUPABASE JS -->
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- NOSSO CÓDIGO -->
-
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
-
 </body>
 </html>

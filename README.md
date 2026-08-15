@@ -1,56 +1,69 @@
-# Monitor de Fornos — protótipo
+# ThermoLink — Dashboard Web
 
-Protótipo web para monitoramento de temperatura de fornos de cerâmica, pensado para receber leituras de ESP8266.
+Arquivos:
+- index.html
+- style.css
+- app.js
 
-## O que já existe
+## 1. Configurar o Supabase
 
-- Dashboard com múltiplos fornos
-- Temperatura atual
-- Meta de temperatura
-- Status de operação
-- Gráfico de evolução
-- Histórico
-- Alertas
-- Cadastro de forno
-- Configuração da API
-- Modo protótipo com dados simulados
-- Estrutura de integração com Google Sheets + Google Apps Script
-- Exemplo de firmware ESP8266
+Abra `app.js` e coloque sua chave pública `anon`/`publishable`:
 
-## Testar agora
+```js
+const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co";
+const SUPABASE_ANON_KEY = "SUA_CHAVE_PUBLICA";
+```
 
-Abra `index.html` no navegador. Para publicar no GitHub Pages:
+NUNCA coloque a chave `service_role` no GitHub Pages.
 
-1. Crie um repositório no GitHub.
-2. Envie `index.html`, `style.css` e `app.js`.
-3. Em Settings > Pages, selecione a branch `main` e a pasta `/root`.
-4. O GitHub fornecerá o endereço do site.
+## 2. Estrutura esperada
 
-## Google Sheets
+O código foi feito para a estrutura mostrada nos seus prints:
 
-Crie uma planilha com uma aba chamada `leituras` e estes cabeçalhos:
+### empresas
+- id
+- nome
+- ativo
 
-`timestamp | id | nome | temperatura | meta | status | dispositivo`
+### fornos
+- id
+- dispositivo_id
+- numero
+- nome
+- módulo_atual
+- ativo
 
-Depois abra Extensões > Apps Script e cole `google-apps-script.gs`.
+### leituras
+- id
+- dispositivo_id
+- forno_id
+- módulo_atual
+- canal_1
+- canal_2
+- data_hora
 
-Publique como Web App. A URL `/exec` será usada pelo painel e pelo ESP8266.
+A regra usada no dashboard é:
+`módulo_atual = número do forno`.
 
-## Arquitetura recomendada para o protótipo
+A temperatura exibida como principal é `canal_1`.
 
-ESP8266 → HTTP/HTTPS → Google Apps Script → Google Sheets
-                                      ↓
-                                Dashboard Web
+## 3. GitHub Pages
 
-Para produção, recomendo migrar de Google Sheets para um banco de dados real e usar MQTT ou WebSocket para atualização em tempo real.
+Suba os três arquivos para o repositório e ative:
+Settings → Pages → Deploy from branch → main → / (root)
 
-## Próxima evolução
+## 4. Supabase / RLS
 
-1. Definir exatamente o sensor de temperatura.
-2. Definir quantos fornos e pontos de medição.
-3. Implementar autenticação.
-4. Implementar cadastro de dispositivos.
-5. Criar histórico por ciclo.
-6. Criar limites de temperatura e notificações.
-7. Migrar o backend para Firebase/Supabase.
-8. Transformar o painel em aplicativo Android/iOS com Flutter.
+A chave pública só consegue consultar o que as políticas RLS permitirem. Para um dashboard público, crie políticas de SELECT adequadas para as tabelas usadas.
+
+O Realtime também precisa estar habilitado para `public.leituras`.
+
+## 5. Ajuste do tempo de offline
+
+No `app.js` existe:
+
+```js
+ageMs(reading.data_hora) <= 3 * 60 * 1000
+```
+
+Isso considera o forno online se recebeu uma leitura nos últimos 3 minutos. Altere se o ThermoLink tiver outro intervalo de envio.

@@ -82,18 +82,6 @@
             gap: 14px;
         }
 
-        .menu-button, .back-button {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            color: var(--text);
-            font-size: 18px;
-        }
-
         .page-title {
             font-size: 18px;
             font-weight: 700;
@@ -187,20 +175,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 9px;
+            margin-bottom: 12px;
         }
 
         .oven-name {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 700;
         }
 
         .status-dot {
-            width: 7px;
-            height: 7px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             display: inline-block;
             background: #697f8d;
+            margin-right: 4px;
         }
 
         .status-dot.online {
@@ -208,10 +197,38 @@
             box-shadow: 0 0 9px rgba(37,198,111,.7);
         }
 
+        .oven-channels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: var(--bg-secondary);
+            padding: 10px;
+            border-radius: 12px;
+        }
+
+        .channel-box {
+            text-align: center;
+        }
+
+        .channel-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
         .oven-temperature {
-            font-size: 35px;
+            font-size: 26px;
             font-weight: 800;
             color: var(--orange);
+        }
+
+        .oven-footer {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
         }
 
         .loading {
@@ -256,9 +273,6 @@
 <div class="app">
     <header class="top-header">
         <div class="header-left">
-            <button id="backButton" class="back-button" onclick="voltarLista()" style="display:none;">
-                <i class="fa-solid fa-arrow-left"></i>
-            </button>
             <div id="pageTitle" class="page-title">Meus Fornos</div>
         </div>
         <button id="headerAction" class="header-action" onclick="carregarFornos()">
@@ -270,18 +284,17 @@
         <div id="listaFornos">
             <div class="loading">
                 <div class="spinner"></div>
-                Carregando fornos do Supabase...
+                Carregando fornos...
             </div>
         </div>
     </main>
 </div>
 
 <script>
-    // Configurações do Supabase (Substitua pelos seus dados)
+    // Configurações do Supabase
     const SUPABASE_CONFIG = {
         url: "https://zawnluboujbovpgrgdcx.supabase.co",
-        key: "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak",
-        tableName: "fornos" // Nome da sua tabela no Supabase
+        key: "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak"
     };
 
     // Inicializa o cliente do Supabase
@@ -297,43 +310,81 @@
         container.innerHTML = `
             <div class="loading">
                 <div class="spinner"></div>
-                Carregando fornos...
+                Atualizando dados...
             </div>`;
 
         try {
-            // Busca dados no banco de dados do Supabase
-            const { data, error } = await _supabase
-                .from(SUPABASE_CONFIG.tableName)
-                .select('*');
+            // 1. Busca os fornos ativos
+            const { data: fornos, error: errFornos } = await _supabase
+                .from('fornos')
+                .select('*')
+                .eq('ativo', true)
+                .order('numero', { ascending: true });
 
-            if (error) throw error;
+            if (errFornos) throw errFornos;
 
-            if (!data || data.length === 0) {
-                container.innerHTML = '<div class="loading">Nenhum forno encontrado.</div>';
+            if (!fornos || fornos.length === 0) {
+                container.innerHTML = '<div class="loading">Nenhum forno ativo cadastrado.</div>';
                 return;
             }
 
-            // Renderiza os cards
-            container.innerHTML = data.map(forno => `
-                <div class="oven-card">
-                    <div class="oven-card-top">
-                        <span class="oven-name">${forno.nome || 'Forno Sem Nome'}</span>
-                        <div class="oven-status">
-                            <span class="status-dot ${forno.status === 'online' ? 'online' : ''}"></span>
-                            ${forno.status || 'Offline'}
+            // Renderiza os fornos e busca a última leitura de cada um
+            let htmlContent = '';
+
+            for (const forno of fornos) {
+                // Busca a leitura mais recente deste forno específico
+                const { data: leituras } = await _supabase
+                    .from('leituras')
+                    .select('canal_1, canal_2, data_hora')
+                    .eq('forno_id', forno.id)
+                    .order('data_hora', { ascending: false })
+                    .limit(1);
+
+                const ultimaLeitura = leituras && leituras.length > 0 ? leituras[0] : null;
+
+                const temp1 = ultimaLeitura?.canal_1 != null ? Number(ultimaLeitura.canal_1).toFixed(1) : '--';
+                const temp2 = ultimaLeitura?.canal_2 != null ? Number(ultimaLeitura.canal_2).toFixed(1) : '--';
+                
+                // Formatação da última data/hora
+                let horaFormatada = 'Sem registros';
+                if (ultimaLeitura?.data_hora) {
+                    const dataObj = new Date(ultimaLeitura.data_hora);
+                    horaFormatada = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+
+                htmlContent += `
+                    <div class="oven-card">
+                        <div class="oven-card-top">
+                            <span class="oven-name">${forno.nome || `Forno ${forno.numero}`}</span>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                Módulo: ${forno.modulo_alutal}
+                            </div>
+                        </div>
+
+                        <div class="oven-channels">
+                            <div class="channel-box">
+                                <div class="channel-label">Canal 1</div>
+                                <div class="oven-temperature">${temp1}<small style="font-size: 14px;"> °C</small></div>
+                            </div>
+                            <div class="channel-box">
+                                <div class="channel-label">Canal 2</div>
+                                <div class="oven-temperature">${temp2}<small style="font-size: 14px;"> °C</small></div>
+                            </div>
+                        </div>
+
+                        <div class="oven-footer">
+                            <span>Última atualização:</span>
+                            <span>${horaFormatada}</span>
                         </div>
                     </div>
-                    <div class="oven-main">
-                        <div class="oven-temperature">
-                            ${forno.temperatura ?? '--'} <small>°C</small>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }
+
+            container.innerHTML = htmlContent;
 
         } catch (err) {
             console.error('Erro ao conectar ao Supabase:', err);
-            container.innerHTML = '<div class="loading" style="color: var(--red);">Erro ao carregar os dados. Verifique suas credenciais.</div>';
+            container.innerHTML = '<div class="loading" style="color: var(--red);">Erro ao carregar dados do Supabase. Verifique suas chaves de API.</div>';
         }
     }
 </script>

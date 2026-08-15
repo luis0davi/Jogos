@@ -1,14 +1,8 @@
-// ======================================================
+// =====================================================
 // THERMOLINK
-// Interface simples para monitoramento dos fornos
-//
-// BASEADO NO app.js QUE JÁ ESTAVA FUNCIONANDO
-// ======================================================
+// =====================================================
 
-
-// ======================================================
 // SUPABASE
-// ======================================================
 
 const SUPABASE_URL =
     "https://zawnluboujbovpgrgdcx.supabase.co";
@@ -16,81 +10,97 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
     "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
 
+const { createClient } = window.supabase;
 
-const {
-    createClient
-} = window.supabase;
-
-
-const sb =
-    createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-    );
+const sb = createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
 
 
-// ======================================================
-// ESTADO DO APP
-// ======================================================
+// =====================================================
+// CONFIGURAÇÕES
+// =====================================================
+
+// Tempo para considerar um forno ONLINE
+// 3 minutos
+
+const ONLINE_TIME =
+    3 * 60 * 1000;
+
+
+// =====================================================
+// ESTADO
+// =====================================================
 
 const state = {
 
     ovens: [],
 
-    readings: new Map(),
+    latest: new Map(),
 
     selectedModule: null,
 
-    chart: null,
-
-    miniCharts: []
+    chart: null
 
 };
 
 
-// ======================================================
+// =====================================================
 // FUNÇÕES AUXILIARES
-// ======================================================
+// =====================================================
 
-const $ = id =>
-    document.getElementById(id);
+function $id(id) {
+
+    return document.getElementById(id);
+
+}
 
 
-function numberValue(value) {
+function number(value) {
 
-    return Number.isFinite(
-        Number(value)
-    )
-        ? Number(value)
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return null;
+
+    }
+
+    const n = Number(value);
+
+    return Number.isFinite(n)
+        ? n
         : null;
 
 }
 
 
-function temperature(value) {
+function formatTemperature(value) {
 
-    const number =
-        numberValue(value);
+    const n = number(value);
 
-
-    if (number === null) {
+    if (n === null) {
 
         return "-- °C";
 
     }
 
-
-    return `${number.toLocaleString(
-        "pt-BR",
-        {
-            maximumFractionDigits: 1
-        }
-    )} °C`;
+    return (
+        n.toLocaleString(
+            "pt-BR",
+            {
+                maximumFractionDigits: 1
+            }
+        ) + " °C"
+    );
 
 }
 
 
-function time(value) {
+function formatTime(value) {
 
     if (!value) {
 
@@ -98,10 +108,8 @@ function time(value) {
 
     }
 
-
     const date =
         new Date(value);
-
 
     if (
         Number.isNaN(
@@ -112,7 +120,6 @@ function time(value) {
         return "--";
 
     }
-
 
     return date.toLocaleTimeString(
         "pt-BR",
@@ -126,30 +133,21 @@ function time(value) {
 }
 
 
-// ======================================================
-// QUANDO CONSIDERAR UM FORNO ONLINE
-//
-// Se não receber leitura durante 3 minutos,
-// ele desaparece da tela inicial.
-// ======================================================
-
-function isOnline(reading) {
+function isOnline(row) {
 
     if (
-        !reading ||
-        !reading.created_at
+        !row ||
+        !row.data_hora
     ) {
 
         return false;
 
     }
 
-
     const date =
         new Date(
-            reading.created_at
+            row.data_hora
         );
-
 
     if (
         Number.isNaN(
@@ -161,143 +159,27 @@ function isOnline(reading) {
 
     }
 
-
     const difference =
         Date.now() -
         date.getTime();
 
-
-    return difference <=
-        3 * 60 * 1000;
-
-}
-
-
-// ======================================================
-// NOME DO FORNO
-// ======================================================
-
-function ovenName(module) {
-
-    const oven =
-        state.ovens.find(
-            item =>
-                Number(item.numero) ===
-                Number(module)
-        );
-
-
-    if (
-        oven &&
-        oven.nome
-    ) {
-
-        return oven.nome;
-
-    }
-
-
-    return `Forno ${
-        String(module).padStart(2, "0")
-    }`;
+    return (
+        difference <= ONLINE_TIME
+    );
 
 }
 
 
-// ======================================================
-// CARREGAR FORNOS
-// ======================================================
+// =====================================================
+// BUSCAR LEITURAS
+// =====================================================
 
-async function loadOvens() {
+async function loadReadings() {
 
-    const {
-        data,
-        error
-    } = await sb
+    console.log(
+        "[ThermoLink] Buscando leituras..."
+    );
 
-        .from("fornos")
-
-        .select(
-            `
-            id,
-            dispositivo_id,
-            numero,
-            nome,
-            ativo
-            `
-        )
-
-        .eq(
-            "ativo",
-            true
-        )
-
-        .order(
-            "numero",
-            {
-                ascending: true
-            }
-        );
-
-
-    if (
-        error ||
-        !data ||
-        !data.length
-    ) {
-
-        console.warn(
-            "[ThermoLink] Não foi possível carregar a tabela fornos."
-        );
-
-
-        /*
-         * Fallback:
-         * módulos 1 até 31.
-         *
-         * As temperaturas continuam
-         * vindo da tabela leituras.
-         */
-
-        state.ovens =
-            Array.from(
-                {
-                    length: 31
-                },
-                (_, index) => ({
-
-                    id: index + 1,
-
-                    numero: index + 1,
-
-                    nome:
-                        `Forno ${
-                            String(index + 1)
-                                .padStart(2, "0")
-                        }`,
-
-                    ativo: true
-
-                })
-            );
-
-
-        return;
-
-    }
-
-
-    state.ovens =
-        data;
-
-}
-
-
-// ======================================================
-// PEGAR ÚLTIMA LEITURA DE CADA FORNO
-// ======================================================
-
-async function loadLatest() {
 
     const {
         data,
@@ -308,18 +190,18 @@ async function loadLatest() {
 
         .select(
             `
-            id,
+            eu_id,
             dispositivo_id,
             forno_id,
             modulo_alutal,
             canal_1,
             canal_2,
-            created_at
+            data_hora
             `
         )
 
         .order(
-            "created_at",
+            "data_hora",
             {
                 ascending: false
             }
@@ -331,7 +213,7 @@ async function loadLatest() {
     if (error) {
 
         console.error(
-            "[ThermoLink] Erro ao carregar leituras:",
+            "[ThermoLink] Erro ao buscar leituras:",
             error
         );
 
@@ -340,36 +222,53 @@ async function loadLatest() {
     }
 
 
+    console.log(
+        "[ThermoLink] Leituras recebidas:",
+        data
+    );
+
+
+    // =================================================
+    // PEGAR A ÚLTIMA LEITURA DE CADA MÓDULO
+    // =================================================
+
     const latest =
         new Map();
 
 
-    /*
-     * Como as leituras vêm
-     * da mais nova para a mais antiga,
-     * a primeira de cada módulo
-     * é a mais recente.
-     */
-
     for (
-        const reading
-        of data || []
+        const row of data || []
     ) {
 
         const module =
             Number(
-                reading.modulo_alutal
+                row.modulo_alutal
             );
 
 
         if (
-            Number.isFinite(module) &&
+            !Number.isFinite(module)
+        ) {
+
+            continue;
+
+        }
+
+
+        /*
+         * Como a consulta está ordenada
+         * do mais novo para o mais antigo,
+         * a primeira leitura encontrada
+         * para cada módulo é a mais recente.
+         */
+
+        if (
             !latest.has(module)
         ) {
 
             latest.set(
                 module,
-                reading
+                row
             );
 
         }
@@ -377,96 +276,85 @@ async function loadLatest() {
     }
 
 
-    state.readings =
+    state.latest =
         latest;
+
+
+    console.log(
+        "[ThermoLink] Última leitura de cada forno:",
+        state.latest
+    );
 
 
     renderHome();
 
-
-    /*
-     * Se o usuário estiver
-     * dentro de um forno,
-     * atualiza os dados.
-     */
-
-    if (
-        state.selectedModule !== null
-    ) {
-
-        updateDetail(
-            state.selectedModule
-        );
-
-    }
-
 }
 
 
-// ======================================================
+// =====================================================
 // TELA INICIAL
-//
-// SOMENTE FORNOS ONLINE
-// ======================================================
+// =====================================================
 
 function renderHome() {
 
-    /*
-     * Limpa gráficos antigos
-     */
-
-    state.miniCharts
-        .forEach(
-            chart =>
-                chart.destroy()
-        );
-
-
-    state.miniCharts = [];
-
-
-    /*
-     * Filtra somente os fornos online.
-     */
-
-    const onlineOvens =
-        state.ovens.filter(
-            oven =>
-                isOnline(
-                    state.readings.get(
-                        Number(
-                            oven.numero
-                        )
-                    )
-                )
-        );
-
-
-    /*
-     * Atualiza contador
-     */
-
-    $("onlineCount")
-        .textContent =
-        `${onlineOvens.length} online`;
-
-
     const grid =
-        $("ovenGrid");
+        $id("ovenGrid");
 
 
     /*
-     * Nenhum forno online
+     * Somente módulos que estão ONLINE.
      */
+
+    const online =
+        Array.from(
+            state.latest.entries()
+        )
+
+        .filter(
+            ([module, row]) =>
+                isOnline(row)
+        )
+
+        .sort(
+            ([a], [b]) =>
+                a - b
+        );
+
+
+    console.log(
+        "[ThermoLink] Fornos online:",
+        online
+    );
+
+
+    // contador
+
+    const count =
+        $id("onlineCount");
+
+
+    if (count) {
+
+        count.textContent =
+            `${online.length} online`;
+
+    }
+
+
+    // nenhum forno
 
     if (
-        !onlineOvens.length
+        online.length === 0
     ) {
 
         grid.innerHTML = `
+
             <div class="empty">
+
                 Nenhum forno online no momento.
+
             </div>
+
         `;
 
         return;
@@ -474,137 +362,136 @@ function renderHome() {
     }
 
 
-    /*
-     * Cria os cards
-     */
+    // =================================================
+    // CARDS
+    // =================================================
 
     grid.innerHTML =
-        onlineOvens
+
+        online
             .map(
-                oven => {
-
-                    const module =
-                        Number(
-                            oven.numero
-                        );
-
-
-                    const reading =
-                        state.readings.get(
-                            module
-                        );
-
+                ([module, row]) => {
 
                     const temp1 =
-                        numberValue(
-                            reading?.canal_1
+                        number(
+                            row.canal_1
                         );
 
 
-                    const temp1Text =
-                        temp1 === null
-                            ? "--"
-                            : temp1.toLocaleString(
-                                "pt-BR",
-                                {
-                                    maximumFractionDigits: 1
-                                }
-                            );
+                    const temp2 =
+                        number(
+                            row.canal_2
+                        );
 
 
                     return `
 
-                    <article
-                        class="oven-card"
-                        data-module="${module}"
-                    >
+                        <article
+                            class="oven-card"
+                            data-module="${module}"
+                        >
 
-                        <div class="oven-top">
+                            <div class="oven-top">
 
-                            <div class="oven-name">
+                                <div class="oven-name">
 
-                                ${
-                                    oven.nome ||
-                                    ovenName(module)
-                                }
+                                    Forno ${module}
 
-                            </div>
+                                </div>
 
 
-                            <span class="status">
+                                <span class="status">
 
-                                ● Online
+                                    ● Online
 
-                            </span>
-
-                        </div>
-
-
-                        <div class="temp-row">
-
-                            <div class="temp">
-
-                                ${temp1Text}
-
-                                <small>
-                                    °C
-                                </small>
-
-                            </div>
-
-
-                            <div class="trend">
-
-                                <canvas
-                                    id="mini-${module}"
-                                ></canvas>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="oven-bottom">
-
-                            <div class="mini">
-
-                                <span>
-                                    Temperatura 2
                                 </span>
 
-                                <strong>
+                            </div>
+
+
+                            <div class="temp-row">
+
+                                <div class="temp">
+
                                     ${
-                                        temperature(
-                                            reading?.canal_2
-                                        )
+                                        temp1 === null
+                                            ? "--"
+                                            : temp1.toLocaleString(
+                                                "pt-BR",
+                                                {
+                                                    maximumFractionDigits: 1
+                                                }
+                                            )
                                     }
-                                </strong>
+
+                                    <small>
+                                        °C
+                                    </small>
+
+                                </div>
+
+
+                                <div
+                                    style="
+                                        text-align:right;
+                                        font-size:9px;
+                                        color:#8b8e94;
+                                    "
+                                >
+
+                                    CANAL 2
+
+                                    <br>
+
+                                    <strong
+                                        style="
+                                            color:#17181b;
+                                            font-size:12px;
+                                        "
+                                    >
+
+                                        ${formatTemperature(temp2)}
+
+                                    </strong>
+
+                                </div>
 
                             </div>
 
 
-                            <div
-                                class="mini"
-                                style="text-align:right"
-                            >
+                            <div class="oven-bottom">
 
-                                <span>
-                                    Atualizado
-                                </span>
+                                <div class="mini">
 
-                                <strong>
-                                    ${
-                                        time(
-                                            reading?.created_at
-                                        )
-                                    }
-                                </strong>
+                                    <span>
+                                        Módulo
+                                    </span>
+
+                                    <strong>
+                                        ${module}
+                                    </strong>
+
+                                </div>
+
+
+                                <div
+                                    class="mini"
+                                    style="text-align:right"
+                                >
+
+                                    <span>
+                                        Atualizado
+                                    </span>
+
+                                    <strong>
+                                        ${formatTime(row.data_hora)}
+                                    </strong>
+
+                                </div>
 
                             </div>
 
-                        </div>
-
-                    </article>
+                        </article>
 
                     `;
 
@@ -613,9 +500,9 @@ function renderHome() {
             .join("");
 
 
-    /*
-     * Clique no forno
-     */
+    // =================================================
+    // CLIQUE NO FORNO
+    // =================================================
 
     grid
         .querySelectorAll(
@@ -628,10 +515,13 @@ function renderHome() {
                     "click",
                     () => {
 
-                        openDetail(
+                        const module =
                             Number(
                                 card.dataset.module
-                            )
+                            );
+
+                        openOven(
+                            module
                         );
 
                     }
@@ -640,33 +530,139 @@ function renderHome() {
             }
         );
 
+}
 
-    /*
-     * Gráficos pequenos
-     */
 
-    onlineOvens.forEach(
-        oven => {
+// =====================================================
+// ABRIR FORNO
+// =====================================================
 
-            drawMiniChart(
-                Number(
-                    oven.numero
-                )
-            );
+async function openOven(
+    module
+) {
 
+    state.selectedModule =
+        module;
+
+
+    const row =
+        state.latest.get(
+            module
+        );
+
+
+    if (!row) {
+
+        return;
+
+    }
+
+
+    // esconder início
+
+    $id("homeView")
+        .classList
+        .add("hidden");
+
+
+    // mostrar detalhe
+
+    $id("detailView")
+        .classList
+        .remove("hidden");
+
+
+    window.scrollTo(
+        {
+            top: 0,
+            behavior: "smooth"
         }
+    );
+
+
+    // =================================================
+    // CABEÇALHO
+    // =================================================
+
+    $id("detailName")
+        .textContent =
+        `Forno ${module}`;
+
+
+    $id("detailTemp")
+        .textContent =
+        formatTemperature(
+            row.canal_1
+        );
+
+
+    // =================================================
+    // PARÂMETROS
+    // =================================================
+
+    $id("pCanal1")
+        .textContent =
+        formatTemperature(
+            row.canal_1
+        );
+
+
+    $id("pCanal2")
+        .textContent =
+        formatTemperature(
+            row.canal_2
+        );
+
+
+    $id("pModulo")
+        .textContent =
+        module;
+
+
+    $id("pHora")
+        .textContent =
+        formatTime(
+            row.data_hora
+        );
+
+
+    // =================================================
+    // HISTÓRICO
+    // =================================================
+
+    const history =
+        await getHistory(
+            module
+        );
+
+
+    renderHistory(
+        history
+    );
+
+
+    renderChart(
+        history
+    );
+
+
+    // =================================================
+    // TEMPO DE QUEIMA
+    // =================================================
+
+    calculateBurnTime(
+        history
     );
 
 }
 
 
-// ======================================================
-// HISTÓRICO DO FORNO
-// ======================================================
+// =====================================================
+// HISTÓRICO
+// =====================================================
 
 async function getHistory(
-    module,
-    limit = 120
+    module
 ) {
 
     const {
@@ -678,10 +674,13 @@ async function getHistory(
 
         .select(
             `
+            eu_id,
+            dispositivo_id,
+            forno_id,
+            modulo_alutal,
             canal_1,
             canal_2,
-            modulo_alutal,
-            created_at
+            data_hora
             `
         )
 
@@ -691,15 +690,13 @@ async function getHistory(
         )
 
         .order(
-            "created_at",
+            "data_hora",
             {
-                ascending: false
+                ascending: true
             }
         )
 
-        .limit(
-            limit
-        );
+        .limit(200);
 
 
     if (error) {
@@ -714,96 +711,226 @@ async function getHistory(
     }
 
 
-    /*
-     * O banco retorna
-     * mais novo -> antigo.
-     *
-     * Aqui deixamos
-     * antigo -> novo.
-     */
+    console.log(
+        `[ThermoLink] Histórico do forno ${module}:`,
+        data
+    );
 
-    return (
-        data || []
-    ).reverse();
+
+    return data || [];
 
 }
 
 
-// ======================================================
-// MINI GRÁFICO DOS CARDS
-// ======================================================
+// =====================================================
+// MOSTRAR HISTÓRICO NA TELA
+// =====================================================
 
-async function drawMiniChart(
-    module
+function renderHistory(
+    history
 ) {
 
-    const canvas =
-        $(`mini-${module}`);
+    const list =
+        $id("historyList");
 
 
-    if (!canvas) {
+    $id("readingCount")
+        .textContent =
+        `${history.length} registros`;
+
+
+    if (
+        history.length === 0
+    ) {
+
+        list.innerHTML = `
+
+            <div class="empty">
+
+                Nenhuma leitura encontrada.
+
+            </div>
+
+        `;
 
         return;
 
     }
 
 
+    /*
+     * Mostrar as 15 últimas
+     */
+
     const rows =
-        await getHistory(
-            module,
-            30
+        history
+            .slice(-15)
+            .reverse();
+
+
+    list.innerHTML =
+
+        rows
+            .map(
+                row => `
+
+                    <div class="history-row">
+
+                        <span>
+
+                            ${formatTime(
+                                row.data_hora
+                            )}
+
+                        </span>
+
+
+                        <strong>
+
+                            ${formatTemperature(
+                                row.canal_1
+                            )}
+
+                        </strong>
+
+
+                        <span>
+
+                            ${formatTemperature(
+                                row.canal_2
+                            )}
+
+                        </span>
+
+                    </div>
+
+                `
+            )
+            .join("");
+
+}
+
+
+// =====================================================
+// GRÁFICO
+// =====================================================
+
+function renderChart(
+    history
+) {
+
+    if (
+        state.chart
+    ) {
+
+        state.chart.destroy();
+
+        state.chart = null;
+
+    }
+
+
+    if (
+        history.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    const labels =
+        history.map(
+            row => {
+
+                const date =
+                    new Date(
+                        row.data_hora
+                    );
+
+                return date.toLocaleTimeString(
+                    "pt-BR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                );
+
+            }
         );
 
 
-    const values =
-        rows
-
-            .map(
-                row =>
-                    numberValue(
-                        row.canal_1
-                    )
-            )
-
-            .filter(
-                value =>
-                    value !== null
-            );
+    const canal1 =
+        history.map(
+            row =>
+                number(
+                    row.canal_1
+                )
+        );
 
 
-    if (!values.length) {
+    const canal2 =
+        history.map(
+            row =>
+                number(
+                    row.canal_2
+                )
+        );
 
-        return;
 
-    }
+    state.chart =
 
-
-    const chart =
         new Chart(
-            canvas,
+            $id("detailChart"),
             {
 
                 type: "line",
 
                 data: {
 
-                    labels:
-                        values.map(
-                            () => ""
-                        ),
+                    labels,
 
                     datasets: [
 
                         {
 
-                            data: values,
+                            label:
+                                "Temperatura 1",
+
+                            data:
+                                canal1,
 
                             borderColor:
                                 "#ff641f",
 
+                            backgroundColor:
+                                "rgba(255,100,31,.08)",
+
                             borderWidth: 2,
 
-                            tension: .35,
+                            tension: .3,
+
+                            pointRadius: 0,
+
+                            fill: true
+
+                        },
+
+
+                        {
+
+                            label:
+                                "Temperatura 2",
+
+                            data:
+                                canal2,
+
+                            borderColor:
+                                "#555",
+
+                            borderWidth: 2,
+
+                            tension: .3,
 
                             pointRadius: 0,
 
@@ -820,305 +947,8 @@ async function drawMiniChart(
 
                     responsive: true,
 
-                    maintainAspectRatio:
-                        false,
+                    maintainAspectRatio: false,
 
-                    plugins: {
-
-                        legend: {
-                            display: false
-                        },
-
-                        tooltip: {
-                            enabled: false
-                        }
-
-                    },
-
-
-                    scales: {
-
-                        x: {
-                            display: false
-                        },
-
-                        y: {
-                            display: false
-                        }
-
-                    }
-
-                }
-
-            }
-        );
-
-
-    state.miniCharts.push(
-        chart
-    );
-
-}
-
-
-// ======================================================
-// ABRIR FORNO
-// ======================================================
-
-async function openDetail(
-    module
-) {
-
-    state.selectedModule =
-        module;
-
-
-    $("homeView")
-        .classList
-        .add("hidden");
-
-
-    $("detailView")
-        .classList
-        .remove("hidden");
-
-
-    window.scrollTo(
-        {
-            top: 0,
-            behavior: "smooth"
-        }
-    );
-
-
-    /*
-     * Nome
-     */
-
-    $("detailName")
-        .textContent =
-        ovenName(
-            module
-        );
-
-
-    /*
-     * Última leitura
-     */
-
-    const reading =
-        state.readings.get(
-            module
-        );
-
-
-    $("detailTemp")
-        .textContent =
-        temperature(
-            reading?.canal_1
-        );
-
-
-    $("pCanal1")
-        .textContent =
-        temperature(
-            reading?.canal_1
-        );
-
-
-    $("pCanal2")
-        .textContent =
-        temperature(
-            reading?.canal_2
-        );
-
-
-    $("pModulo")
-        .textContent =
-        module;
-
-
-    $("pHora")
-        .textContent =
-        time(
-            reading?.created_at
-        );
-
-
-    /*
-     * Histórico
-     */
-
-    const rows =
-        await getHistory(
-            module,
-            120
-        );
-
-
-    $("readingCount")
-        .textContent =
-        `${rows.length} registros`;
-
-
-    /*
-     * Lista de últimas leituras
-     */
-
-    if (!rows.length) {
-
-        $("historyList")
-            .innerHTML = `
-                <div class="empty">
-                    Nenhuma leitura histórica.
-                </div>
-            `;
-
-    } else {
-
-        $("historyList")
-            .innerHTML =
-
-            rows
-                .slice(-15)
-                .reverse()
-                .map(
-                    row => `
-
-                    <div class="history-row">
-
-                        <span>
-                            ${
-                                time(
-                                    row.created_at
-                                )
-                            }
-                        </span>
-
-                        <strong>
-                            ${
-                                temperature(
-                                    row.canal_1
-                                )
-                            }
-                        </strong>
-
-                        <span>
-                            ${
-                                temperature(
-                                    row.canal_2
-                                )
-                            }
-                        </span>
-
-                    </div>
-
-                    `
-                )
-                .join("");
-
-    }
-
-
-    /*
-     * Destrói gráfico anterior
-     */
-
-    if (
-        state.chart
-    ) {
-
-        state.chart.destroy();
-
-        state.chart =
-            null;
-
-    }
-
-
-    /*
-     * Sem histórico
-     */
-
-    if (!rows.length) {
-
-        return;
-
-    }
-
-
-    /*
-     * Gráfico principal
-     */
-
-    state.chart =
-
-        new Chart(
-            $("detailChart"),
-            {
-
-                type: "line",
-
-                data: {
-
-                    labels:
-
-                        rows.map(
-                            row =>
-
-                                new Date(
-                                    row.created_at
-                                )
-                                    .toLocaleTimeString(
-                                        "pt-BR",
-                                        {
-                                            hour: "2-digit",
-                                            minute: "2-digit"
-                                        }
-                                    )
-                        ),
-
-
-                    datasets: [
-
-                        {
-
-                            data:
-
-                                rows.map(
-                                    row =>
-                                        numberValue(
-                                            row.canal_1
-                                        )
-                                ),
-
-                            borderColor:
-                                "#ff641f",
-
-                            backgroundColor:
-                                "rgba(255,100,31,.08)",
-
-                            borderWidth: 2,
-
-                            tension: .3,
-
-                            pointRadius: 0,
-
-                            fill: true
-
-                        }
-
-                    ]
-
-                },
-
-
-                options: {
-
-                    responsive: true,
-
-                    maintainAspectRatio:
-                        false,
 
                     interaction: {
 
@@ -1132,7 +962,19 @@ async function openDetail(
                     plugins: {
 
                         legend: {
-                            display: false
+
+                            display: true,
+
+                            labels: {
+
+                                boxWidth: 10,
+
+                                font: {
+                                    size: 9
+                                }
+
+                            }
+
                         }
 
                     },
@@ -1161,13 +1003,6 @@ async function openDetail(
 
                         y: {
 
-                            grid: {
-
-                                color:
-                                    "#eeeeee"
-
-                            },
-
                             ticks: {
 
                                 font: {
@@ -1185,91 +1020,124 @@ async function openDetail(
             }
         );
 
-
-    /*
-     * IMPORTANTE:
-     *
-     * O seu app.js original não possui
-     * uma coluna de início/fim/duração
-     * da queima.
-     *
-     * Por isso não inventamos um valor.
-     */
-
-    $("burnTime")
-        .textContent =
-        "--";
-
 }
 
 
-// ======================================================
-// ATUALIZAR FORNO ABERTO
-// ======================================================
+// =====================================================
+// TEMPO DE QUEIMA
+// =====================================================
 
-function updateDetail(
-    module
+function calculateBurnTime(
+    history
 ) {
 
-    const reading =
-        state.readings.get(
-            module
-        );
+    const element =
+        $id("burnTime");
 
 
     /*
-     * Se ficou offline,
-     * volta para a Home.
+     * Pela estrutura que você mostrou,
+     * temos temperatura e data/hora.
+     *
+     * Ainda não existe uma coluna
+     * específica indicando:
+     *
+     * início da queima
+     * fim da queima
+     *
+     * Portanto NÃO vamos inventar
+     * um tempo de queima.
      */
 
     if (
-        !isOnline(
-            reading
-        )
+        !history.length
     ) {
 
-        closeDetail();
+        element.textContent =
+            "--";
 
         return;
 
     }
 
 
-    $("detailTemp")
-        .textContent =
-        temperature(
-            reading.canal_1
+    /*
+     * Por enquanto mostramos
+     * o período coberto pelo histórico.
+     *
+     * Depois podemos transformar isso
+     * em "tempo de queima" usando
+     * uma regra de temperatura.
+     */
+
+    const first =
+        new Date(
+            history[0].data_hora
         );
 
 
-    $("pCanal1")
-        .textContent =
-        temperature(
-            reading.canal_1
+    const last =
+        new Date(
+            history[
+                history.length - 1
+            ].data_hora
         );
 
 
-    $("pCanal2")
-        .textContent =
-        temperature(
-            reading.canal_2
+    const milliseconds =
+        last.getTime() -
+        first.getTime();
+
+
+    if (
+        milliseconds <= 0
+    ) {
+
+        element.textContent =
+            "--";
+
+        return;
+
+    }
+
+
+    const minutes =
+        Math.floor(
+            milliseconds /
+            60000
         );
 
 
-    $("pHora")
-        .textContent =
-        time(
-            reading.created_at
+    const hours =
+        Math.floor(
+            minutes / 60
         );
+
+
+    const remaining =
+        minutes % 60;
+
+
+    if (hours > 0) {
+
+        element.textContent =
+            `${hours}h ${remaining}min`;
+
+    } else {
+
+        element.textContent =
+            `${remaining} min`;
+
+    }
 
 }
 
 
-// ======================================================
-// VOLTAR PARA INÍCIO
-// ======================================================
+// =====================================================
+// VOLTAR
+// =====================================================
 
-function closeDetail() {
+function closeOven() {
 
     state.selectedModule =
         null;
@@ -1281,18 +1149,17 @@ function closeDetail() {
 
         state.chart.destroy();
 
-        state.chart =
-            null;
+        state.chart = null;
 
     }
 
 
-    $("detailView")
+    $id("detailView")
         .classList
         .add("hidden");
 
 
-    $("homeView")
+    $id("homeView")
         .classList
         .remove("hidden");
 
@@ -1310,71 +1177,77 @@ function closeDetail() {
 }
 
 
-// ======================================================
-// BOTÕES
-// ======================================================
-
-$("backBtn")
-    .onclick =
-    closeDetail;
+$id("backBtn")
+    .addEventListener(
+        "click",
+        closeOven
+    );
 
 
-$("homeNav")
-    .onclick =
-    closeDetail;
+$id("homeNav")
+    .addEventListener(
+        "click",
+        closeOven
+    );
 
 
-// ======================================================
+// =====================================================
 // ATUALIZAÇÃO AUTOMÁTICA
-//
-// A cada 12 segundos consulta o Supabase.
-// ======================================================
+// =====================================================
 
 setInterval(
-    loadLatest,
+    async () => {
+
+        await loadReadings();
+
+        /*
+         * Se estiver dentro de um forno,
+         * atualiza os dados dele.
+         */
+
+        if (
+            state.selectedModule !== null
+        ) {
+
+            const row =
+                state.latest.get(
+                    state.selectedModule
+                );
+
+
+            if (
+                !row ||
+                !isOnline(row)
+            ) {
+
+                closeOven();
+
+            }
+
+        }
+
+    },
     12000
 );
 
 
-// ======================================================
+// =====================================================
 // INICIAR
-// ======================================================
+// =====================================================
 
 async function init() {
 
-    try {
-
-        await loadOvens();
-
-        await loadLatest();
+    console.log(
+        "🔥 ThermoLink iniciando..."
+    );
 
 
-        console.log(
-            "[ThermoLink] Interface carregada."
-        );
+    await loadReadings();
 
 
-    } catch (error) {
-
-        console.error(
-            "[ThermoLink] Erro:",
-            error
-        );
-
-
-        $("ovenGrid")
-            .innerHTML = `
-
-                <div class="empty">
-
-                    Não foi possível
-                    carregar os fornos.
-
-                </div>
-
-            `;
-
-    }
+    console.log(
+        "✅ ThermoLink conectado ao Supabase."
+    );
 
 }
 

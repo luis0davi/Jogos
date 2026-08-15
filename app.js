@@ -8,8 +8,8 @@
   3. NUNCA coloque a service_role key neste arquivo.
 */
 
-const SUPABASE_URL = "COLE_A_URL_DO_SEU_PROJETO_AQUI";
-const SUPABASE_ANON_KEY = "COLE_A_CHAVE_PUBLICA_ANON_OU_PUBLISHABLE_AQUI";
+const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
 
 const CONFIG = {
   // Nome mostrado no cabeçalho enquanto ainda não existe vínculo

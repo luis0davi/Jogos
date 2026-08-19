@@ -1,5 +1,6 @@
 // ======================================================
-// THERMOLINK COM ALARMES, GRÁFICO DUPLO E FORNO 3D
+// THERMOLINK - REVISADO E MODERNIZADO
+// Interface Industrial Avançada para Monitoramento de Fornos
 // ======================================================
 
 const SUPABASE_URL = "https://zawnluboujbovpgrgdcx.supabase.co";
@@ -8,26 +9,20 @@ const SUPABASE_ANON_KEY = "sb_publishable_gJiVQXVjiuSPY3vHt2f8OA_CiES-4Ak";
 const { createClient } = window.supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ======================================================
 // ESTADO DO APP
+// ======================================================
 const state = {
     ovens: [],
     readings: new Map(),
     selectedModule: null,
     chart: null,
-    miniCharts: [],
-    alarms: {}, // Guarda configs por modulo: { 1: { t1Min: 100, t1Max: 900, ... } }
-    audioCtx: null,
-    isMuted: false,
-    three: {
-        scene: null,
-        camera: null,
-        renderer: null,
-        ovenGroup: null,
-        fireLight: null,
-        animId: null
-    }
+    miniCharts: []
 };
 
+// ======================================================
+// FUNÇÕES AUXILIARES
+// ======================================================
 const $ = id => document.getElementById(id);
 
 function numberValue(value) {
@@ -44,183 +39,30 @@ function time(value) {
     if (!value) return "--";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "--";
-    return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return date.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
 }
 
 function isOnline(reading) {
     if (!reading || !reading.created_at) return false;
     const date = new Date(reading.created_at);
     if (Number.isNaN(date.getTime())) return false;
-    return (Date.now() - date.getTime()) <= 3 * 60 * 1000;
+    const difference = Date.now() - date.getTime();
+    return difference <= 3 * 60 * 1000; // 3 minutos online
 }
 
 function ovenName(module) {
     const oven = state.ovens.find(item => Number(item.numero) === Number(module));
-    return oven && oven.nome ? oven.nome : `Forno ${String(module).padStart(2, "0")}`;
+    if (oven && oven.nome) return oven.nome;
+    return `Forno ${String(module).padStart(2, "0")}`;
 }
 
 // ======================================================
-// SISTEMA DE ALARMES E ÁUDIO
+// CARREGAR FORNOS DO BANCO
 // ======================================================
-
-function initAudio() {
-    if (!state.audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        state.audioCtx = new AudioContext();
-    }
-}
-
-function playBeep() {
-    if (state.isMuted) return;
-    try {
-        initAudio();
-        const osc = state.audioCtx.createOscillator();
-        const gain = state.audioCtx.createGain();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(880, state.audioCtx.currentTime); // Tom agudo
-        gain.gain.setValueAtTime(0.1, state.audioCtx.currentTime);
-        osc.connect(gain);
-        gain.connect(state.audioCtx.destination);
-        osc.start();
-        osc.stop(state.audioCtx.currentTime + 0.3);
-    } catch (e) {
-        console.warn("Áudio requer interação prévia:", e);
-    }
-}
-
-function checkAlarms(module, reading) {
-    if (!reading) return;
-    const config = state.alarms[module];
-    if (!config) return;
-
-    const t1 = numberValue(reading.canal_1);
-    const t2 = numberValue(reading.canal_2);
-
-    let triggered = false;
-    let msg = [];
-
-    if (t1 !== null) {
-        if (config.t1Max !== null && t1 > config.t1Max) { triggered = true; msg.push("T1 Acima do Máx!"); }
-        if (config.t1Min !== null && t1 < config.t1Min) { triggered = true; msg.push("T1 Abaixo do Mín!"); }
-    }
-
-    if (t2 !== null) {
-        if (config.t2Max !== null && t2 > config.t2Max) { triggered = true; msg.push("T2 Acima do Máx!"); }
-        if (config.t2Min !== null && t2 < config.t2Min) { triggered = true; msg.push("T2 Abaixo do Mín!"); }
-    }
-
-    const alarmStatusEl = $("alarmStatus");
-    const muteBtn = $("muteAlarmBtn");
-
-    if (triggered) {
-        alarmStatusEl.textContent = "🚨 ALARME: " + msg.join(" | ");
-        alarmStatusEl.style.color = "var(--red)";
-        document.body.classList.add("alarm-active");
-        muteBtn.classList.remove("hidden");
-        playBeep();
-    } else {
-        alarmStatusEl.textContent = "Status: Normal";
-        alarmStatusEl.style.color = "var(--muted)";
-        document.body.classList.remove("alarm-active");
-        muteBtn.classList.add("hidden");
-    }
-}
-
-$("saveAlarmsBtn").onclick = () => {
-    const module = state.selectedModule;
-    if (!module) return;
-
-    state.alarms[module] = {
-        t1Min: $("alarmT1Min").value ? Number($("alarmT1Min").value) : null,
-        t1Max: $("alarmT1Max").value ? Number($("alarmT1Max").value) : null,
-        t2Min: $("alarmT2Min").value ? Number($("alarmT2Min").value) : null,
-        t2Max: $("alarmT2Max").value ? Number($("alarmT2Max").value) : null
-    };
-
-    alert("Configurações de alarme salvas!");
-    initAudio();
-};
-
-$("muteAlarmBtn").onclick = () => {
-    state.isMuted = true;
-    document.body.classList.remove("alarm-active");
-    $("muteAlarmBtn").classList.add("hidden");
-};
-
-// ======================================================
-// VISUALIZAÇÃO 3D DO FORNO (THREE.JS)
-// ======================================================
-
-function setup3DOven() {
-    const container = $("oven3dContainer");
-    container.innerHTML = "";
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1e1e24);
-
-    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-    camera.position.set(3, 3, 5);
-    camera.lookAt(0, 0, 0);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    container.appendChild(renderer.domElement);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const ovenGroup = new THREE.Group();
-
-    // Parede de Tijolo/Cerâmica do Forno
-    const geometry = new THREE.CylinderGeometry(1.2, 1.4, 2, 16);
-    const material = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.9 });
-    const ovenMesh = new THREE.Mesh(geometry, material);
-    ovenGroup.add(ovenMesh);
-
-    // Porta de Entrada do Forno
-    const doorGeo = new THREE.BoxGeometry(0.8, 0.9, 0.2);
-    const doorMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    const door = new THREE.Mesh(doorGeo, doorMat);
-    door.position.set(0, -0.2, 1.15);
-    ovenGroup.add(door);
-
-    // Luz de Fogo/Aquecimento Interno
-    const fireLight = new THREE.PointLight(0xff641f, 0, 5);
-    fireLight.position.set(0, -0.2, 0.8);
-    ovenGroup.add(fireLight);
-
-    scene.add(ovenGroup);
-
-    state.three = { scene, camera, renderer, ovenGroup, fireLight };
-
-    function animate() {
-        state.three.animId = requestAnimationFrame(animate);
-        ovenGroup.rotation.y += 0.005;
-        renderer.render(scene, camera);
-    }
-    animate();
-}
-
-function update3DOvenTemp(temp) {
-    if (!state.three.fireLight) return;
-    const value = numberValue(temp) || 0;
-
-    const intensity = Math.min(value / 100, 10);
-    state.three.fireLight.intensity = intensity;
-
-    if (value > 600) {
-        state.three.fireLight.color.setHex(0xffa500);
-    } else if (value > 900) {
-        state.three.fireLight.color.setHex(0xffff00);
-    } else {
-        state.three.fireLight.color.setHex(0xff641f);
-    }
-}
-
-// ======================================================
-// LEITURA DE FORNOS E TELA PRINCIPAL
-// ======================================================
-
 async function loadOvens() {
     const { data, error } = await sb
         .from("fornos")
@@ -229,6 +71,7 @@ async function loadOvens() {
         .order("numero", { ascending: true });
 
     if (error || !data || !data.length) {
+        console.warn("[ThermoLink] Fallback ativo: Gerando módulos padrão (1 a 31).");
         state.ovens = Array.from({ length: 31 }, (_, index) => ({
             id: index + 1,
             numero: index + 1,
@@ -240,6 +83,9 @@ async function loadOvens() {
     state.ovens = data;
 }
 
+// ======================================================
+// CAPTURAR ÚLTIMAS LEITURAS (MÚLTIPLOS CANAIS)
+// ======================================================
 async function loadLatest() {
     const { data, error } = await sb
         .from("leituras")
@@ -247,7 +93,10 @@ async function loadLatest() {
         .order("created_at", { ascending: false })
         .limit(1000);
 
-    if (error) return;
+    if (error) {
+        console.error("[ThermoLink] Erro ao carregar leituras:", error);
+        return;
+    }
 
     const latest = new Map();
     for (const reading of data || []) {
@@ -265,11 +114,32 @@ async function loadLatest() {
     }
 }
 
+// ======================================================
+// HISTÓRICO TÉRMICO DO FORNO
+// ======================================================
+async function getHistory(module, limit = 120) {
+    const { data, error } = await sb
+        .from("leituras")
+        .select(`canal_1, canal_2, modulo_alutal, created_at`)
+        .eq("modulo_alutal", module)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error("[ThermoLink] Erro no histórico:", error);
+        return [];
+    }
+    return (data || []).reverse();
+}
+
+// ======================================================
+// RENDERIZAR TELA INICIAL (MÓDULOS ONLINE)
+// ======================================================
 function renderHome() {
     state.miniCharts.forEach(chart => chart.destroy());
     state.miniCharts = [];
 
-    const onlineOvens = state.ovens.filter(oven =>
+    const onlineOvens = state.ovens.filter(oven => 
         isOnline(state.readings.get(Number(oven.numero)))
     );
 
@@ -277,7 +147,7 @@ function renderHome() {
     const grid = $("ovenGrid");
 
     if (!onlineOvens.length) {
-        grid.innerHTML = `<div class="empty">Nenhum forno online no momento.</div>`;
+        grid.innerHTML = `<div class="empty">Nenhum módulo de forno online no momento.</div>`;
         return;
     }
 
@@ -288,49 +158,69 @@ function renderHome() {
         const temp1Text = temp1 === null ? "--" : temp1.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
         return `
-        <article class="oven-card" data-module="${module}">
-            <div class="oven-top">
-                <div class="oven-name">${oven.nome || ovenName(module)}</div>
-                <span class="status">● Online</span>
-            </div>
-            <div class="temp-row">
-                <div class="temp">${temp1Text}<small>°C</small></div>
-                <div class="trend"><canvas id="mini-${module}"></canvas></div>
-            </div>
-            <div class="oven-bottom">
-                <div class="mini">
-                    <span>Temperatura 2</span>
-                    <strong>${temperature(reading?.canal_2)}</strong>
+            <article class="oven-card" data-module="${module}">
+                <div class="oven-top">
+                    <div class="oven-name">${oven.nome || ovenName(module)}</div>
+                    <span class="status">● Online</span>
                 </div>
-                <div class="mini" style="text-align:right">
-                    <span>Atualizado</span>
-                    <strong>${time(reading?.created_at)}</strong>
+                <div class="temp-row">
+                    <div class="temp">
+                        ${temp1Text}<small>°C</small>
+                        <span class="channel-lbl">Canal 01 (Teto)</span>
+                    </div>
+                    <div class="trend">
+                        <canvas id="mini-${module}"></canvas>
+                    </div>
                 </div>
-            </div>
-        </article>`;
+                <div class="oven-bottom">
+                    <div class="mini">
+                        <span>Canal 02 (Base)</span>
+                        <strong>${temperature(reading?.canal_2)}</strong>
+                    </div>
+                    <div class="mini" style="text-align:right">
+                        <span>Sincronismo</span>
+                        <strong>${time(reading?.created_at)}</strong>
+                    </div>
+                </div>
+            </article>
+        `;
     }).join("");
 
     grid.querySelectorAll(".oven-card").forEach(card => {
-        card.addEventListener("click", () => openDetail(Number(card.dataset.module)));
+        card.addEventListener("click", () => {
+            openDetail(Number(card.dataset.module));
+        });
     });
 
-    onlineOvens.forEach(oven => drawMiniChart(Number(oven.numero)));
+    onlineOvens.forEach(oven => {
+        drawMiniChart(Number(oven.numero));
+    });
 }
 
+// ======================================================
+// DESENHAR GRAFICOS MINIATURA (NOS CARDS)
+// ======================================================
 async function drawMiniChart(module) {
     const canvas = $(`mini-${module}`);
     if (!canvas) return;
 
-    const rows = await getHistory(module, 30);
-    const values = rows.map(row => numberValue(row.canal_1)).filter(v => v !== null);
+    const rows = await getHistory(module, 20);
+    const v1 = rows.map(r => numberValue(r.canal_1)).filter(v => v !== null);
 
-    if (!values.length) return;
+    if (!v1.length) return;
 
     const chart = new Chart(canvas, {
         type: "line",
         data: {
-            labels: values.map(() => ""),
-            datasets: [{ data: values, borderColor: "#ff641f", borderWidth: 2, tension: .35, pointRadius: 0, fill: false }]
+            labels: v1.map(() => ""),
+            datasets: [{
+                data: v1,
+                borderColor: "#ff641f",
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 0,
+                fill: false
+            }]
         },
         options: {
             responsive: true,
@@ -339,95 +229,91 @@ async function drawMiniChart(module) {
             scales: { x: { display: false }, y: { display: false } }
         }
     });
+
     state.miniCharts.push(chart);
 }
 
-async function getHistory(module, limit = 120) {
-    const { data, error } = await sb
-        .from("leituras")
-        .select(`canal_1, canal_2, modulo_alutal, created_at`)
-        .eq("modulo_alutal", module)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-    if (error) return [];
-    return (data || []).reverse();
-}
-
 // ======================================================
-// DETALHE DO FORNO (GRÁFICO DUPLO & ALARME)
+// ENTRAR NA TELA DE DETALHES DE UM FORNO
 // ======================================================
-
 async function openDetail(module) {
     state.selectedModule = module;
-    state.isMuted = false;
 
     $("homeView").classList.add("hidden");
     $("detailView").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     $("detailName").textContent = ovenName(module);
-    const reading = state.readings.get(module);
 
-    $("detailTemp").textContent = temperature(reading?.canal_1);
+    const reading = state.readings.get(module);
+    $("detailTemp").innerHTML = `${numberValue(reading?.canal_1)?.toLocaleString("pt-BR") || '--'}<span class="unit-detail">°C</span>`;
     $("pCanal1").textContent = temperature(reading?.canal_1);
     $("pCanal2").textContent = temperature(reading?.canal_2);
-    $("pModulo").textContent = module;
+    $("pModulo").textContent = String(module).padStart(2, "0");
     $("pHora").textContent = time(reading?.created_at);
 
-    // Inputs do Alarme
-    const cfg = state.alarms[module] || {};
-    $("alarmT1Min").value = cfg.t1Min ?? "";
-    $("alarmT1Max").value = cfg.t1Max ?? "";
-    $("alarmT2Min").value = cfg.t2Min ?? "";
-    $("alarmT2Max").value = cfg.t2Max ?? "";
-
-    // Renderiza 3D
-    setup3DOven();
-    update3DOvenTemp(reading?.canal_1);
-
-    // Histórico
-    const rows = await getHistory(module, 120);
+    const rows = await getHistory(module, 60);
     $("readingCount").textContent = `${rows.length} registros`;
 
-    if (!rows.length) {
-        $("historyList").innerHTML = `<div class="empty">Nenhuma leitura histórica.</div>`;
+    // Processamento de métricas analíticas (Mínima, Média e Máxima)
+    const validC1 = rows.map(r => numberValue(r.canal_1)).filter(v => v !== null);
+    if (validC1.length > 0) {
+        const minVal = Math.min(...validC1);
+        const maxVal = Math.max(...validC1);
+        const avgVal = validC1.reduce((a, b) => a + b, 0) / validC1.length;
+
+        $("calcMin").textContent = `${minVal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} °C`;
+        $("calcMax").textContent = `${maxVal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} °C`;
+        $("calcMed").textContent = `${avgVal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} °C`;
     } else {
-        $("historyList").innerHTML = rows.slice(-15).reverse().map(row => `
+        $("calcMin").textContent = "--";
+        $("calcMax").textContent = "--";
+        $("calcMed").textContent = "--";
+    }
+
+    if (!rows.length) {
+        $("historyList").innerHTML = `<div class="empty">Nenhum dado para este período.</div>`;
+    } else {
+        $("historyList").innerHTML = rows.slice(-10).reverse().map(row => `
             <div class="history-row">
-                <span>${time(row.created_at)}</span>
-                <strong>T1: ${temperature(row.canal_1)}</strong>
-                <span>T2: ${temperature(row.canal_2)}</span>
+                <span class="time-stamp">${time(row.created_at)}</span>
+                <strong class="c1-txt">${temperature(row.canal_1)}</strong>
+                <span class="c2-txt">${temperature(row.canal_2)}</span>
             </div>
         `).join("");
     }
 
-    if (state.chart) state.chart.destroy();
+    if (state.chart) {
+        state.chart.destroy();
+        state.chart = null;
+    }
+
     if (!rows.length) return;
 
-    // GRÁFICO DUPLO
+    // Inicialização do Gráfico Principal Multifunção (Canais 1 e 2 simultâneos)
     state.chart = new Chart($("detailChart"), {
         type: "line",
         data: {
-            labels: rows.map(row => new Date(row.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })),
+            labels: rows.map(r => new Date(r.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })),
             datasets: [
                 {
-                    label: "Temperatura 1",
-                    data: rows.map(row => numberValue(row.canal_1)),
+                    label: "Canal 1 (Teto)",
+                    data: rows.map(r => numberValue(r.canal_1)),
                     borderColor: "#ff641f",
-                    backgroundColor: "rgba(255,100,31,.08)",
-                    borderWidth: 2,
-                    tension: .3,
+                    backgroundColor: "rgba(255, 100, 31, 0.05)",
+                    borderWidth: 2.5,
+                    tension: 0.35,
                     pointRadius: 0,
-                    fill: false
+                    fill: true
                 },
                 {
-                    label: "Temperatura 2",
-                    data: rows.map(row => numberValue(row.canal_2)),
-                    borderColor: "#007bff",
-                    backgroundColor: "rgba(0,123,255,.08)",
+                    label: "Canal 2 (Base)",
+                    data: rows.map(r => numberValue(r.canal_2)),
+                    borderColor: "#00b4d8",
+                    backgroundColor: "transparent",
                     borderWidth: 2,
-                    tension: .3,
+                    borderDash: [5, 5],
+                    tension: 0.35,
                     pointRadius: 0,
                     fill: false
                 }
@@ -437,62 +323,56 @@ async function openDetail(module) {
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: "index", intersect: false },
-            plugins: {
-                legend: { display: true, position: 'top' }
-            },
+            plugins: { legend: { display: false } },
             scales: {
-                x: { grid: { display: false }, ticks: { maxTicksLimit: 6, font: { size: 8 } } },
-                y: { grid: { color: "#eeeeee" }, ticks: { font: { size: 8 } } }
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 6, color: "#64748b", font: { size: 9 } } },
+                y: { grid: { color: "rgba(51, 65, 85, 0.2)" }, ticks: { color: "#64748b", font: { size: 9 } } }
             }
         }
     });
 
     $("burnTime").textContent = "--";
-    checkAlarms(module, reading);
 }
 
 function updateDetail(module) {
     const reading = state.readings.get(module);
-
     if (!isOnline(reading)) {
         closeDetail();
         return;
     }
 
-    $("detailTemp").textContent = temperature(reading.canal_1);
+    $("detailTemp").innerHTML = `${numberValue(reading.canal_1)?.toLocaleString("pt-BR") || '--'}<span class="unit-detail">°C</span>`;
     $("pCanal1").textContent = temperature(reading.canal_1);
     $("pCanal2").textContent = temperature(reading.canal_2);
     $("pHora").textContent = time(reading.created_at);
-
-    update3DOvenTemp(reading.canal_1);
-    checkAlarms(module, reading);
 }
 
 function closeDetail() {
     state.selectedModule = null;
-    document.body.classList.remove("alarm-active");
-
-    if (state.three.animId) cancelAnimationFrame(state.three.animId);
-    if (state.chart) { state.chart.destroy(); state.chart = null; }
-
+    if (state.chart) {
+        state.chart.destroy();
+        state.chart = null;
+    }
     $("detailView").classList.add("hidden");
     $("homeView").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
-
     renderHome();
 }
 
 $("backBtn").onclick = closeDetail;
 $("homeNav").onclick = closeDetail;
 
+// Rotina cíclica de leitura do banco de dados (a cada 12 segundos)
 setInterval(loadLatest, 12000);
 
 async function init() {
     try {
         await loadOvens();
         await loadLatest();
+        console.log("[ThermoLink] Engine de telemetria inicializada com sucesso.");
     } catch (error) {
-        $("ovenGrid").innerHTML = `<div class="empty">Não foi possível carregar os fornos.</div>`;
+        console.error("[ThermoLink] Falha catastrófica de carregamento:", error);
+        $("ovenGrid").innerHTML = `<div class="empty">Falha na conexão com o servidor de banco de dados.</div>`;
     }
 }
 

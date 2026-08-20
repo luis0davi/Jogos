@@ -2,137 +2,613 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThermoLink - Monitoramento Industrial</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Dependências oficiais via CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#071b2b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ThermoLink • Monitor de Fornos</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+
+    <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="app">
-        
-        <!-- BARRA SUPERIOR DE STATUS -->
-        <header class="topbar">
-            <div class="logo-container">
-                <div class="logo">THERMOLINK</div>
-                <div class="subtitle">Controle em Tempo Real</div>
+<div class="mobile-wrapper">
+
+    <!-- ========================================================
+         1. SPLASH / APRESENTAÇÃO
+    ========================================================= -->
+    <div id="splashScreen" class="splash-container">
+        <div class="splash-content">
+            <div class="logo-icon-box">
+                <i class="fa-solid fa-fire-flame-curved"></i>
             </div>
-            <div class="online-pill">
-                <span></span>
-                <div id="onlineCount">0 online</div>
+            <div class="splash-brand">ThermoLink</div>
+            <div class="splash-tagline">MONITOR DE FORNOS CERÂMICOS</div>
+            <p class="splash-subtitle">
+                Acompanhe a curva térmica e a queima dos seus fornos em tempo real direto do seu smartphone.
+            </p>
+            <button class="btn-splash-enter" onclick="irParaLogin()">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                Acessar Meus Fornos
+            </button>
+            <div class="splash-footer-info">
+                <span>Versão 2.4 Mobile • Telemetria Industrial</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         2. TELA DE AUTENTICAÇÃO / LOGIN DO CLIENTE
+    ========================================================= -->
+    <div id="loginScreen" class="login-container hidden">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="login-icon">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
+                </div>
+                <h2>Acesso da Cerâmica</h2>
+                <p>Insira os dados fornecidos pelo suporte ThermoLink para monitorar seus fornos</p>
+            </div>
+
+            <form id="loginForm" onsubmit="realizarLogin(event)" class="login-form">
+                <div class="input-group">
+                    <label for="loginUser">
+                        <i class="fa-solid fa-industry"></i>
+                        Usuário
+                    </label>
+                    <input 
+                        type="text" 
+                        id="loginUser" 
+                        placeholder="Ex: ceramica" 
+                        autocomplete="username" 
+                        required
+                    >
+                </div>
+
+                <div class="input-group">
+                    <label for="loginPassword">
+                        <i class="fa-solid fa-key"></i>
+                        Senha de Acesso
+                    </label>
+                    <div class="password-wrapper">
+                        <input 
+                            type="password" 
+                            id="loginPassword" 
+                            placeholder="Digite sua senha" 
+                            autocomplete="current-password" 
+                            required
+                        >
+                        <button type="button" class="btn-toggle-pwd" onclick="toggleSenha('loginPassword')">
+                            <i class="fa-regular fa-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="remember-row">
+                    <label class="remember-label">
+                        <input type="checkbox" id="rememberMe" checked>
+                        <span>Lembrar neste celular</span>
+                    </label>
+                </div>
+
+                <div id="loginError" class="login-error-msg hidden">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Usuário ou senha incorretos.</span>
+                </div>
+
+                <button type="submit" id="btnLoginSubmit" class="btn-login-submit">
+                    <span>Entrar no Monitor</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </form>
+
+            <div class="login-quick-hint">
+                <p>Acesso rápido de demonstração:</p>
+                <div class="hint-chips">
+                    <button type="button" class="hint-chip" onclick="preencherLogin('ceramica', 'forno2026')">
+                        <i class="fa-solid fa-user-check text-orange"></i>
+                        Entrar como: <b>ceramica</b> (senha: forno2026)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         3. APLICATIVO PRINCIPAL (PAINEL DO CLIENTE)
+    ========================================================= -->
+    <div id="mainApp" class="app-main hidden">
+
+        <!-- BANNER DE MODO SUPORTE (QUANDO ACESSADO VIA PAINEL MASTER) -->
+        <div id="impersonateBanner" class="impersonate-banner hidden">
+            <div class="imp-info">
+                <i class="fa-solid fa-user-shield text-blue"></i>
+                <span><b>Modo Suporte Admin:</b> Visualizando <strong id="impClientName">Cerâmica</strong></span>
+            </div>
+            <button class="btn-imp-exit" onclick="sairModoSuporte()">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Voltar ao Painel Master</span>
+            </button>
+        </div>
+
+        <!-- HEADER MOBILE -->
+        <header class="mobile-header">
+            <div class="header-left">
+                <button id="headerBackBtn" class="header-icon-btn hidden" onclick="voltarListaFornos()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="header-brand-info">
+                    <div id="headerTitle" class="header-title">ThermoLink</div>
+                    <div id="headerSubtitle" class="header-subtitle">
+                        <span class="user-chip" id="currentUserDisplay">Cerâmica</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="live-pill" id="liveSyncPill" title="Sincronização em tempo real">
+                    <span class="pulse-dot"></span>
+                    <span class="live-label">ONLINE</span>
+                </div>
+                <button class="header-icon-btn" onclick="atualizarManual()" title="Atualizar dados agora">
+                    <i class="fa-solid fa-rotate" id="refreshIcon"></i>
+                </button>
             </div>
         </header>
 
-        <main>
+        <!-- ====================================================
+             ABA 1: LISTA DE FORNOS (HOME)
+        ===================================================== -->
+        <section id="screenFornos" class="screen-view active">
             
-            <!-- SEÇÃO DE COMPONENTE: PAINEL HOME (GRID) -->
-            <section id="homeView">
-                <div class="page-title">
-                    <h1>Módulos Ativos</h1>
-                    <span>Histórico Ativo</span>
+            <!-- CABEÇALHO DA LISTAGEM DE FORNOS -->
+            <div class="section-title-bar">
+                <div class="section-title-left">
+                    <i class="fa-solid fa-fire text-orange"></i>
+                    <h2>Fornos em Operação</h2>
                 </div>
-                <div id="ovenGrid" class="oven-grid">
-                    <div class="empty">Buscando telemetria dos sensores...</div>
+                <span class="badge-online-count" id="statOnlineCount">0 Fornos</span>
+            </div>
+
+            <!-- LISTAGEM DOS FORNOS ONLINE -->
+            <div id="listaFornos" class="ovens-list-container">
+                <div class="loading-box">
+                    <div class="app-spinner"></div>
+                    <p>Consultando sensores no Supabase...</p>
                 </div>
-            </section>
+            </div>
 
-            <!-- SEÇÃO DE COMPONENTE: TELA DETALHADA DO FORNO -->
-            <section id="detailView" class="hidden">
-                <div class="back-btn-box">
-                    <button id="backBtn" class="back-link">← Voltar para a listagem</button>
-                </div>
+        </section>
 
-                <header class="detail-header">
-                    <span class="eyebrow">Diagnóstico do Equipamento</span>
-                    <h1 id="detailName">Forno --</h1>
-                    <div id="detailTemp" class="main-temp">--<span class="unit-detail">°C</span></div>
-                </header>
-
-                <!-- Informações Detalhadas Básicas -->
-                <div class="parameters">
-                    <div class="parameter">
-                        <span>Canal 01 (Teto)</span>
-                        <strong id="pCanal1">-- °C</strong>
-                    </div>
-                    <div class="parameter">
-                        <span>Canal 02 (Base)</span>
-                        <strong id="pCanal2">-- °C</strong>
-                    </div>
-                    <div class="parameter">
-                        <span>ID do Módulo</span>
-                        <strong id="pModulo">--</strong>
-                    </div>
-                    <div class="parameter">
-                        <span>Último Pacote</span>
-                        <strong id="pHora">--</strong>
-                    </div>
+        <!-- ====================================================
+             TELA DETALHADA: FORNO SELECIONADO COM VISUAL 3D
+        ===================================================== -->
+        <section id="screenFornoDetalhe" class="screen-view hidden">
+            
+            <!-- CARD COM FORNO CERÂMICO 3D E SENSORES INTEGRADOS -->
+            <div class="kiln-3d-card">
+                <div class="kiln-top-meta">
+                    <span class="gauge-module-tag" id="gaugeModuleTag">MÓDULO 01</span>
+                    <span class="status-indicator-badge">
+                        <span class="pulse-dot"></span>
+                        <span id="gaugeStatusText">Em Operação</span>
+                    </span>
                 </div>
 
-                <!-- Painel de Cálculos e Estatísticas -->
-                <div class="parameters">
-                    <div class="parameter">
-                        <span>Temperatura Mínima</span>
-                        <strong id="calcMin" style="color: #64748b;">--</strong>
+                <!-- IMAGEM DO FORNO 3D COM OVERLAYS DE TEMPERATURA -->
+                <div class="kiln-3d-visual-container">
+                    <img src="nova imagen de um forno.png" alt="Forno Cerâmico ThermoLink" class="kiln-3d-image">
+                    
+                    <!-- TAG DO SENSOR SUPERIOR (CANAL 1) -->
+                    <div class="sensor-overlay-tag overlay-top">
+                        <div class="overlay-tag-header">
+                            <span class="sensor-dot c1"></span>
+                            <span>CANAL 1 (SUPERIOR)</span>
+                        </div>
+                        <div class="overlay-tag-temp text-orange" id="gaugeMainTemp">-- °C</div>
                     </div>
-                    <div class="parameter">
-                        <span>Média do Ciclo</span>
-                        <strong id="calcMed" style="color: #fbbf24;">--</strong>
-                    </div>
-                    <div class="parameter">
-                        <span>Temperatura Máxima</span>
-                        <strong id="calcMax" style="color: #ef4444;">--</strong>
+
+                    <!-- TAG DO SENSOR INFERIOR (CANAL 2) -->
+                    <div class="sensor-overlay-tag overlay-bottom">
+                        <div class="overlay-tag-header">
+                            <span class="sensor-dot c2"></span>
+                            <span>CANAL 2 (INFERIOR)</span>
+                        </div>
+                        <div class="overlay-tag-temp text-blue" id="gaugeC2Sub">-- °C</div>
                     </div>
                 </div>
 
-                <!-- Painel com Gráfico Principal Cruzado -->
-                <div class="panel">
-                    <div class="panel-title">
-                        <h2>Curva Térmica Analítica</h2>
-                        <span>Tempo Real (Duplo Canal)</span>
+                <div class="gauge-footer-meta">
+                    <div class="gauge-meta-item">
+                        <span>ÚLTIMA LEITURA</span>
+                        <strong id="gaugeLastTime">--:--:--</strong>
                     </div>
-                    <div class="chart-box">
-                        <canvas id="detailChart"></canvas>
+                    <div class="gauge-meta-item" style="text-align: right;">
+                        <span>DIFERENCIAL (ΔT)</span>
+                        <strong id="gaugeDeltaT" class="text-orange">-- °C</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-ABAS DO FORNO -->
+            <div class="sub-tabs-bar">
+                <button class="sub-tab-btn active" onclick="trocarSubAba('tempoReal')">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    Tempo Real
+                </button>
+                <button class="sub-tab-btn" onclick="trocarSubAba('grafico')">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Curva Térmica
+                </button>
+                <button class="sub-tab-btn" onclick="trocarSubAba('leituras')">
+                    <i class="fa-solid fa-list-ul"></i>
+                    Leituras
+                </button>
+            </div>
+
+            <!-- CONTEÚDO SUB-ABA 1: TEMPO REAL -->
+            <div id="subAbaTempoReal" class="sub-tab-content active">
+                <div class="sensors-grid-duo">
+                    <div class="sensor-box sensor-c1">
+                        <div class="sensor-header">
+                            <span class="sensor-dot c1"></span>
+                            <span class="sensor-title">Canal 1 • Superior</span>
+                        </div>
+                        <div class="sensor-value text-orange" id="cardValC1">-- °C</div>
+                        <div class="sensor-stats">
+                            <span>Máx: <b id="subStatC1Max">--</b></span>
+                            <span>Mín: <b id="subStatC1Min">--</b></span>
+                        </div>
+                    </div>
+
+                    <div class="sensor-box sensor-c2">
+                        <div class="sensor-header">
+                            <span class="sensor-dot c2"></span>
+                            <span class="sensor-title">Canal 2 • Inferior</span>
+                        </div>
+                        <div class="sensor-value text-blue" id="cardValC2">-- °C</div>
+                        <div class="sensor-stats">
+                            <span>Máx: <b id="subStatC2Max">--</b></span>
+                            <span>Mín: <b id="subStatC2Min">--</b></span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Painel de Duração do Processo -->
-                <div class="panel">
-                    <div class="panel-title">
-                        <h2>Tempo de Queima</h2>
-                        <span>Processamento de Ciclo</span>
+                <div class="card-dark summary-box">
+                    <div class="card-dark-header">
+                        <i class="fa-solid fa-fire text-orange"></i>
+                        <span>Resumo da Queima no Período</span>
                     </div>
-                    <div class="burn-box">
-                        <strong id="burnTime">--</strong>
-                        <p>O intervalo analítico de queima é inferido assim que os limites iniciais e finais forem configurados no ecossistema.</p>
+                    <div class="stats-grid-quad">
+                        <div class="quad-item">
+                            <span class="quad-lbl">Média do Forno</span>
+                            <strong class="quad-val" id="quadAvg">-- °C</strong>
+                        </div>
+                        <div class="quad-item">
+                            <span class="quad-lbl">Pico Atingido</span>
+                            <strong class="quad-val text-orange" id="quadMax">-- °C</strong>
+                        </div>
+                        <div class="quad-item">
+                            <span class="quad-lbl">Menor Leitura</span>
+                            <strong class="quad-val text-blue" id="quadMin">-- °C</strong>
+                        </div>
+                        <div class="quad-item">
+                            <span class="quad-lbl">Registros</span>
+                            <strong class="quad-val" id="quadCount">--</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTEÚDO SUB-ABA 2: GRÁFICO / CURVA TÉRMICA -->
+            <div id="subAbaGrafico" class="sub-tab-content hidden">
+                <div class="card-dark chart-card">
+                    <div class="chart-header-row">
+                        <div>
+                            <div class="chart-title">Curva de Temperatura</div>
+                            <div class="chart-sub" id="chartPointCount">Carregando dados...</div>
+                        </div>
+
+                        <!-- Filtros do Gráfico -->
+                        <div class="chart-pill-group" id="chartChannelFilter">
+                            <button class="pill-btn active" onclick="filtrarCanaisGrafico('all')">Ambos</button>
+                            <button class="pill-btn" onclick="filtrarCanaisGrafico('c1')">C1</button>
+                            <button class="pill-btn" onclick="filtrarCanaisGrafico('c2')">C2</button>
+                        </div>
+                    </div>
+
+                    <div class="chart-canvas-box">
+                        <canvas id="detailChartCanvas"></canvas>
+                    </div>
+
+                    <div class="chart-legend-custom">
+                        <div class="legend-row">
+                            <span class="legend-color legend-c1"></span>
+                            <span>Canal 1 - Superior (Laranja)</span>
+                        </div>
+                        <div class="legend-row">
+                            <span class="legend-color legend-c2"></span>
+                            <span>Canal 2 - Inferior (Azul)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTEÚDO SUB-ABA 3: LEITURAS / HISTÓRICO -->
+            <div id="subAbaLeituras" class="sub-tab-content hidden">
+                <div class="card-dark">
+                    <div class="card-dark-header">
+                        <i class="fa-solid fa-clock-rotate-left text-orange"></i>
+                        <span>Últimos Registros do Módulo</span>
+                    </div>
+
+                    <div class="table-scroll-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Horário</th>
+                                    <th>Canal 1 (C1)</th>
+                                    <th>Canal 2 (C2)</th>
+                                    <th>ΔT (Diferencial)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailTableBody">
+                                <tr>
+                                    <td colspan="4" class="table-empty-msg">Nenhum dado recente.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ====================================================
+             ABA 2: ANÁLISE DETALHADA DAS QUEIMAS (COM FILTROS DE TEMPO E AMOSTRAGEM)
+        ===================================================== -->
+        <section id="screenHistorico" class="screen-view hidden">
+            
+            <!-- SELETOR DE FORNO PARA ANÁLISE -->
+            <div class="card-dark analysis-header-card">
+                <div class="analysis-select-row">
+                    <label for="analysisKilnSelect">
+                        <i class="fa-solid fa-fire text-orange"></i>
+                        Forno em Análise:
+                    </label>
+                    <select id="analysisKilnSelect" onchange="trocarFornoAnalise(this.value)">
+                        <option value="">Carregando fornos...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- BARRA DE FILTROS: TEMPO (HORAS) & AMOSTRAGEM -->
+            <div class="card-dark filters-control-card">
+                
+                <!-- FILTRO DE PERÍODO / TEMPO (HORAS) -->
+                <div class="filter-row">
+                    <span class="filter-row-title"><i class="fa-regular fa-clock text-orange"></i> Período:</span>
+                    <div class="filter-pill-scroll" id="anTimeFilter">
+                        <button class="pill-btn" onclick="filtrarTempoAnalise(6, this)">6h</button>
+                        <button class="pill-btn" onclick="filtrarTempoAnalise(24, this)">24h</button>
+                        <button class="pill-btn" onclick="filtrarTempoAnalise(48, this)">48h</button>
+                        <button class="pill-btn" onclick="filtrarTempoAnalise(72, this)">72h</button>
+                        <button class="pill-btn active" onclick="filtrarTempoAnalise('all', this)">Tudo</button>
                     </div>
                 </div>
 
-                <!-- Painel de Histórico Físico Recente -->
-                <div class="panel">
-                    <div class="panel-title">
-                        <h2>Registros Recentes</h2>
-                        <span id="readingCount">0 registros</span>
-                    </div>
-                    <div id="historyList" class="history-list">
-                        <!-- Injetado via Javascript -->
+                <!-- FILTRO DE QUANTIDADE DE LEITURAS NA AMOSTRAGEM -->
+                <div class="filter-row">
+                    <span class="filter-row-title"><i class="fa-solid fa-chart-simple text-blue"></i> Amostras:</span>
+                    <div class="filter-pill-scroll" id="anSampleFilter">
+                        <button class="pill-btn" onclick="filtrarAmostragemAnalise(100, this)">100 pts</button>
+                        <button class="pill-btn" onclick="filtrarAmostragemAnalise(250, this)">250 pts</button>
+                        <button class="pill-btn" onclick="filtrarAmostragemAnalise(500, this)">500 pts</button>
+                        <button class="pill-btn active" onclick="filtrarAmostragemAnalise(1000, this)">1000 pts</button>
                     </div>
                 </div>
-            </section>
 
-        </main>
+            </div>
 
-        <!-- BARRA DE NAVEGAÇÃO DE BASE -->
-        <nav class="bottom-nav">
-            <button id="homeNav">
-                <b>⌂</b>
-                <span>Início</span>
+            <!-- ESTATÍSTICAS COMPLETAS (PICO MÁXIMO, MÍNIMO, MÉDIA E AMOSTRAGEM) -->
+            <div class="analysis-stats-grid">
+                <div class="analysis-stat-card">
+                    <span class="analysis-stat-lbl">Pico Máximo</span>
+                    <strong class="analysis-stat-val text-orange" id="anStatMax">-- °C</strong>
+                    <span class="analysis-stat-meta">Maior temperatura</span>
+                </div>
+                <div class="analysis-stat-card">
+                    <span class="analysis-stat-lbl">Pico Mínimo</span>
+                    <strong class="analysis-stat-val text-blue" id="anStatMin">-- °C</strong>
+                    <span class="analysis-stat-meta">Menor temperatura</span>
+                </div>
+                <div class="analysis-stat-card">
+                    <span class="analysis-stat-lbl">Média de Queima</span>
+                    <strong class="analysis-stat-val" id="anStatAvg">-- °C</strong>
+                    <span class="analysis-stat-meta">Média no período</span>
+                </div>
+                <div class="analysis-stat-card">
+                    <span class="analysis-stat-lbl">Amostragem</span>
+                    <strong class="analysis-stat-val text-green" id="anStatCount">--</strong>
+                    <span class="analysis-stat-meta" id="anStatPeriod">Leituras filtradas</span>
+                </div>
+            </div>
+
+            <!-- PAINEL DO GRÁFICO DE ANÁLISE -->
+            <div class="card-dark chart-card">
+                <div class="chart-header-row">
+                    <div>
+                        <div class="chart-title">Curva Térmica Detalhada</div>
+                        <div class="chart-sub" id="anChartSub">Análise multicanal contínua</div>
+                    </div>
+
+                    <!-- Controles de Canais -->
+                    <div class="chart-pill-group" id="anChannelFilter">
+                        <button class="pill-btn active" onclick="filtrarCanaisAnalise('all')">Ambos</button>
+                        <button class="pill-btn" onclick="filtrarCanaisAnalise('c1')">C1</button>
+                        <button class="pill-btn" onclick="filtrarCanaisAnalise('c2')">C2</button>
+                    </div>
+                </div>
+
+                <div class="chart-canvas-box" style="height: 280px;">
+                    <canvas id="analysisChartCanvas"></canvas>
+                </div>
+
+                <div class="chart-legend-custom">
+                    <div class="legend-row">
+                        <span class="legend-color legend-c1"></span>
+                        <span>Canal 1 - Superior</span>
+                    </div>
+                    <div class="legend-row">
+                        <span class="legend-color legend-c2"></span>
+                        <span>Canal 2 - Inferior</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTÓRICO DAS LEITURAS COM FILTRO DE LINHAS -->
+            <div class="card-dark">
+                <div class="table-header-with-filter">
+                    <div class="card-dark-header" style="margin-bottom: 0;">
+                        <i class="fa-solid fa-list-check text-orange"></i>
+                        <span>Tabela das Leituras Analisadas</span>
+                    </div>
+
+                    <div class="table-limit-filter">
+                        <span>Exibir:</span>
+                        <select id="tableRowLimitSelect" onchange="trocarLimiteTabela(this.value)">
+                            <option value="25">25 linhas</option>
+                            <option value="50">50 linhas</option>
+                            <option value="100">100 linhas</option>
+                            <option value="all">Todas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-scroll-wrapper" style="max-height: 280px;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Horário</th>
+                                <th>Canal 1</th>
+                                <th>Canal 2</th>
+                                <th>ΔT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="anTableBody">
+                            <tr>
+                                <td colspan="4" class="table-empty-msg">Carregando dados...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Aba Alertas removida -->
+
+        <!-- ====================================================
+             ABA 4: CONFIGURAÇÕES & ACESSO
+        ===================================================== -->
+        <section id="screenConfig" class="screen-view hidden">
+            
+            <!-- PERFIL DA CERÂMICA -->
+            <div class="card-dark profile-card">
+                <div class="profile-avatar">
+                    <i class="fa-solid fa-industry"></i>
+                </div>
+                <div class="profile-meta">
+                    <h3 id="profileName">Cerâmica Cliente</h3>
+                    <span class="profile-badge" id="profileRole">Acesso Concedido</span>
+                </div>
+            </div>
+
+            <!-- SOBRE & LOGOUT -->
+            <div class="card-dark">
+                <div class="card-dark-header">
+                    <i class="fa-solid fa-circle-info text-blue"></i>
+                    <span>Sobre o ThermoLink</span>
+                </div>
+                <div class="info-row">
+                    <span>Aparelho</span>
+                    <b>ThermoLink IoT Multi-Sensor</b>
+                </div>
+                <div class="info-row">
+                    <span>Versão do App</span>
+                    <b>v2.4.0 Mobile</b>
+                </div>
+                <div class="info-row">
+                    <span>Banco de Dados</span>
+                    <b>Supabase Cloud Realtime</b>
+                </div>
+
+                <button class="btn-logout" onclick="realizarLogout()">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    Desconectar / Trocar de Conta
+                </button>
+            </div>
+
+        </section>
+
+        <!-- ====================================================
+             BARRA DE NAVEGAÇÃO INFERIOR MOBILE (BOTTOM TABS)
+        ===================================================== -->
+        <nav class="bottom-tab-bar">
+            <button class="tab-item active" id="tabNavFornos" onclick="navegarAba('fornos')">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+                <span>Fornos</span>
+            </button>
+            <button class="tab-item" id="tabNavHistorico" onclick="navegarAba('historico')">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Análise</span>
+            </button>
+            <button class="tab-item" id="tabNavConfig" onclick="navegarAba('config')">
+                <i class="fa-solid fa-gear"></i>
+                <span>Acesso</span>
             </button>
         </nav>
 
     </div>
 
-    <script src="app.js"></script>
+</div>
+
+<!-- ========================================================
+     OVERLAY DE BLOQUEIO POR INADIMPLÊNCIA / SUSPENSÃO
+========================================================= -->
+<div id="clientBlockedOverlay" class="modal-overlay hidden" style="z-index: 99999;">
+    <div class="modal-card" style="text-align: center; align-items: center; padding: 32px 24px;">
+        <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--red); color: var(--red); display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 12px;">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 style="font-size: 18px; font-weight: 800; color: #ffffff;">Acesso Temporariamente Suspenso</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 8px 0 20px; line-height: 1.5;">
+            O monitoramento dos fornos desta cerâmica foi suspenso temporariamente pela administração do sistema.
+        </p>
+        <div style="background: var(--bg-secondary); border-radius: 10px; padding: 12px; font-size: 11px; color: var(--text-muted); margin-bottom: 20px;">
+            Entre em contato com o suporte técnico da <b>ThermoLink</b> para regularizar sua assinatura e reativar seus aparelhos.
+        </div>
+        <button class="btn-logout" onclick="realizarLogout()" style="width: 100%;">Voltar à Tela de Login</button>
+    </div>
+</div>
+
+<!-- Scripts da Aplicação -->
+<script src="app.js"></script>
+
 </body>
 </html>

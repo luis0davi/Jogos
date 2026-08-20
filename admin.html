@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="#07121f">
+    <title>ThermoLink • Painel Master Admin</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome 6.5.2 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+
+    <!-- QRCode.js para Geração de Etiquetas de Hardware -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Estilos do Painel Master -->
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- ========================================================
+     MODAL DE AUTENTICAÇÃO MASTER ADMIN (SE NÃO LOGADO)
+========================================================= -->
+<div id="adminLoginModal" class="admin-auth-overlay hidden">
+    <div class="admin-auth-card">
+        <div class="auth-brand-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2>Painel Master Admin</h2>
+        <p>Acesso exclusivo para controle geral do ecossistema ThermoLink</p>
+
+        <form onsubmit="autenticarMasterAdmin(event)">
+            <div class="form-group">
+                <label>Usuário Master</label>
+                <input type="text" id="adminAuthUser" placeholder="admin" value="admin" required>
+            </div>
+            <div class="form-group">
+                <label>Senha Master</label>
+                <input type="password" id="adminAuthPass" placeholder="Senha master" value="thermolink2026" required>
+            </div>
+            <div id="adminAuthError" class="auth-error-msg hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Credenciais master incorretas.</span>
+            </div>
+            <button type="submit" class="btn-master-login">
+                <span>Entrar no Painel Master</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="auth-footer-note">
+            <i class="fa-solid fa-lock"></i>
+            Área restrita de gestão de clientes, faturamento e hardware.
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     ESTRUTURA PRINCIPAL DO PAINEL MASTER ADMIN
+========================================================= -->
+<div class="admin-layout" id="adminMainLayout">
+
+    <!-- SIDEBAR DE NAVEGAÇÃO -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <div class="brand-badge-box">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+            </div>
+            <div class="brand-meta">
+                <div class="brand-title">ThermoLink</div>
+                <div class="brand-tag">MASTER ADMIN</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">GERAL & NEGÓCIOS</div>
+            <button class="nav-btn active" onclick="trocarSecaoAdmin('dashboard')">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Dashboard Geral</span>
+            </button>
+            <button class="nav-btn" onclick="trocarSecaoAdmin('clientes')">
+                <i class="fa-solid fa-industry"></i>
+                <span>Cerâmicas & Clientes</span>
+                <span class="nav-badge" id="sidebarBadgeClients">3</span>
+            </button>
+
+            <div class="nav-section-label">HARDWARE & PRODUÇÃO</div>
+            <button class="nav-btn" onclick="trocarSecaoAdmin('dispositivos')">
+                <i class="fa-solid fa-microchip"></i>
+                <span>Fábrica & QR Codes</span>
+            </button>
+            <button class="nav-btn" onclick="trocarSecaoAdmin('telemetria')">
+                <i class="fa-solid fa-tower-broadcast"></i>
+                <span>NOC & Telemetria</span>
+                <span class="nav-badge badge-green" id="sidebarBadgeOnline">Online</span>
+            </button>
+
+            <div class="nav-section-label">GESTÃO & SISTEMA</div>
+            <button class="nav-btn" onclick="trocarSecaoAdmin('planos')">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Planos & Retenção</span>
+            </button>
+            <button class="nav-btn" onclick="trocarSecaoAdmin('ota')">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Central OTA & Firmware</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="admin-profile-chip">
+                <div class="admin-avatar">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div class="admin-details">
+                    <b id="adminProfileName">Administrador Master</b>
+                    <span>Superuser Acesso Total</span>
+                </div>
+            </div>
+            <div class="sidebar-actions">
+                <a href="index.html" class="btn-sidebar-link" title="Abrir App do Cliente">
+                    <i class="fa-solid fa-mobile-screen"></i>
+                    <span>Abrir App Cliente</span>
+                </a>
+                <button class="btn-sidebar-logout" onclick="logoutAdmin()" title="Sair do Painel Master">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+    <main class="admin-main-content">
+
+        <!-- TOPBAR SUPERIOR -->
+        <header class="admin-topbar">
+            <div class="topbar-left">
+                <button class="btn-mobile-sidebar-toggle" onclick="toggleSidebarMobile()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="page-context">
+                    <h1 id="adminPageHeading">Dashboard Geral</h1>
+                    <span id="adminPageSubheading">Visão executiva, custos de infraestrutura e tráfego em tempo real</span>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <div class="server-status-card" title="Status da Conexão Supabase">
+                    <span class="pulse-indicator"></span>
+                    <span>SUPABASE CLOUD: <b>ATIVO</b></span>
+                </div>
+                <button class="btn-action-refresh" onclick="sincronizarDadosAdmin()" title="Sincronizar dados agora">
+                    <i class="fa-solid fa-rotate" id="adminRefreshIcon"></i>
+                    <span>Sincronizar</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTAINER DAS SEÇÕES -->
+        <div class="admin-sections-wrapper">
+
+            <!-- ========================================================
+                 SEÇÃO 1: DASHBOARD GERAL (VISÃO DE NEGÓCIOS & CUSTOS)
+            ========================================================= -->
+            <section id="secDashboard" class="admin-section active">
+                
+                <!-- CARDS DE KPIS DO NEGÓCIO -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-clients">
+                            <i class="fa-solid fa-industry"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Cerâmicas Cadastradas</span>
+                            <div class="kpi-value" id="kpiTotalClients">--</div>
+                            <div class="kpi-trend trend-up">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                <span id="kpiActiveClientsCount">-- ativas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-hardware">
+                            <i class="fa-solid fa-microchip"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Dispositivos no Brasil</span>
+                            <div class="kpi-value" id="kpiTotalDevices">--</div>
+                            <div class="kpi-trend trend-green">
+                                <i class="fa-solid fa-wifi"></i>
+                                <span id="kpiOnlineDevicesCount">-- transmitindo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-revenue">
+                            <i class="fa-solid fa-dollar-sign"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Faturamento Estimado (MRR)</span>
+                            <div class="kpi-value text-green" id="kpiTotalRevenue">R$ --</div>
+                            <div class="kpi-trend trend-neutral">
+                                <i class="fa-regular fa-credit-card"></i>
+                                <span>Mensalidades SaaS</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box icon-alerts">
+                            <i class="fa-solid fa-bell"></i>
+                        </div>
+                        <div class="kpi-body">
+                            <span class="kpi-label">Alertas Críticos (24h)</span>
+                            <div class="kpi-value text-orange" id="kpiTotalAlerts">0</div>
+                            <div class="kpi-trend trend-neutral">
+                                <i class="fa-solid fa-shield-check"></i>
+                                <span>Sensores e Faixas</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRÁFICO DE TRÁFEGO SUPABASE & ATIVIDADE RECENTE -->
+                <div class="dashboard-duo-grid">
+                    <div class="panel-box traffic-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Volume de Leituras Trafegadas (24 Horas)</h3>
+                                <p>Monitoramento de chamadas e consumo do banco de dados Supabase</p>
+                            </div>
+                            <div class="tag-pill">Tempo Real</div>
+                        </div>
+                        <div class="traffic-chart-wrapper">
+                            <canvas id="trafficChartCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel-box recent-clients-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Atividade Recente das Cerâmicas</h3>
+                                <p>Últimos acessos e transmissão dos fornos</p>
+                            </div>
+                            <button class="btn-text-action" onclick="trocarSecaoAdmin('clientes')">Ver Todas</button>
+                        </div>
+                        <div class="activity-feed-list" id="activityFeedList">
+                            <!-- Gerado dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 2: GERENCIAMENTO DE CLIENTES (CERÂMICAS)
+            ========================================================= -->
+            <section id="secClientes" class="admin-section hidden">
+                
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Cerâmicas e Clientes Conectados</h3>
+                            <p>Gerencie contratos, permissões, senhas e acesse dashboards em modo suporte</p>
+                        </div>
+                        <button class="btn-primary-admin" onclick="abrirModalNovaCeramica()">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Cadastrar Nova Cerâmica</span>
+                        </button>
+                    </div>
+
+                    <!-- BARRA DE FILTROS -->
+                    <div class="table-toolbar">
+                        <div class="search-input-group">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="clientSearchInput" placeholder="Buscar por cerâmica, responsável ou cidade..." oninput="filtrarTabelaClientes(this.value)">
+                        </div>
+                        <div class="filter-pills">
+                            <button class="filter-pill active" onclick="filtrarStatusCliente('all', this)">Todos</button>
+                            <button class="filter-pill" onclick="filtrarStatusCliente('Ativo', this)">Ativos</button>
+                            <button class="filter-pill" onclick="filtrarStatusCliente('Bloqueado', this)">Bloqueados</button>
+                        </div>
+                    </div>
+
+                    <!-- TABELA DE CLIENTES -->
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Cerâmica / Cliente</th>
+                                    <th>Responsável</th>
+                                    <th>Localização</th>
+                                    <th>Plano</th>
+                                    <th>Fornos</th>
+                                    <th>Status</th>
+                                    <th>Último Acesso</th>
+                                    <th style="text-align: right;">Ações de Controle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientsTableBody">
+                                <!-- Gerado dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 3: FÁBRICA DE DISPOSITIVOS & GERADOR DE QR CODE
+            ========================================================= -->
+            <section id="secDispositivos" class="admin-section hidden">
+                
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Fábrica e Inventário de Dispositivos ThermoLink</h3>
+                            <p>Cadastre os aparelhos montados, gere QR Codes para as caixas e gerencie a vinculação aos fornos</p>
+                        </div>
+                        <button class="btn-primary-admin" onclick="abrirModalFabricarDispositivo()">
+                            <i class="fa-solid fa-microchip"></i>
+                            <span>Fabricar Novo Dispositivo</span>
+                        </button>
+                    </div>
+
+                    <div class="device-summary-cards">
+                        <div class="dev-summary-pill">
+                            <span class="pill-label">Total Fabricados</span>
+                            <strong id="sumDevTotal">--</strong>
+                        </div>
+                        <div class="dev-summary-pill">
+                            <span class="pill-label text-green">Vinculados & Operando</span>
+                            <strong class="text-green" id="sumDevLinked">--</strong>
+                        </div>
+                        <div class="dev-summary-pill">
+                            <span class="pill-label text-orange">Em Estoque (Prontos)</span>
+                            <strong class="text-orange" id="sumDevStock">--</strong>
+                        </div>
+                    </div>
+
+                    <!-- TABELA DE DISPOSITIVOS -->
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Número de Série</th>
+                                    <th>Modelo Hardware</th>
+                                    <th>Status Estoque</th>
+                                    <th>Cerâmica Vinculada</th>
+                                    <th>Forno Associado</th>
+                                    <th>Data Fabricação</th>
+                                    <th style="text-align: right;">QR Code & Controle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devicesTableBody">
+                                <!-- Gerado dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 4: MONITORAMENTO TÉCNICO & TELEMETRIA (NOC)
+            ========================================================= -->
+            <section id="secTelemetria" class="admin-section hidden">
+                
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Centro de Operações de Rede (NOC) - Telemetria de Hardware</h3>
+                            <p>Diagnóstico de sinal Wi-Fi/GPRS (RSSI), integridade dos termopares e alertas de falha física</p>
+                        </div>
+                        <div class="noc-status-badge">
+                            <span class="pulse-indicator"></span>
+                            <span>DIAGNÓSTICO AUTOMÁTICO ATIVO</span>
+                        </div>
+                    </div>
+
+                    <div class="telemetry-grid" id="telemetryGrid">
+                        <!-- Gerado dinamicamente com os módulos ativos -->
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 5: CONFIGURAÇÕES DE PLANOS, LIMITES E FATURAMENTO
+            ========================================================= -->
+            <section id="secPlanos" class="admin-section hidden">
+                
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Planos, Limites e Retenção do Banco de Dados</h3>
+                            <p>Defina regras de faturamento, quantidade de fornos permitidos e tempo de expiração do histórico</p>
+                        </div>
+                    </div>
+
+                    <div class="plans-grid">
+                        <div class="plan-card">
+                            <div class="plan-card-header">
+                                <div>
+                                    <h4>Plano Básico</h4>
+                                    <span class="plan-subtitle">Pequenas Cerâmicas</span>
+                                </div>
+                                <div class="plan-price">R$ 149<span>/mês</span></div>
+                            </div>
+                            <ul class="plan-features">
+                                <li><i class="fa-solid fa-check text-green"></i> Até <b>2 Fornos</b> simultâneos</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>3 Meses</b> de leituras</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Alertas por navegador</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Gráficos em tempo real</li>
+                            </ul>
+                            <button class="btn-plan-edit" onclick="editarPlano('basico')">Ajustar Regras</button>
+                        </div>
+
+                        <div class="plan-card plan-featured">
+                            <div class="plan-badge">MAIS POPULAR</div>
+                            <div class="plan-card-header">
+                                <div>
+                                    <h4>Plano Profissional</h4>
+                                    <span class="plan-subtitle">Médias Cerâmicas</span>
+                                </div>
+                                <div class="plan-price">R$ 299<span>/mês</span></div>
+                            </div>
+                            <ul class="plan-features">
+                                <li><i class="fa-solid fa-check text-green"></i> Até <b>6 Fornos</b> simultâneos</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>6 Meses</b> de leituras</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Suporte técnico prioritário NOC</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Curva térmica multicanal (1000 pts)</li>
+                            </ul>
+                            <button class="btn-plan-edit btn-plan-primary" onclick="editarPlano('pro')">Ajustar Regras</button>
+                        </div>
+
+                        <div class="plan-card">
+                            <div class="plan-card-header">
+                                <div>
+                                    <h4>Plano Enterprise</h4>
+                                    <span class="plan-subtitle">Grandes Indústrias Cerâmicas</span>
+                                </div>
+                                <div class="plan-price">R$ 599<span>/mês</span></div>
+                            </div>
+                            <ul class="plan-features">
+                                <li><i class="fa-solid fa-check text-green"></i> <b>Fornos Ilimitados</b></li>
+                                <li><i class="fa-solid fa-check text-green"></i> Retenção de <b>12 Meses</b> de histórico</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Atualizações OTA prioritárias</li>
+                                <li><i class="fa-solid fa-check text-green"></i> Relatórios executivos de queima</li>
+                            </ul>
+                            <button class="btn-plan-edit" onclick="editarPlano('enterprise')">Ajustar Regras</button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================================
+                 SEÇÃO 6: CENTRAL DE ATUALIZAÇÕES (OTA - OVER THE AIR)
+            ========================================================= -->
+            <section id="secOta" class="admin-section hidden">
+                
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Central de Atualizações de Firmware Remoto (OTA)</h3>
+                            <p>Envie novas versões de software para os dispositivos ESP32/ESP8266 sem precisar ir presencialmente à cerâmica</p>
+                        </div>
+                        <button class="btn-primary-admin" onclick="abrirModalDeployOTA()">
+                            <i class="fa-solid fa-rocket"></i>
+                            <span>Disparar Nova Versão OTA</span>
+                        </button>
+                    </div>
+
+                    <div class="ota-status-overview">
+                        <div class="ota-version-card">
+                            <span class="ota-lbl">Versão Atual de Produção</span>
+                            <div class="ota-val text-orange">v2.4.1 (ESP32-Industrial)</div>
+                            <span class="ota-sub">Liberada em 18/08/2026 • 98.4% dos aparelhos atualizados</span>
+                        </div>
+                        <div class="ota-version-card">
+                            <span class="ota-lbl">Versão Web / PWA</span>
+                            <div class="ota-val text-green">v2.4.0 Live Cloud</div>
+                            <span class="ota-sub">Sincronização em tempo real ativa com Supabase</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-table-wrapper" style="margin-top: 18px;">
+                        <h4 style="margin-bottom: 12px; font-size: 14px;">Histórico de Firmware Lançados</h4>
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Versão</th>
+                                    <th>Data de Liberação</th>
+                                    <th>Dispositivos Alvo</th>
+                                    <th>Descrição / Changelog</th>
+                                    <th>Taxa de Sucesso</th>
+                                    <th style="text-align: right;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><b>v2.4.1</b></td>
+                                    <td>18/08/2026</td>
+                                    <td>Todos os módulos (ESP32)</td>
+                                    <td>Filtro de ruído em alta temperatura e reconexão automática Wi-Fi.</td>
+                                    <td><span class="text-green">100% (Concluído)</span></td>
+                                    <td style="text-align: right;"><span class="badge-status-ativo">Estável</span></td>
+                                </tr>
+                                <tr>
+                                    <td><b>v2.4.0</b></td>
+                                    <td>10/08/2026</td>
+                                    <td>Módulos Alutal 01 a 31</td>
+                                    <td>Suporte a telemetria dual-channel para termopares Tipo K/S.</td>
+                                    <td><span class="text-green">100% (Concluído)</span></td>
+                                    <td style="text-align: right;"><span class="badge-status-ativo">Estável</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+<!-- ========================================================
+     MODAIS DO PAINEL MASTER
+========================================================= -->
+
+<!-- MODAL 1: CADASTRAR NOVA CERÂMICA -->
+<div id="modalNovaCeramica" class="modal-overlay hidden" onclick="fecharModalAdmin('modalNovaCeramica', event)">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-solid fa-industry text-orange"></i> Cadastrar Nova Cerâmica Cliente</h3>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalNovaCeramica', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="salvarNovaCeramica(event)">
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Nome da Cerâmica</label>
+                    <input type="text" id="ncNome" placeholder="Ex: Cerâmica Imperial" required>
+                </div>
+                <div class="form-group">
+                    <label>Responsável / Contato</label>
+                    <input type="text" id="ncResp" placeholder="Ex: Marcos Silva" required>
+                </div>
+            </div>
+
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Cidade / Estado</label>
+                    <input type="text" id="ncCidade" placeholder="Ex: Tatuí - SP" required>
+                </div>
+                <div class="form-group">
+                    <label>Plano Contratado</label>
+                    <select id="ncPlano">
+                        <option value="Profissional">Plano Profissional (Até 6 fornos - R$ 299/mês)</option>
+                        <option value="Básico">Plano Básico (Até 2 fornos - R$ 149/mês)</option>
+                        <option value="Enterprise">Plano Enterprise (Ilimitado - R$ 599/mês)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Usuário de Acesso do Cliente</label>
+                    <input type="text" id="ncUser" placeholder="Ex: imperial" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha de Acesso</label>
+                    <div class="pass-gen-box">
+                        <input type="text" id="ncPass" placeholder="Senha" required>
+                        <button type="button" class="btn-gen-code" onclick="gerarSenhaAleatoriaCliente()">Gerar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-dialog-actions">
+                <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalNovaCeramica', null)">Cancelar</button>
+                <button type="submit" class="btn-admin-submit">Salvar e Ativar Cerâmica</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: FABRICAR DISPOSITIVO & ETIQUETA QR CODE -->
+<div id="modalFabricarDispositivo" class="modal-overlay hidden" onclick="fecharModalAdmin('modalFabricarDispositivo', event)">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-solid fa-microchip text-orange"></i> Fabricar e Registrar Dispositivo</h3>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalFabricarDispositivo', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="salvarNovoDispositivo(event)">
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Número de Série (Gerado)</label>
+                    <div class="pass-gen-box">
+                        <input type="text" id="devSerial" placeholder="TLK-2026-XXXX" required>
+                        <button type="button" class="btn-gen-code" onclick="gerarSerialHardware()">Gerar</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Modelo do Hardware</label>
+                    <select id="devModelo">
+                        <option value="TLK-ESP32-DUAL">ThermoLink ESP32 Dual-Channel Industrial</option>
+                        <option value="TLK-ESP32-PRO">ThermoLink ESP32 Pro MAX6675</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row-duo">
+                <div class="form-group">
+                    <label>Vincular Imediatamente a uma Cerâmica?</label>
+                    <select id="devCeramicaVinculo">
+                        <option value="">-- Deixar em Estoque (Disponível) --</option>
+                        <!-- Popula dinamicamente com as cerâmicas cadastradas -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Número do Módulo / Forno</label>
+                    <input type="number" id="devModuloNum" min="1" max="31" placeholder="Ex: 1">
+                </div>
+            </div>
+
+            <div class="modal-dialog-actions">
+                <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalFabricarDispositivo', null)">Cancelar</button>
+                <button type="submit" class="btn-admin-submit">Salvar e Gerar QR Code</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 3: VISUALIZADOR & IMPRESSÃO DE ETIQUETA QR CODE -->
+<div id="modalEtiquetaQRCode" class="modal-overlay hidden" onclick="fecharModalAdmin('modalEtiquetaQRCode', event)">
+    <div class="modal-dialog modal-dialog-sm" onclick="event.stopPropagation()">
+        <div class="modal-dialog-header">
+            <h3><i class="fa-solid fa-qrcode text-orange"></i> Etiqueta do Aparelho Físico</h3>
+            <button class="btn-close-modal" onclick="fecharModalAdmin('modalEtiquetaQRCode', null)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="qr-label-printable" id="qrLabelPrintableArea">
+            <div class="qr-label-brand">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+                <span>THERMOLINK</span>
+            </div>
+            <div class="qr-code-canvas-box" id="qrCodeContainer"></div>
+            <div class="qr-serial-box">
+                <div class="qr-serial-code" id="lblSerialText">TLK-2026-0000</div>
+                <div class="qr-serial-sub">Telemetria Térmica Industrial</div>
+            </div>
+        </div>
+
+        <div class="qr-instructions">
+            Imprima esta etiqueta adesiva e cole diretamente na caixa plástica do aparelho antes de enviar ao cliente.
+        </div>
+
+        <div class="modal-dialog-actions">
+            <button type="button" class="btn-admin-cancel" onclick="fecharModalAdmin('modalEtiquetaQRCode', null)">Fechar</button>
+            <button type="button" class="btn-admin-submit" onclick="imprimirEtiquetaQRCode()">
+                <i class="fa-solid fa-print"></i>
+                <span>Imprimir Etiqueta</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts do Painel Master -->
+<script src="admin.js"></script>
+
+</body>
+</html>
